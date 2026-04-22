@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบันทึกการเยี่ยมบ้านนักเรียน</title>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // แทนที่คำสั่ง import ด้วยการดึงจาก Object ของ React
+    const { useState, useEffect, useCallback } = React;
+
+    // ═══ CONFIG — เปลี่ยน URL นี้หลัง Deploy Apps Script ═════════════════
+    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
+    const SCHOOL = "โรงเรียนป่าก้าง";
+    const YEAR = "2568";
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const api = {
+      async get(action, params = {}) {
+        const q = new URLSearchParams({ action, ...params }).toString();
+        try {
+          const r = await fetch(`${SCRIPT_URL}?${q}`);
+          return await r.json();
+        } catch { return { success: false, message: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้" }; }
+      },
+      async post(body) {
+        try {
+          const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "text/plain" } });
+          return await r.json();
+        } catch { return { success: false, message: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้" }; }
+      }
+    };
+
+    const HOUSE_COND = ["ดีมาก","ดี","ปานกลาง","ทรุดโทรม","ไม่ปลอดภัย"];
+    const REL_OPTS = ["อบอุ่นดีมาก","อบอุ่นดี","ปานกลาง","ไม่ค่อยอบอุ่น","มีปัญหา"];
+    const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
+    const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
+
+    const CSS = `
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'IBM Plex Sans Thai',sans-serif;background:#f4f1ec;color:#1c1c1e;line-height:1.6}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideTab{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+    .fu{animation:fadeUp .45s ease-out both}.fi{animation:fadeIn .35s ease-out}.st{animation:slideTab .3s ease-out}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#2980b9!important;box-shadow:0 0 0 3px #ebf5fb!important}
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#e8e5e0;border-radius:3px}
+    `;
+
+    const Ic = ({d,s=20,c="currentColor"}) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
+    const I = {
+      back:"M10 19l-7-7m0 0l7-7m-7 7h18",arrow:"M14 5l7 7m0 0l-7 7m7-7H3",
+      user:"M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+      lock:"M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z",
+      check:"M5 13l4 4L19 7",alert:"M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z",
+      eye:"M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
+      edit:"M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z",
+      logout:"M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
+      chart:"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+      search:"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+      camera:"M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z M15 13a3 3 0 11-6 0 3 3 0 016 0z",
+    };
+    const inp={width:"100%",padding:"12px 16px",borderRadius:10,border:"1.5px solid #e8e5e0",fontSize:14,fontFamily:"inherit",background:"#fafaf8",transition:"all .2s"};
+    const sel={...inp,appearance:"none",cursor:"pointer",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9a9e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 14px center"};
+    const Btn=({children,primary,accent,danger,small,...p})=><button {...p} style={{display:"inline-flex",alignItems:"center",gap:7,padding:small?"8px 14px":"11px 22px",borderRadius:10,fontFamily:"inherit",fontSize:small?13:14,fontWeight:500,cursor:"pointer",border:primary||accent?"none":"1.5px solid #e8e5e0",background:primary?"linear-gradient(135deg,#1a5276,#2980b9)":accent?"linear-gradient(135deg,#d4a24e,#c48a30)":danger?"#fdedec":"#fff",color:primary||accent?"#fff":danger?"#c0392b":"#1c1c1e",boxShadow:primary?"0 3px 10px rgba(26,82,118,.25)":accent?"0 3px 10px rgba(212,162,78,.3)":"none",transition:"all .2s",...p.style}}>{children}</button>;
+
+    const Toast=({msg,type,onClose})=>{useEffect(()=>{const t=setTimeout(onClose,3500);return()=>clearTimeout(t)},[onClose]);const c=type==="success"?"#27ae60":"#c0392b";return<div style={{position:"fixed",top:20,right:20,zIndex:9999,background:"#fff",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px rgba(0,0,0,.15)",display:"flex",alignItems:"center",gap:10,borderLeft:`4px solid ${c}`,animation:"fadeUp .3s ease-out"}}><Ic d={type==="success"?I.check:I.alert} s={18} c={c}/><span style={{fontSize:14,fontWeight:500}}>{msg}</span></div>};
+
+    const Field=({label,children})=><div style={{marginBottom:18}}><label style={{display:"block",fontSize:14,fontWeight:500,color:"#5a5a5e",marginBottom:7,textAlign:"center"}}>{label}</label>{children}</div>;
+    const STitle=({text,color="#1a5276"})=><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:22}}><div style={{width:4,height:26,borderRadius:2,background:color}}/><h3 style={{fontSize:16,fontWeight:600,color}}>{text}</h3></div>;
+
+    const Footer=()=><footer style={{background:"linear-gradient(135deg,#0e3a5c,#1a5276)",borderRadius:"20px 20px 0 0",padding:"20px 24px",marginTop:32,color:"rgba(255,255,255,.5)",fontSize:12,textAlign:"center"}}><div style={{fontWeight:600,color:"rgba(255,255,255,.8)",marginBottom:4}}>{SCHOOL}</div><div>© {YEAR} ระบบบันทึกการเยี่ยมบ้านนักเรียน</div></footer>;
+
+    const Spinner=()=><div style={{textAlign:"center",padding:60}}><div style={{width:32,height:32,border:"3px solid #e8e5e0",borderTopColor:"#1a5276",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 12px"}}/><span style={{color:"#9a9a9e",fontSize:14}}>กำลังโหลด...</span></div>;
+
+    // ═══ MAIN APP ════════════════════════════════════════════════════════
+    // ตัด export default ออก เพราะใช้ใน HTML โดยตรง
+    function App(){
+      const [page,setPage]=useState("login");
+      const [user,setUser]=useState(null);
+      const [selectedStudent,setSelectedStudent]=useState(null);
+      const [toast,setToast]=useState(null);
+
+      const logout=()=>{setUser(null);setPage("login");setSelectedStudent(null)};
+      const go=(p,stu)=>{setSelectedStudent(stu||null);setPage(p)};
+
+      return(
+        <div style={{minHeight:"100vh",background:"#f4f1ec"}}>
+          <style>{CSS}</style>
+          {toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}
+          <div style={{maxWidth:720,margin:"0 auto"}}>
+            {page==="login"&&<LoginPage onLogin={(u)=>{setUser(u);setPage("students")}} setToast={setToast}/>}
+            {page==="students"&&user&&<StudentListPage user={user} onSelect={(s)=>go("form",s)} onLogout={logout} setToast={setToast}/>}
+            {page==="form"&&user&&selectedStudent&&<VisitFormPage user={user} student={selectedStudent} onBack={()=>go("students")} onDone={()=>{go("students");setToast({msg:"บันทึกข้อมูลเยี่ยมบ้านสำเร็จ! 📧 ส่งอีเมลสรุปแล้ว",type:"success"})}} setToast={setToast}/>}
+          </div>
+        </div>
+      );
+    }
+
+    // ═══ LOGIN PAGE ══════════════════════════════════════════════════════
+    function LoginPage({onLogin,setToast}){
+      const [username,setUsername]=useState("");
+      const [password,setPassword]=useState("");
+      const [loading,setLoading]=useState(false);
+      const [shake,setShake]=useState(false);
+      const [offline,setOffline]=useState(SCRIPT_URL==="YOUR_GOOGLE_APPS_SCRIPT_URL");
+
+      const handleLogin=async()=>{
+        if(!username||!password){setToast({msg:"กรุณากรอกชื่อผู้ใช้และรหัสผ่าน",type:"error"});return}
+        if(offline){
+          // DEMO MODE — ใช้ข้อมูลจำลอง
+          const demoUsers={"krusom":{fullName:"นายสมชาย ใจดี",classLevel:"ป.1",role:"teacher"},"krusri":{fullName:"นางสาวศรี สวัสดิ์",classLevel:"ป.2",role:"teacher"},"kruwan":{fullName:"นางวรรณ ดีงาม",classLevel:"ป.3",role:"teacher"},"admin":{fullName:"ผู้ดูแลระบบ",classLevel:"ทุกชั้น",role:"admin"}};
+          if(demoUsers[username]&&password==="1234"){onLogin({username,...demoUsers[username]});return}
+          setShake(true);setTimeout(()=>setShake(false),500);setToast({msg:"ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",type:"error"});return;
+        }
+        setLoading(true);
+        const res=await api.get("login",{username,password,ua:navigator.userAgent});
+        setLoading(false);
+        if(res.success){onLogin(res.data)}else{setShake(true);setTimeout(()=>setShake(false),500);setToast({msg:res.message||"เข้าสู่ระบบไม่สำเร็จ",type:"error"})}
+      };
+
+      return(
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div className="fu" style={{width:"100%",maxWidth:400}}>
+            {/* Logo */}
+            <div style={{textAlign:"center",marginBottom:32}}>
+              <div style={{width:80,height:80,borderRadius:20,background:"linear-gradient(135deg,#0e3a5c,#1a5276)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:36,boxShadow:"0 8px 24px rgba(26,82,118,.3)"}}>🏫</div>
+              <h1 style={{fontSize:22,fontWeight:700,color:"#1a5276",marginBottom:4}}>ระบบเยี่ยมบ้านนักเรียน</h1>
+              <p style={{fontSize:14,color:"#9a9a9e"}}>{SCHOOL} · ปีการศึกษา {YEAR}</p>
+            </div>
+
+            {/* Login Card */}
+            <div style={{background:"#fff",borderRadius:16,padding:"32px 28px",boxShadow:"0 4px 20px rgba(0,0,0,.06)",border:"1px solid #e8e5e0",animation:shake?"shake .4s ease":"none"}}>
+              <h2 style={{fontSize:17,fontWeight:600,textAlign:"center",marginBottom:24}}>เข้าสู่ระบบ</h2>
+
+              {offline&&<div style={{background:"#fef9e7",border:"1px solid #f39c1230",borderRadius:10,padding:"10px 14px",marginBottom:18,fontSize:12,color:"#f39c12",textAlign:"center"}}>⚡ Demo Mode — ใช้ krusom/1234 หรือ admin/1234</div>}
+
+              <div style={{marginBottom:16}}>
+                <label style={{fontSize:13,fontWeight:500,color:"#5a5a5e",marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Ic d={I.user} s={15} c="#9a9a9e"/>ชื่อผู้ใช้</label>
+                <input style={inp} value={username} onChange={e=>setUsername(e.target.value)} placeholder="เช่น krusom" onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+              </div>
+              <div style={{marginBottom:24}}>
+                <label style={{fontSize:13,fontWeight:500,color:"#5a5a5e",marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Ic d={I.lock} s={15} c="#9a9a9e"/>รหัสผ่าน</label>
+                <input type="password" style={inp} value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••" onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+              </div>
+
+              <button onClick={handleLogin} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a5276,#2980b9)",color:"#fff",fontSize:15,fontWeight:600,fontFamily:"inherit",cursor:loading?"wait":"pointer",boxShadow:"0 4px 14px rgba(26,82,118,.3)",opacity:loading?.7:1,transition:"all .2s"}}>
+                {loading?"กำลังเข้าสู่ระบบ...":"เข้าสู่ระบบ"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══ STUDENT LIST PAGE ═══════════════════════════════════════════════
+    function StudentListPage({user,onSelect,onLogout,setToast}){
+      const [students,setStudents]=useState([]);
+      const [visits,setVisits]=useState([]);
+      const [loading,setLoading]=useState(true);
+      const [search,setSearch]=useState("");
+
+      const offline=SCRIPT_URL==="YOUR_GOOGLE_APPS_SCRIPT_URL";
+
+      useEffect(()=>{
+        if(offline){
+          // Demo data
+          const demo=[
+            {studentNo:"1",studentName:"เด็กชายสมศักดิ์ รักเรียน",nickname:"เบียร์",classLevel:user.classLevel},
+            {studentNo:"2",studentName:"เด็กหญิงสมหญิง ดีใจ",nickname:"ฝ้าย",classLevel:user.classLevel},
+            {studentNo:"3",studentName:"เด็กชายพิชิต ชัยชนะ",nickname:"เจ",classLevel:user.classLevel},
+            {studentNo:"4",studentName:"เด็กหญิงนภา ท้องฟ้า",nickname:"แนน",classLevel:user.classLevel},
+            {studentNo:"5",studentName:"เด็กชายวิชัย ภูมิใจ",nickname:"ต้น",classLevel:user.classLevel},
+          ];
+          setStudents(demo);setLoading(false);return;
+        }
+        Promise.all([
+          api.get("getStudents",{classLevel:user.classLevel}),
+          api.get("getVisits",{classLevel:user.classLevel}),
+        ]).then(([sRes,vRes])=>{
+          if(sRes.success) setStudents(sRes.data);
+          if(vRes.success) setVisits(vRes.data);
+          setLoading(false);
+        });
+      },[user]);
+
+      const getVisitStatus=(name)=>{
+        const v=visits.find(v=>v.studentName===name);
+        return v?v.visitStatus:null;
+      };
+
+      const filtered=students.filter(s=>!search||s.studentName.includes(search)||s.nickname?.includes(search));
+      const visitedCount=students.filter(s=>getVisitStatus(s.studentName)==="เยี่ยมแล้ว").length;
+
+      return(
+        <div className="fi">
+          {/* Header */}
+          <div style={{background:"linear-gradient(135deg,#0e3a5c,#1a5276,#21618c)",borderRadius:"0 0 20px 20px",padding:"24px 22px 20px",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(212,162,78,.06)"}}/>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
+              <div>
+                <p style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:2}}>สวัสดีครับ/ค่ะ</p>
+                <h1 style={{color:"#fff",fontSize:18,fontWeight:700}}>{user.fullName}</h1>
+                <div style={{display:"flex",gap:8,marginTop:6}}>
+                  <span style={{background:"rgba(212,162,78,.2)",color:"#d4a24e",padding:"3px 10px",borderRadius:16,fontSize:12,fontWeight:600}}>ครูประจำชั้น {user.classLevel}</span>
+                </div>
+              </div>
+              <button onClick={onLogout} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:10,padding:"8px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:"rgba(255,255,255,.7)",fontSize:12,fontFamily:"inherit"}}>
+                <Ic d={I.logout} s={16} c="rgba(255,255,255,.7)"/> ออก
+              </button>
+            </div>
+          </div>
+
+          <div style={{padding:"20px 18px"}}>
+            {/* Summary */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+              {[
+                {l:"ทั้งหมด",v:students.length,c:"#1a5276"},
+                {l:"เยี่ยมแล้ว",v:visitedCount,c:"#27ae60"},
+                {l:"ยังไม่เยี่ยม",v:students.length-visitedCount,c:"#c0392b"},
+              ].map((s,i)=>(
+                <div key={i} className="fu" style={{background:"#fff",borderRadius:12,padding:"14px",borderLeft:`3px solid ${s.c}`,boxShadow:"0 1px 4px rgba(0,0,0,.04)",animationDelay:`${i*.08}s`}}>
+                  <div style={{fontSize:24,fontWeight:700,color:s.c}}>{s.v}</div>
+                  <div style={{fontSize:11,color:"#9a9a9e"}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div style={{position:"relative",marginBottom:16}}>
+              <input style={{...inp,paddingLeft:36,background:"#fff"}} placeholder="ค้นหาชื่อนักเรียน..." value={search} onChange={e=>setSearch(e.target.value)}/>
+              <div style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}><Ic d={I.search} s={15} c="#9a9a9e"/></div>
+            </div>
+
+            <h3 style={{fontSize:15,fontWeight:600,marginBottom:12}}>รายชื่อนักเรียนชั้น {user.classLevel}</h3>
+
+            {loading?<Spinner/>:(
+              <div style={{display:"grid",gap:8}}>
+                {filtered.map((s,i)=>{
+                  const vs=getVisitStatus(s.studentName);
+                  return(
+                    <div key={i} className="fu" onClick={()=>onSelect(s)} style={{
+                      background:"#fff",borderRadius:12,padding:"14px 16px",cursor:"pointer",
+                      border:"1px solid #e8e5e0",boxShadow:"0 1px 4px rgba(0,0,0,.03)",
+                      display:"flex",justifyContent:"space-between",alignItems:"center",
+                      transition:"all .2s",animationDelay:`${i*.04}s`,
+                    }}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#2980b9";e.currentTarget.style.transform="translateY(-1px)"}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor="#e8e5e0";e.currentTarget.style.transform="translateY(0)"}}
+                    >
+                      <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <div style={{width:38,height:38,borderRadius:10,background:"linear-gradient(135deg,#ebf5fb,#d4e6f6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#1a5276"}}>{s.studentNo}</div>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:500}}>{s.studentName}</div>
+                          <div style={{fontSize:12,color:"#9a9a9e"}}>{s.nickname&&`"${s.nickname}"`}</div>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        {vs==="เยี่ยมแล้ว"?
+                          <span style={{background:"#eafaf1",color:"#27ae60",padding:"3px 10px",borderRadius:16,fontSize:11,fontWeight:500}}>เยี่ยมแล้ว</span>:
+                          <span style={{background:"#fef9e7",color:"#f39c12",padding:"3px 10px",borderRadius:16,fontSize:11,fontWeight:500}}>ยังไม่เยี่ยม</span>
+                        }
+                        <Ic d={I.arrow} s={16} c="#d0d0d0"/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Admin Link */}
+            {user.role==="admin"&&(
+              <div style={{textAlign:"center",marginTop:24}}>
+                <div style={{fontSize:13,color:"#9a9a9e",marginBottom:8}}>คุณเป็น Admin</div>
+                <Btn accent small onClick={()=>window.open(window.location.href.replace("home-visit.jsx","admin.jsx"),"_blank")}>
+                  <Ic d={I.chart} s={15} c="#fff"/> เปิดระบบหลังบ้าน
+                </Btn>
+              </div>
+            )}
+          </div>
+          <Footer/>
+        </div>
+      );
+    }
+
+    // ═══ VISIT FORM PAGE ═════════════════════════════════════════════════
+    function VisitFormPage({user,student,onBack,onDone,setToast}){
+      const [tab,setTab]=useState(0);
+      const [saving,setSaving]=useState(false);
+      const [form,setForm]=useState({
+        semester:"1",visitStatus:"เยี่ยมแล้ว",visitDate:new Date().toISOString().split("T")[0],observations:"",
+        houseType:"",distanceKm:"",travelMethod:"",houseCondition:"",utilities:"",environment:"",
+        familyMembers:"",siblings:"",familyRelationship:"",familyIncome:"",studentDuties:"",familyActivities:"",
+        riskHealth:"",riskSafety:"",riskTravel:"",riskWork:"",riskSocial:"",riskSubstance:"",
+        parentConcerns:"",visitResult:"",teacherNotes:"",
+      });
+      const set=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+      const TABS=["สถานะการเยี่ยม","ที่อยู่อาศัย","ครอบครัว","พฤติกรรมเสี่ยง","ข้อห่วงใย","รูปภาพ & บันทึก"];
+
+      const handleSave=async()=>{
+        setSaving(true);
+        const data={
+          ...form,
+          teacherUsername:user.username,teacherName:user.fullName,classLevel:user.classLevel,
+          studentNo:student.studentNo,studentName:student.studentName,nickname:student.nickname,
+        };
+        if(SCRIPT_URL!=="YOUR_GOOGLE_APPS_SCRIPT_URL"){
+          const res=await api.post({action:"saveVisit",data});
+          if(!res.success){setToast({msg:res.message||"เกิดข้อผิดพลาด",type:"error"});setSaving(false);return}
+        }
+        // Also save locally
+        try{
+          const local=await window.storage.get("pakang-visits-v3");
+          let arr=[];try{arr=JSON.parse(local?.value||"[]")}catch{}
+          arr.push({...data,id:Date.now().toString(),createdAt:new Date().toISOString()});
+          await window.storage.set("pakang-visits-v3",JSON.stringify(arr));
+        }catch{}
+        setSaving(false);onDone();
+      };
+
+      return(
+        <div className="fi">
+          {/* Header with student info */}
+          <div style={{background:"linear-gradient(135deg,#0e3a5c,#1a5276)",borderRadius:"0 0 20px 20px",padding:"20px 22px 18px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+              <button onClick={onBack} style={{background:"rgba(255,255,255,.12)",border:"none",borderRadius:10,width:36,height:36,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.back} s={17} c="#fff"/></button>
+              <div>
+                <p style={{fontSize:11,color:"rgba(255,255,255,.5)"}}>บันทึกเยี่ยมบ้าน</p>
+                <h2 style={{color:"#fff",fontSize:16,fontWeight:700}}>{student.studentName}</h2>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <span style={{background:"rgba(255,255,255,.12)",color:"rgba(255,255,255,.8)",padding:"3px 10px",borderRadius:14,fontSize:11}}>ชั้น {user.classLevel}</span>
+              <span style={{background:"rgba(255,255,255,.12)",color:"rgba(255,255,255,.8)",padding:"3px 10px",borderRadius:14,fontSize:11}}>เลขที่ {student.studentNo}</span>
+              {student.nickname&&<span style={{background:"rgba(212,162,78,.2)",color:"#d4a24e",padding:"3px 10px",borderRadius:14,fontSize:11}}>"{student.nickname}"</span>}
+            </div>
+          </div>
+
+          <div style={{padding:"16px 18px 0"}}>
+            {/* Tabs */}
+            <div style={{display:"flex",gap:2,background:"#fff",borderRadius:10,padding:3,border:"1px solid #e8e5e0",overflowX:"auto",marginBottom:16}}>
+              {TABS.map((t,i)=><button key={i} onClick={()=>setTab(i)} style={{flex:"0 0 auto",padding:"8px 13px",borderRadius:8,border:"none",fontFamily:"inherit",fontSize:12,fontWeight:tab===i?600:400,cursor:"pointer",background:tab===i?"#1a5276":"transparent",color:tab===i?"#fff":"#5a5a5e",transition:"all .2s",whiteSpace:"nowrap"}}>{t}</button>)}
+            </div>
+
+            <div key={tab} className="st" style={{background:"#fff",borderRadius:14,padding:"24px 22px",border:"1px solid #e8e5e0",boxShadow:"0 1px 4px rgba(0,0,0,.03)",marginBottom:16}}>
+              {tab===0&&<>
+                <STitle text="สถานะการเยี่ยม"/>
+                <Field label="ภาคเรียน:"><select style={sel} value={form.semester} onChange={e=>set("semester",e.target.value)}><option value="1">1</option><option value="2">2</option></select></Field>
+                <Field label="สถานะ:"><select style={sel} value={form.visitStatus} onChange={e=>set("visitStatus",e.target.value)}>{VISIT_STAT.map(s=><option key={s}>{s}</option>)}</select></Field>
+                <Field label="วันที่เยี่ยม:"><input type="date" style={inp} value={form.visitDate} onChange={e=>set("visitDate",e.target.value)}/></Field>
+                <Field label="การสังเกตและสอบถาม:"><textarea rows={4} style={{...inp,resize:"vertical"}} value={form.observations} onChange={e=>set("observations",e.target.value)} placeholder="บันทึกสิ่งที่สังเกตเห็น..."/></Field>
+              </>}
+              {tab===1&&<>
+                <STitle text="ข้อมูลที่อยู่อาศัย"/>
+                {[["houseType","ประเภทบ้าน:"],["distanceKm","ระยะทาง (กม.):"],["travelMethod","วิธีเดินทาง:"]].map(([k,l])=><Field key={k} label={l}><input style={inp} value={form[k]} onChange={e=>set(k,e.target.value)}/></Field>)}
+                <Field label="สภาพบ้าน:"><select style={sel} value={form.houseCondition} onChange={e=>set("houseCondition",e.target.value)}><option value="">-- เลือก --</option>{HOUSE_COND.map(c=><option key={c}>{c}</option>)}</select></Field>
+                {[["utilities","สาธารณูปโภค:"]].map(([k,l])=><Field key={k} label={l}><input style={inp} value={form[k]} onChange={e=>set(k,e.target.value)}/></Field>)}
+                <Field label="สภาพแวดล้อม:"><textarea rows={3} style={{...inp,resize:"vertical"}} value={form.environment} onChange={e=>set("environment",e.target.value)}/></Field>
+              </>}
+              {tab===2&&<>
+                <STitle text="ข้อมูลครอบครัว"/>
+                {[["familyMembers","จำนวนสมาชิก:"],["siblings","จำนวนพี่น้อง:"]].map(([k,l])=><Field key={k} label={l}><input style={inp} value={form[k]} onChange={e=>set(k,e.target.value)}/></Field>)}
+                <Field label="ความสัมพันธ์ในครอบครัว:"><select style={sel} value={form.familyRelationship} onChange={e=>set("familyRelationship",e.target.value)}><option value="">-- เลือก --</option>{REL_OPTS.map(c=><option key={c}>{c}</option>)}</select></Field>
+                {[["familyIncome","รายได้ (บาท/เดือน):"],["studentDuties","ภาระงานนักเรียน:"]].map(([k,l])=><Field key={k} label={l}><input style={inp} value={form[k]} onChange={e=>set(k,e.target.value)}/></Field>)}
+                <Field label="กิจกรรมร่วม:"><textarea rows={3} style={{...inp,resize:"vertical"}} value={form.familyActivities} onChange={e=>set("familyActivities",e.target.value)}/></Field>
+              </>}
+              {tab===3&&<>
+                <STitle text="พฤติกรรมเสี่ยง" color="#c0392b"/>
+                {[["riskHealth","ด้านสุขภาพ:"],["riskSafety","ด้านความปลอดภัย:"],["riskTravel","ด้านการเดินทาง:"],["riskWork","ด้านการงาน:"],["riskSocial","ด้านกิจกรรม/คบเพื่อน:"],["riskSubstance","ด้านสารเสพติด:"]].map(([k,l])=><Field key={k} label={l}><input style={inp} value={form[k]} onChange={e=>set(k,e.target.value)} placeholder="ระบุ (ถ้ามี)"/></Field>)}
+              </>}
+              {tab===4&&<>
+                <STitle text="ข้อห่วงใยของผู้ปกครอง" color="#d4a24e"/>
+                <Field label="ระบุข้อห่วงใย/ความต้องการ:"><textarea rows={6} style={{...inp,resize:"vertical"}} value={form.parentConcerns} onChange={e=>set("parentConcerns",e.target.value)}/></Field>
+              </>}
+              {tab===5&&<>
+                <STitle text="รูปภาพการเยี่ยมบ้าน"/>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:24}}>
+                  {[1,2,3,4].map(n=><div key={n} style={{border:"2px dashed #e8e5e0",borderRadius:10,padding:"14px 8px",textAlign:"center",background:"#fafaf8",cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#2980b9"} onMouseLeave={e=>e.currentTarget.style.borderColor="#e8e5e0"}><Ic d={I.camera} s={22} c="#bbb"/><div style={{fontSize:11,color:"#9a9a9e",marginTop:4}}>รูป {n}</div></div>)}
+                </div>
+                <STitle text="ผลการเยี่ยม & บันทึก"/>
+                <Field label="ผลการเยี่ยมบ้าน:"><select style={sel} value={form.visitResult} onChange={e=>set("visitResult",e.target.value)}><option value="">-- เลือก --</option>{RESULT_OPTS.map(c=><option key={c}>{c}</option>)}</select></Field>
+                <Field label="บันทึกครู:"><textarea rows={4} style={{...inp,resize:"vertical"}} value={form.teacherNotes} onChange={e=>set("teacherNotes",e.target.value)}/></Field>
+                <div style={{textAlign:"center",marginTop:24}}>
+                  <button onClick={handleSave} disabled={saving} style={{width:"100%",maxWidth:320,padding:"14px",borderRadius:12,border:"none",background:saving?"#bbb":"linear-gradient(135deg,#1a5276,#2980b9)",color:"#fff",fontSize:16,fontWeight:600,fontFamily:"inherit",cursor:saving?"wait":"pointer",boxShadow:"0 4px 14px rgba(26,82,118,.3)"}}>
+                    {saving?"กำลังบันทึก...":"💾 บันทึกข้อมูลการเยี่ยมบ้าน"}
+                  </button>
+                </div>
+              </>}
+            </div>
+
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+              <Btn small onClick={()=>setTab(Math.max(0,tab-1))} style={{opacity:tab===0?.4:1}} disabled={tab===0}><Ic d={I.back} s={15}/> ก่อนหน้า</Btn>
+              {tab<TABS.length-1&&<Btn primary small onClick={()=>setTab(tab+1)}>ถัดไป <Ic d={I.arrow} s={15} c="#fff"/></Btn>}
+            </div>
+          </div>
+          <Footer/>
+        </div>
+      );
+    }
+
+    // เรนเดอร์ App เข้าสู่ DOM
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
