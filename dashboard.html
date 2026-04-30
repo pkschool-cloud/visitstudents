@@ -66,7 +66,7 @@
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
-    // --- Sub Components (นำออกมาไว้นอก VisitForm เพื่อแก้ปัญหาการหลุดโฟกัส) ---
+    // --- Sub Components (แยก Component เพื่อกันพิมพ์ 1 ตัวแล้วหลุดโฟกัส) ---
     const FormInput = ({ label, type="text", value, onChange, placeholder="" }) => (
       <div className="mb-5">
         <label className="block text-sm font-bold text-slate-600 mb-2 ml-1">{label}</label>
@@ -106,16 +106,14 @@
       const [toast, setToast] = useState(null);
       const [refreshKey, setRefreshKey] = useState(0);
       
-      // สถานะสำหรับ Sidebar
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-      // ตรวจจับขนาดหน้าจอเพื่อปรับ Sidebar อัตโนมัติ
       useEffect(() => {
         const handleResize = () => {
           const mobile = window.innerWidth < 768;
           setIsMobile(mobile);
-          if (mobile) setIsSidebarOpen(false); // ปิด sidebar อัตโนมัติเมื่อจอเล็ก
+          if (mobile) setIsSidebarOpen(false); 
           else setIsSidebarOpen(true);
         };
         window.addEventListener('resize', handleResize);
@@ -138,7 +136,6 @@
         <div className="flex h-full w-full bg-slate-50 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px]">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
           
-          {/* Overlay สำหรับมือถือเวลาเปิด Sidebar */}
           {isMobile && isSidebarOpen && (
             <div className="fixed inset-0 bg-slate-900/50 z-40" onClick={() => setIsSidebarOpen(false)}></div>
           )}
@@ -199,7 +196,6 @@
           <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
             <header className="h-16 md:h-20 bg-white/70 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between flex-shrink-0 z-20">
               <div className="flex items-center gap-3 md:gap-4">
-                {/* ปุ่มเปิด/ปิด Sidebar */}
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center text-slate-600 transition-colors">
                   <i className={`fa-solid ${isSidebarOpen && !isMobile ? 'fa-bars-staggered' : 'fa-bars'}`}></i>
                 </button>
@@ -209,7 +205,6 @@
                 <h1 className="text-lg md:text-xl font-extrabold text-slate-800 truncate">โรงเรียนป่าก้าง</h1>
               </div>
               
-              {/* อุปกรณ์จำลองสำหรับหน้าจอขนาดใหญ่ (แค่ UI ให้ดูเท่ๆ) */}
               <div className="hidden lg:flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                 <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-500"><i className="fa-solid fa-desktop"></i></div>
                 <div className="w-8 h-8 rounded-lg hover:bg-white hover:shadow-sm flex items-center justify-center text-slate-400 transition-all cursor-pointer"><i className="fa-solid fa-tablet-screen-button"></i></div>
@@ -303,7 +298,7 @@
       );
     }
 
-    // --- 2. ฟอร์มเยี่ยมบ้านอัจฉริยะ (แก้ปัญหาพิมพ์แล้วหลุดโฟกัส) ---
+    // --- 2. ฟอร์มเยี่ยมบ้านอัจฉริยะ (แก้ปัญหาพิมพ์แล้วหลุดโฟกัสแล้ว) ---
     function VisitForm({ user, student, onDone, onBack, showToast }) {
       const [tab, setTab] = useState(0);
       const [saving, setSaving] = useState(false);
@@ -373,7 +368,6 @@
             <div className="truncate"><h2 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight truncate">{student.studentName}</h2><p className="text-blue-500 font-bold text-xs md:text-sm mt-1">เลขที่ {student.studentNo} {student.nickname && `• ชื่อเล่น: ${student.nickname}`}</p></div>
           </div>
 
-          {/* Scrollable Tabs for Mobile */}
           <div className="flex gap-2 overflow-x-auto custom-scroll pb-2 mb-6 p-1 bg-slate-200/50 rounded-2xl w-full snap-x">
             {TABS.map((t, i) => (
               <button key={i} onClick={() => setTab(i)} className={`snap-start flex-1 min-w-[100px] md:min-w-[120px] px-3 md:px-4 py-2.5 md:py-3 rounded-xl font-bold text-xs md:text-sm transition-all duration-300 whitespace-nowrap ${tab === i ? 'bg-white text-blue-600 shadow-md transform scale-100' : 'text-slate-500 hover:bg-white/50 transform scale-95'}`}>{t}</button>
@@ -524,38 +518,59 @@
       );
     }
 
-    // --- 4. หน้าส่งออกรายงาน PDF แบบฟอร์มแน่นๆ ---
+    // --- 4. หน้าส่งออกรายงาน PDF แบบสุดยอด (ดึงข้อมูลได้ทุกคอลัมน์) ---
     function ReportExport({ user, showToast, refreshKey }) {
       const [visits, setVisits] = useState([]);
       const [loading, setLoading] = useState(true);
 
       useEffect(() => {
-        api.get("getVisitsFull", { classLevel: user.classLevel }).then(r => { if (r.success) setVisits(r.data); setLoading(false); });
-      }, [refreshKey]);
+        setLoading(true);
+        api.get("getVisitsFull", { classLevel: user.classLevel }).then(r => { 
+          if (r.success) setVisits(r.data); 
+          else showToast("ดึงข้อมูลไม่สำเร็จ โปรดอัปเดต Google Script", "error");
+          setLoading(false); 
+        }).catch(() => { setLoading(false); showToast("เชื่อมต่อขัดข้อง", "error"); });
+      }, [refreshKey, user]);
+
+      // 💡 ฟังก์ชันเทพ: ดึงข้อมูลแบบไม่แคร์ว่าจะสะกดตัวพิมพ์เล็ก/ใหญ่ หรือใช้ชื่อคอลัมน์อะไร
+      const getVal = (obj, ...keys) => {
+        if (!obj) return '';
+        const objKeys = Object.keys(obj);
+        for (let key of keys) {
+          const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === key.toLowerCase());
+          if (foundKey && obj[foundKey]) return obj[foundKey];
+        }
+        return '';
+      };
 
       const generatePDF = (studentName) => {
-        const data = visits.find(v => v.StudentName === studentName);
+        const data = visits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === studentName);
         if(!data) return showToast("ไม่พบข้อมูลรายงาน", "error");
 
         showToast("กำลังสร้างเอกสาร PDF...", "success");
         
-        document.getElementById('pdf-name').innerText = data.StudentName;
-        document.getElementById('pdf-no').innerText = data.StudentNo;
-        document.getElementById('pdf-class').innerText = data.ClassLevel;
-        document.getElementById('pdf-date').innerText = new Date(data.VisitDate).toLocaleDateString('th-TH');
+        // ใช้ getVal ดึงข้อมูลเพื่อกันความผิดพลาดของตัวพิมพ์
+        document.getElementById('pdf-name').innerText = getVal(data, 'studentname', 'ชื่อนักเรียน') || '-';
+        document.getElementById('pdf-no').innerText = getVal(data, 'studentno', 'เลขที่') || '-';
+        document.getElementById('pdf-class').innerText = getVal(data, 'classlevel', 'ชั้น') || '-';
         
-        document.getElementById('pdf-t1').innerText = data.HouseType || '-';
-        document.getElementById('pdf-t2').innerText = data.DistanceKm ? `${data.DistanceKm} กม.` : '-';
-        document.getElementById('pdf-t3').innerText = data.TravelMethod || '-';
-        document.getElementById('pdf-t4').innerText = data.HouseCondition || '-';
+        const vDate = getVal(data, 'visitdate', 'วันที่เยี่ยม');
+        document.getElementById('pdf-date').innerText = vDate ? new Date(vDate).toLocaleDateString('th-TH') : '-';
         
-        document.getElementById('pdf-r1').innerText = data.VisitResult || '-';
-        document.getElementById('pdf-r2').innerText = data.TeacherNotes || '-';
+        document.getElementById('pdf-t1').innerText = getVal(data, 'housetype', 'ลักษณะที่พัก') || '-';
+        const dist = getVal(data, 'distancekm', 'ระยะทาง');
+        document.getElementById('pdf-t2').innerText = dist ? `${dist} กม.` : '-';
+        document.getElementById('pdf-t3').innerText = getVal(data, 'travelmethod', 'วิธีการเดินทาง') || '-';
+        document.getElementById('pdf-t4').innerText = getVal(data, 'housecondition', 'สภาพบ้าน') || '-';
+        
+        document.getElementById('pdf-r1').innerText = getVal(data, 'visitresult', 'สรุปผล') || '-';
+        document.getElementById('pdf-r2').innerText = getVal(data, 'teachernotes', 'บันทึกเพิ่มเติม') || '-';
 
         const imgContainer = document.getElementById('pdf-images');
         imgContainer.innerHTML = '';
-        if(data.Images) {
-          const urls = data.Images.split(',');
+        const imagesStr = getVal(data, 'images', 'รูปภาพ');
+        if(imagesStr) {
+          const urls = imagesStr.split(',');
           urls.forEach(url => {
             if(url.trim()) imgContainer.innerHTML += `<div style="width: 48%; height: 220px; margin-bottom: 10px; display: inline-block; padding: 5px;"><img src="${url.trim()}" style="width: 100%; height: 100%; object-fit: cover; border: 1px solid #ccc; border-radius: 8px;"></div>`;
           });
@@ -564,14 +579,15 @@
         const element = document.getElementById('pdf-report-container');
         element.style.left = '0px'; element.style.zIndex = '-100';
         
-        const opt = { margin: 15, filename: `เยี่ยมบ้าน_${data.StudentName}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        const opt = { margin: 15, filename: `เยี่ยมบ้าน_${getVal(data, 'studentname', 'ชื่อนักเรียน')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
         
         setTimeout(() => { html2pdf().set(opt).from(element).save().then(() => { element.style.left = '-9999px'; }); }, 1000);
       };
 
       if (loading) return <div className="text-center py-20"><i className="fa-solid fa-spinner fa-spin text-5xl text-blue-500 mb-4 block"></i></div>;
 
-      const visitedList = visits.filter(v => v.VisitStatus === "เยี่ยมแล้ว");
+      // ค้นหาคนที่เยี่ยมแล้วแบบยืดหยุ่น (เผื่อกรณีคอลัมน์ชื่อเปลี่ยนไป)
+      const visitedList = visits.filter(v => getVal(v, 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ') === "เยี่ยมแล้ว");
 
       return (
         <div className="slide-up">
@@ -581,19 +597,25 @@
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {visitedList.length === 0 && <p className="text-slate-400 font-bold col-span-full text-center py-10">ยังไม่มีนักเรียนที่เยี่ยมแล้ว</p>}
-            {visitedList.map((v, i) => (
-              <div key={i} className="glass-card p-5 md:p-6 rounded-3xl border border-white flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all group">
-                <div className="mb-6">
-                  <div className="bg-blue-50 text-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black mb-4 shadow-sm">{v.StudentNo}</div>
-                  <h4 className="font-bold text-slate-800 text-sm md:text-base truncate">{v.StudentName}</h4>
-                  <p className="text-[11px] md:text-xs text-slate-500 mt-1"><i className="fa-solid fa-calendar text-emerald-500 mr-1"></i>เยี่ยมเมื่อ: {new Date(v.VisitDate).toLocaleDateString('th-TH')}</p>
+            {visitedList.length === 0 && <div className="col-span-full text-center py-12 bg-white/50 rounded-3xl border border-dashed border-slate-300"><i className="fa-solid fa-folder-open text-5xl text-slate-300 mb-4 block"></i><p className="text-slate-500 font-bold text-lg">ยังไม่มีนักเรียนที่ถูกบันทึกว่า "เยี่ยมแล้ว"</p></div>}
+            
+            {visitedList.map((v, i) => {
+              const sName = getVal(v, 'studentname', 'ชื่อนักเรียน');
+              const sNo = getVal(v, 'studentno', 'เลขที่');
+              const vDate = getVal(v, 'visitdate', 'วันที่เยี่ยม');
+              return (
+                <div key={i} className="glass-card p-5 md:p-6 rounded-3xl border border-white flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all group">
+                  <div className="mb-6">
+                    <div className="bg-blue-50 text-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black mb-4 shadow-sm">{sNo || '-'}</div>
+                    <h4 className="font-bold text-slate-800 text-sm md:text-base truncate">{sName || 'ไม่ระบุชื่อ'}</h4>
+                    <p className="text-[11px] md:text-xs text-slate-500 mt-1"><i className="fa-solid fa-calendar text-emerald-500 mr-1"></i>เยี่ยมเมื่อ: {vDate ? new Date(vDate).toLocaleDateString('th-TH') : '-'}</p>
+                  </div>
+                  <button onClick={() => generatePDF(sName)} className="w-full bg-slate-800 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-md">
+                    <i className="fa-solid fa-file-pdf"></i> พิมพ์ PDF
+                  </button>
                 </div>
-                <button onClick={() => generatePDF(v.StudentName)} className="w-full bg-slate-800 hover:bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-md">
-                  <i className="fa-solid fa-file-pdf"></i> พิมพ์ PDF
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       );
