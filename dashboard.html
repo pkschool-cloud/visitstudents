@@ -12,7 +12,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
@@ -26,10 +26,37 @@
     
     .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.6); }
     
-    #pdf-report-container { position: absolute; left: -9999px; top: 0; width: 794px; background: white; padding: 40px; font-family: 'Prompt', sans-serif; color: #000; }
-    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
-    .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 8px; text-align: left; }
-    .pdf-table th { background-color: #f3f4f6; font-weight: bold; width: 30%; }
+    /* === FIX PDF: ใช้ Sarabun (รองรับไทยดีกว่า), ใช้ position: fixed กับ visibility ลับ === */
+    #pdf-report-container { 
+      position: fixed; 
+      left: 0; 
+      top: 0; 
+      width: 794px; 
+      background: white; 
+      padding: 40px; 
+      font-family: 'Sarabun', 'Prompt', sans-serif; 
+      color: #000;
+      z-index: -9999;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #pdf-report-container.pdf-rendering {
+      visibility: visible;
+      z-index: -1;
+    }
+    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 8px 10px; text-align: left; vertical-align: top; }
+    .pdf-table th { background-color: #e8f0fe; font-weight: bold; width: 32%; color: #1e3a8a; }
+    .pdf-section-title { 
+      background: #1e40af; 
+      color: white; 
+      padding: 8px 14px; 
+      font-size: 14px; 
+      font-weight: bold; 
+      margin-top: 20px; 
+      margin-bottom: 0; 
+      border-radius: 4px 4px 0 0;
+    }
 
     .sidebar-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
   </style>
@@ -62,7 +89,7 @@
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
-    // ฟังก์ชันดึงค่าจาก JSON ที่ยืดหยุ่นที่สุด (แก้ปัญหาเรื่องพิมพ์เว้นวรรคผิดใน Google Sheet)
+    // ฟังก์ชันดึงค่าจาก JSON ที่ยืดหยุ่นที่สุด - แก้ปัญหาหลายภาษา/พิมพ์ผิด
     const getVal = (obj, ...keys) => {
       if (!obj) return '';
       const objKeys = Object.keys(obj);
@@ -71,6 +98,25 @@
         if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return String(obj[foundKey]).trim();
       }
       return '';
+    };
+
+    // === FIX SYNC: ฟังก์ชันรวมศูนย์เพื่อหาสถานะการเยี่ยม - ใช้ที่เดียวกันทุกหน้า ===
+    const findVisitForStudent = (visits, studentName) => {
+      if (!visits || !studentName) return null;
+      const target = String(studentName).trim().toLowerCase();
+      return visits.find(v => {
+        const name = (
+          getVal(v, 'studentName', 'studentname', 'ชื่อนักเรียน', 'ชื่อ-นามสกุล', 'name') || ''
+        ).trim().toLowerCase();
+        return name === target;
+      });
+    };
+
+    const getVisitStatus = (visits, studentName) => {
+      const v = findVisitForStudent(visits, studentName);
+      if (!v) return "ยังไม่เยี่ยม";
+      const status = getVal(v, 'visitStatus', 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ', 'status');
+      return status || "ยังไม่เยี่ยม";
     };
 
     // --- Sub Components ---
@@ -148,7 +194,7 @@
         try {
           const [sRes, vRes] = await Promise.all([
             api.get("getStudents", { classLevel: u.classLevel }),
-            api.get("getVisitsFull", { classLevel: u.classLevel }) // โหลดข้อมูลเต็มรูปแบบมาเตรียมไว้เลย
+            api.get("getVisitsFull", { classLevel: u.classLevel })
           ]);
           if (sRes.success) setGlobalStudents(sRes.data);
           if (vRes.success) setGlobalVisits(vRes.data);
@@ -297,9 +343,9 @@
     function StudentList({ user, students, visits, isDataLoaded, onSelect, forceRefresh }) {
       const [search, setSearch] = useState("");
 
-      const getStatus = (name) => { const v = visits.find(v => String(v.studentName).trim() === String(name).trim() || getVal(v, 'studentname', 'ชื่อนักเรียน') === String(name).trim()); return v ? (String(v.visitStatus).trim() || getVal(v, 'visitstatus', 'สถานะ')) : "ยังไม่เยี่ยม"; };
-      const filtered = students.filter(s => !search || s.studentName.includes(search) || s.nickname?.includes(search) || s.studentNo?.includes(search));
-      const visitedCount = students.filter(s => getStatus(s.studentName) === "เยี่ยมแล้ว").length;
+      // === FIX: ใช้ฟังก์ชัน getVisitStatus ที่รวมศูนย์ ===
+      const filtered = students.filter(s => !search || s.studentName.includes(search) || s.nickname?.includes(search) || String(s.studentNo).includes(search));
+      const visitedCount = students.filter(s => getVisitStatus(visits, s.studentName) === "เยี่ยมแล้ว").length;
 
       if (!isDataLoaded) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-6 block drop-shadow-md"></i><span className="font-bold text-slate-500 text-lg tracking-widest">กำลังดึงข้อมูลนักเรียน...</span></div>;
 
@@ -340,7 +386,9 @@
             {filtered.length === 0 && <div className="col-span-full text-center py-16 bg-white/50 rounded-3xl border border-dashed border-slate-300"><i className="fa-solid fa-folder-open text-5xl text-slate-300 mb-4 block"></i><p className="text-slate-500 font-bold text-lg">ไม่พบข้อมูลนักเรียน</p></div>}
             
             {filtered.map((s, i) => {
-              const isDone = getStatus(s.studentName) === "เยี่ยมแล้ว";
+              const status = getVisitStatus(visits, s.studentName);
+              const isDone = status === "เยี่ยมแล้ว";
+              const isAppointed = status === "นัดหมายแล้ว";
               return (
                 <div key={i} onClick={() => onSelect(s)} className="glass-card p-4 md:p-5 rounded-[1.5rem] hover:border-blue-400 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex items-center justify-between group fade-in bg-white/90" style={{animationDelay: `${(i%15)*0.03}s`}}>
                   <div className="flex items-center gap-4 md:gap-5 overflow-hidden">
@@ -353,7 +401,9 @@
                   <div className="flex-shrink-0 ml-2">
                     {isDone ? 
                       <span className="bg-emerald-50 text-emerald-600 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold border border-emerald-100 shadow-sm whitespace-nowrap flex items-center gap-1.5"><i className="fa-solid fa-check"></i> <span className="hidden sm:inline">เยี่ยมแล้ว</span></span> 
-                      : 
+                      : isAppointed ?
+                      <span className="bg-amber-50 text-amber-600 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold border border-amber-100 shadow-sm whitespace-nowrap flex items-center gap-1.5"><i className="fa-solid fa-calendar"></i> <span className="hidden sm:inline">นัดหมายแล้ว</span></span>
+                      :
                       <span className="bg-rose-50 text-rose-500 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold border border-rose-100 shadow-sm whitespace-nowrap">ยังไม่เยี่ยม</span>
                     }
                   </div>
@@ -365,7 +415,7 @@
       );
     }
 
-    // --- 2. ฟอร์มเยี่ยมบ้านอัจฉริยะ (ดึงข้อมูลเก่ากลับมา และ Auto Save 1 วิ) ---
+    // --- 2. ฟอร์มเยี่ยมบ้านอัจฉริยะ ---
     function VisitForm({ user, student, globalVisits, onDone, onBack, showToast }) {
       const [tab, setTab] = useState(0);
       const [saving, setSaving] = useState(false);
@@ -378,39 +428,37 @@
 
       const TABS = ["สถานะการเยี่ยม", "ที่พัก & GPS", "ครอบครัว", "ความเสี่ยง", "อัปโหลด & สรุป"];
 
-      // ดึงข้อมูลเดิมจากฐานข้อมูล หรือ Draft มาใส่ใน Form
       useEffect(() => {
         if (!globalVisits) return;
         
-        // 1. หาข้อมูลเก่าจาก Google Sheet (Backend)
-        const backendData = globalVisits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === String(student.studentName).trim());
+        const backendData = findVisitForStudent(globalVisits, student.studentName);
 
         let initForm = {
           semester: backendData ? getVal(backendData, 'semester', 'ภาคเรียน') || "1" : "1",
-          visitStatus: backendData ? getVal(backendData, 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ') || "เยี่ยมแล้ว" : "เยี่ยมแล้ว",
-          visitDate: backendData ? getVal(backendData, 'visitdate', 'วันที่เยี่ยม') ? new Date(getVal(backendData, 'visitdate', 'วันที่เยี่ยม')).toISOString().split("T")[0] : new Date().toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          visitStatus: backendData ? getVal(backendData, 'visitstatus', 'visitStatus', 'สถานะการเยี่ยม', 'สถานะ') || "เยี่ยมแล้ว" : "เยี่ยมแล้ว",
+          visitDate: backendData ? getVal(backendData, 'visitdate', 'visitDate', 'วันที่เยี่ยม') ? new Date(getVal(backendData, 'visitdate', 'visitDate', 'วันที่เยี่ยม')).toISOString().split("T")[0] : new Date().toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
           observations: backendData ? getVal(backendData, 'observations', 'การสังเกต') : "",
-          houseType: backendData ? getVal(backendData, 'housetype', 'ลักษณะที่พัก') : "",
-          distanceKm: backendData ? getVal(backendData, 'distancekm', 'ระยะทาง') : "",
-          travelMethod: backendData ? getVal(backendData, 'travelmethod', 'วิธีการเดินทาง') : "",
-          houseCondition: backendData ? getVal(backendData, 'housecondition', 'สภาพบ้าน') : "",
+          houseType: backendData ? getVal(backendData, 'housetype', 'houseType', 'ลักษณะที่พัก') : "",
+          distanceKm: backendData ? getVal(backendData, 'distancekm', 'distanceKm', 'ระยะทาง') : "",
+          travelMethod: backendData ? getVal(backendData, 'travelmethod', 'travelMethod', 'วิธีการเดินทาง') : "",
+          houseCondition: backendData ? getVal(backendData, 'housecondition', 'houseCondition', 'สภาพบ้าน') : "",
           utilities: backendData ? getVal(backendData, 'utilities', 'สาธารณูปโภค') : "",
           environment: backendData ? getVal(backendData, 'environment', 'สภาพแวดล้อม') : "",
-          familyMembers: backendData ? getVal(backendData, 'familymembers', 'จำนวนสมาชิก') : "",
+          familyMembers: backendData ? getVal(backendData, 'familymembers', 'familyMembers', 'จำนวนสมาชิก') : "",
           siblings: backendData ? getVal(backendData, 'siblings', 'พี่น้อง') : "",
-          familyRelationship: backendData ? getVal(backendData, 'familyrelationship', 'ความสัมพันธ์') : "",
-          familyIncome: backendData ? getVal(backendData, 'familyincome', 'รายได้') : "",
-          studentDuties: backendData ? getVal(backendData, 'studentduties', 'ภาระงาน') : "",
-          familyActivities: backendData ? getVal(backendData, 'familyactivities', 'กิจกรรม') : "",
-          riskHealth: backendData ? getVal(backendData, 'riskhealth', 'สุขภาพ') : "",
-          riskSafety: backendData ? getVal(backendData, 'risksafety', 'ความปลอดภัย') : "",
-          riskTravel: backendData ? getVal(backendData, 'risktravel', 'การเดินทาง') : "",
-          riskWork: backendData ? getVal(backendData, 'riskwork', 'เศรษฐกิจ') : "",
-          riskSocial: backendData ? getVal(backendData, 'risksocial', 'การคบเพื่อน') : "",
-          riskSubstance: backendData ? getVal(backendData, 'risksubstance', 'สารเสพติด') : "",
-          parentConcerns: backendData ? getVal(backendData, 'parentconcerns', 'ข้อห่วงใย') : "",
-          visitResult: backendData ? getVal(backendData, 'visitresult', 'สรุปผล') : "",
-          teacherNotes: backendData ? getVal(backendData, 'teachernotes', 'บันทึกเพิ่มเติม') : "",
+          familyRelationship: backendData ? getVal(backendData, 'familyrelationship', 'familyRelationship', 'ความสัมพันธ์') : "",
+          familyIncome: backendData ? getVal(backendData, 'familyincome', 'familyIncome', 'รายได้') : "",
+          studentDuties: backendData ? getVal(backendData, 'studentduties', 'studentDuties', 'ภาระงาน') : "",
+          familyActivities: backendData ? getVal(backendData, 'familyactivities', 'familyActivities', 'กิจกรรม') : "",
+          riskHealth: backendData ? getVal(backendData, 'riskhealth', 'riskHealth', 'สุขภาพ') : "",
+          riskSafety: backendData ? getVal(backendData, 'risksafety', 'riskSafety', 'ความปลอดภัย') : "",
+          riskTravel: backendData ? getVal(backendData, 'risktravel', 'riskTravel', 'การเดินทาง') : "",
+          riskWork: backendData ? getVal(backendData, 'riskwork', 'riskWork', 'เศรษฐกิจ') : "",
+          riskSocial: backendData ? getVal(backendData, 'risksocial', 'riskSocial', 'การคบเพื่อน') : "",
+          riskSubstance: backendData ? getVal(backendData, 'risksubstance', 'riskSubstance', 'สารเสพติด') : "",
+          parentConcerns: backendData ? getVal(backendData, 'parentconcerns', 'parentConcerns', 'ข้อห่วงใย') : "",
+          visitResult: backendData ? getVal(backendData, 'visitresult', 'visitResult', 'สรุปผล') : "",
+          teacherNotes: backendData ? getVal(backendData, 'teachernotes', 'teacherNotes', 'บันทึกเพิ่มเติม') : "",
         };
 
         let initImages = [null, null, null, null];
@@ -424,7 +472,6 @@
           }
         }
 
-        // 2. ดึงข้อมูล Draft จาก LocalStorage (ถ้ามีและผู้ใช้ยังพิมพ์ค้างไว้)
         const draftKey = `draft_visit_${student.studentNo}`;
         const draftStr = localStorage.getItem(draftKey);
         if (draftStr) {
@@ -443,7 +490,6 @@
 
       }, [student, globalVisits]);
 
-      // 3. ระบบ Auto-save Draft (1 วินาทีหลังจากพิมพ์เสร็จ)
       useEffect(() => {
         if (isInitialLoad) return;
         const timer = setTimeout(() => {
@@ -496,16 +542,34 @@
 
       const handleSave = async () => {
         setSaving(true);
-        const data = { ...form, teacherUsername: user.username, teacherName: user.fullName, classLevel: user.classLevel, studentNo: student.studentNo, studentName: student.studentName, nickname: student.nickname, imagesBase64: images.filter(img => img !== null) };
-        const res = await api.post({ action: "saveVisit", data });
-        if (!res.success) { showToast(res.message || "เกิดข้อผิดพลาด", "error"); setSaving(false); return; }
+        // === FIX UPLOAD: ส่งเฉพาะรูปที่เป็น base64 ใหม่เท่านั้น ส่วน URL เดิมส่งแยก ===
+        const newBase64Images = images.filter(img => img && img.startsWith('data:image'));
+        const existingUrls = images.filter(img => img && !img.startsWith('data:image'));
         
-        // ลบ Draft ทิ้งเมื่อบันทึกเสร็จสมบูรณ์
+        const data = { 
+          ...form, 
+          teacherUsername: user.username, 
+          teacherName: user.fullName, 
+          classLevel: user.classLevel, 
+          studentNo: student.studentNo, 
+          studentName: student.studentName, 
+          nickname: student.nickname, 
+          imagesBase64: newBase64Images,
+          existingImageUrls: existingUrls
+        };
+        const res = await api.post({ action: "saveVisit", data });
+        if (!res.success) { 
+          // === แสดงข้อความ error ที่ชัดเจน ===
+          const errMsg = res.message || "เกิดข้อผิดพลาด";
+          showToast(errMsg.includes("permission") ? "Apps Script ไม่มีสิทธิ์เข้า Google Drive — กรุณา Re-deploy" : errMsg, "error"); 
+          setSaving(false); 
+          return; 
+        }
+        
         localStorage.removeItem(`draft_visit_${student.studentNo}`);
         setSaving(false); onDone();
       };
 
-      // ถ้าย้อนกลับโดยไม่เซฟจริง ก็เก็บ Draft ไว้
       const handleBack = () => {
         onBack();
       }
@@ -677,70 +741,186 @@
       );
     }
 
-    // --- 4. หน้าพิมพ์รายงาน PDF ---
+    // --- 4. หน้าพิมพ์รายงาน PDF (เขียนใหม่ทั้งหมด) ---
     function ReportExport({ user, showToast, visits, isDataLoaded, forceRefresh }) {
-      
-      const getVal = (obj, ...keys) => {
-        if (!obj) return '';
-        const objKeys = Object.keys(obj);
-        for (let key of keys) {
-          const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === String(key).trim().toLowerCase());
-          if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return String(obj[foundKey]).trim();
-        }
-        return '';
+      const [generating, setGenerating] = useState(null);
+
+      // === FIX PDF: ฟังก์ชันแปลงรูป URL → base64 (ผ่าน proxy หรือ fetch) ===
+      const urlToBase64 = (url) => {
+        return new Promise((resolve) => {
+          if (!url) { resolve(null); return; }
+          if (url.startsWith('data:image')) { resolve(url); return; }
+          
+          // แปลง Google Drive URL ให้เป็น direct image URL
+          let imgUrl = url;
+          const driveMatch = url.match(/[-\w]{25,}/);
+          if (url.includes('drive.google.com') && driveMatch) {
+            imgUrl = `https://drive.google.com/thumbnail?id=${driveMatch[0]}&sz=w800`;
+          }
+          
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              resolve(canvas.toDataURL('image/jpeg', 0.85));
+            } catch (e) {
+              console.warn('Cross-origin error:', e);
+              resolve(null);
+            }
+          };
+          img.onerror = () => {
+            console.warn('Image load failed:', imgUrl);
+            resolve(null);
+          };
+          img.src = imgUrl;
+        });
       };
 
-      const generatePDF = (studentName) => {
-        const data = visits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === String(studentName).trim());
+      // === FIX PDF: ฟังก์ชันใหม่ทั้งหมด - ครบทุกฟิลด์ + รอรูปโหลด + รอฟอนต์ ===
+      const generatePDF = async (studentName) => {
+        const data = findVisitForStudent(visits, studentName);
         
         if(!data) {
-           showToast("ข้อมูลรายงานใบนี้อาจกำลังประมวลผลอยู่เบื้องหลัง กรุณากดรีเฟรช 1 ครั้ง", "error");
+           showToast("ไม่พบข้อมูล กรุณากดรีเฟรชแล้วลองใหม่", "error");
            return;
         }
 
-        showToast("กำลังประมวลผล PDF กรุณารอสักครู่...", "success");
-        
-        document.getElementById('pdf-name').innerText = getVal(data, 'studentname', 'ชื่อนักเรียน') || '-';
-        document.getElementById('pdf-no').innerText = getVal(data, 'studentno', 'เลขที่') || '-';
-        document.getElementById('pdf-class').innerText = getVal(data, 'classlevel', 'ชั้น') || '-';
-        
-        const vDate = getVal(data, 'visitdate', 'วันที่เยี่ยม');
-        document.getElementById('pdf-date').innerText = vDate ? new Date(vDate).toLocaleDateString('th-TH') : '-';
-        
-        document.getElementById('pdf-t1').innerText = getVal(data, 'housetype', 'ลักษณะที่พัก') || '-';
-        const dist = getVal(data, 'distancekm', 'ระยะทาง');
-        document.getElementById('pdf-t2').innerText = dist ? `${dist} กม.` : '-';
-        document.getElementById('pdf-t3').innerText = getVal(data, 'travelmethod', 'วิธีการเดินทาง') || '-';
-        document.getElementById('pdf-t4').innerText = getVal(data, 'housecondition', 'สภาพบ้าน') || '-';
-        
-        document.getElementById('pdf-r1').innerText = getVal(data, 'visitresult', 'สรุปผล') || '-';
-        document.getElementById('pdf-r2').innerText = getVal(data, 'teachernotes', 'บันทึกเพิ่มเติม') || '-';
+        setGenerating(studentName);
+        showToast("กำลังเตรียมรายงาน PDF...", "success");
 
-        const imgContainer = document.getElementById('pdf-images');
-        imgContainer.innerHTML = '';
-        const imagesStr = getVal(data, 'images', 'รูปภาพ');
-        if(imagesStr) {
-          const urls = imagesStr.split(',');
-          urls.forEach(url => {
-            if(url.trim()) imgContainer.innerHTML += `<div style="width: 48%; height: 240px; margin-bottom: 12px; display: inline-block; padding: 6px;"><img src="${url.trim()}" style="width: 100%; height: 100%; object-fit: cover; border: 1px solid #ccc; border-radius: 12px;"></div>`;
-          });
+        try {
+          // 1. รอให้ Google Fonts โหลดเสร็จก่อน (สำคัญมาก)
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
+
+          // 2. กรอกข้อมูลทุกฟิลด์ลง template
+          const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = value || '-';
+          };
+
+          setText('pdf-name', getVal(data, 'studentname', 'studentName', 'ชื่อนักเรียน'));
+          setText('pdf-no', getVal(data, 'studentno', 'studentNo', 'เลขที่'));
+          setText('pdf-class', getVal(data, 'classlevel', 'classLevel', 'ชั้น'));
+          setText('pdf-nickname', getVal(data, 'nickname', 'ชื่อเล่น'));
+          setText('pdf-semester', getVal(data, 'semester', 'ภาคเรียน'));
+          
+          const vDate = getVal(data, 'visitdate', 'visitDate', 'วันที่เยี่ยม');
+          setText('pdf-date', vDate ? new Date(vDate).toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric'}) : '-');
+          setText('pdf-status', getVal(data, 'visitstatus', 'visitStatus', 'สถานะ'));
+          setText('pdf-teacher', getVal(data, 'teachername', 'teacherName', 'ครู'));
+
+          // ข้อมูลที่พัก
+          setText('pdf-housetype', getVal(data, 'housetype', 'houseType', 'ลักษณะที่พัก'));
+          const dist = getVal(data, 'distancekm', 'distanceKm', 'ระยะทาง');
+          setText('pdf-distance', dist ? `${dist} กม.` : '-');
+          setText('pdf-travel', getVal(data, 'travelmethod', 'travelMethod', 'วิธีการเดินทาง'));
+          setText('pdf-housecond', getVal(data, 'housecondition', 'houseCondition', 'สภาพบ้าน'));
+          setText('pdf-utilities', getVal(data, 'utilities', 'สาธารณูปโภค'));
+          setText('pdf-environment', getVal(data, 'environment', 'สภาพแวดล้อม'));
+          
+          // ข้อมูลครอบครัว
+          setText('pdf-members', getVal(data, 'familymembers', 'familyMembers', 'จำนวนสมาชิก'));
+          setText('pdf-siblings', getVal(data, 'siblings', 'พี่น้อง'));
+          setText('pdf-rel', getVal(data, 'familyrelationship', 'familyRelationship', 'ความสัมพันธ์'));
+          const income = getVal(data, 'familyincome', 'familyIncome', 'รายได้');
+          setText('pdf-income', income ? `${Number(income).toLocaleString()} บาท/เดือน` : '-');
+          setText('pdf-duties', getVal(data, 'studentduties', 'studentDuties', 'ภาระงาน'));
+          setText('pdf-activities', getVal(data, 'familyactivities', 'familyActivities', 'กิจกรรม'));
+
+          // ความเสี่ยง
+          setText('pdf-risk-health', getVal(data, 'riskhealth', 'riskHealth', 'สุขภาพ'));
+          setText('pdf-risk-safety', getVal(data, 'risksafety', 'riskSafety', 'ความปลอดภัย'));
+          setText('pdf-risk-travel', getVal(data, 'risktravel', 'riskTravel', 'การเดินทาง'));
+          setText('pdf-risk-work', getVal(data, 'riskwork', 'riskWork', 'เศรษฐกิจ'));
+          setText('pdf-risk-social', getVal(data, 'risksocial', 'riskSocial', 'สังคม'));
+          setText('pdf-risk-substance', getVal(data, 'risksubstance', 'riskSubstance', 'สารเสพติด'));
+          setText('pdf-concerns', getVal(data, 'parentconcerns', 'parentConcerns', 'ข้อห่วงใย'));
+
+          // สรุป + การสังเกต
+          setText('pdf-observations', getVal(data, 'observations', 'การสังเกต'));
+          setText('pdf-result', getVal(data, 'visitresult', 'visitResult', 'สรุปผล'));
+          setText('pdf-notes', getVal(data, 'teachernotes', 'teacherNotes', 'บันทึกเพิ่มเติม'));
+
+          // 3. โหลดรูปภาพและแปลงเป็น base64 ก่อน (สำคัญมาก!)
+          const imgContainer = document.getElementById('pdf-images');
+          imgContainer.innerHTML = '<p style="text-align:center;color:#888;">กำลังโหลดรูป...</p>';
+          
+          const imagesStr = getVal(data, 'images', 'รูปภาพ');
+          if(imagesStr) {
+            const urls = imagesStr.split(',').map(u => u.trim()).filter(u => u);
+            const base64Images = await Promise.all(urls.map(u => urlToBase64(u)));
+            const validImages = base64Images.filter(img => img !== null);
+            
+            if (validImages.length > 0) {
+              imgContainer.innerHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">' +
+                validImages.map(img => 
+                  `<div style="width:100%; height:240px; border:1px solid #ccc; border-radius:8px; overflow:hidden; background:#f5f5f5;">
+                    <img src="${img}" style="width:100%; height:100%; object-fit:cover;" />
+                  </div>`
+                ).join('') + '</div>';
+            } else {
+              imgContainer.innerHTML = '<p style="color:#888; font-style:italic;">— ไม่มีรูปภาพประกอบ หรือรูปไม่สามารถโหลดได้ —</p>';
+            }
+          } else {
+            imgContainer.innerHTML = '<p style="color:#888; font-style:italic;">— ไม่มีรูปภาพประกอบ —</p>';
+          }
+
+          // 4. ทำให้ container มองเห็นได้ (สำคัญ!)
+          const element = document.getElementById('pdf-report-container');
+          element.classList.add('pdf-rendering');
+          
+          // 5. รอให้ DOM render เสร็จและรูปแสดง (300ms)
+          await new Promise(r => setTimeout(r, 500));
+
+          // 6. สร้าง PDF
+          const studentNameClean = (getVal(data, 'studentname', 'studentName', 'ชื่อนักเรียน') || 'student').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+          const opt = { 
+            margin: [10, 10, 10, 10], 
+            filename: `รายงานเยี่ยมบ้าน_${studentNameClean}.pdf`, 
+            image: { type: 'jpeg', quality: 0.95 }, 
+            html2canvas: { 
+              scale: 2, 
+              useCORS: true, 
+              allowTaint: true,
+              logging: false,
+              backgroundColor: '#ffffff'
+            }, 
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          };
+          
+          await html2pdf().set(opt).from(element).save();
+          
+          // 7. ซ่อน container กลับ
+          element.classList.remove('pdf-rendering');
+          showToast("ดาวน์โหลด PDF สำเร็จ", "success");
+        } catch (e) {
+          console.error('PDF Error:', e);
+          showToast("เกิดข้อผิดพลาดในการสร้าง PDF: " + (e.message || 'Unknown'), "error");
+          const element = document.getElementById('pdf-report-container');
+          if (element) element.classList.remove('pdf-rendering');
+        } finally {
+          setGenerating(null);
         }
-
-        const element = document.getElementById('pdf-report-container');
-        element.style.left = '0px'; element.style.zIndex = '-100';
-        
-        const opt = { margin: 15, filename: `รายงานเยี่ยมบ้าน_${getVal(data, 'studentname', 'ชื่อนักเรียน')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-        
-        setTimeout(() => { html2pdf().set(opt).from(element).save().then(() => { element.style.left = '-9999px'; }); }, 1000);
       };
 
       if (!isDataLoaded) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-rose-500 mb-6 block drop-shadow-md"></i><span className="font-bold text-slate-500 text-lg">กำลังประมวลผลข้อมูลรายงาน...</span></div>;
 
-      const visitedList = visits.filter(v => getVal(v, 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ') === "เยี่ยมแล้ว");
+      const visitedList = visits.filter(v => {
+        const status = getVal(v, 'visitstatus', 'visitStatus', 'สถานะการเยี่ยม', 'สถานะ');
+        return status === "เยี่ยมแล้ว";
+      });
 
       return (
         <div className="slide-up">
-          <div className="mb-10 border-b border-slate-200/60 pb-6 flex items-end justify-between">
+          <div className="mb-10 border-b border-slate-200/60 pb-6 flex items-end justify-between flex-wrap gap-4">
             <div>
               <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-3 tracking-tight">พิมพ์รายงาน PDF</h2>
               <p className="text-sm md:text-base text-slate-500 font-medium bg-white px-4 py-2 rounded-xl inline-block shadow-sm border border-slate-100">เลือกนักเรียนที่เยี่ยมแล้ว เพื่อพิมพ์รายงานรายบุคคลพร้อมรูปภาพ</p>
@@ -755,9 +935,10 @@
             {visitedList.length === 0 && <div className="col-span-full text-center py-16 bg-white/50 rounded-[3rem] border border-dashed border-slate-300 shadow-sm"><div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm"><i className="fa-solid fa-folder-open text-4xl text-slate-300"></i></div><p className="text-slate-500 font-bold text-lg mb-2">ยังไม่มีข้อมูลนักเรียนที่ถูกบันทึกว่า "เยี่ยมแล้ว"</p><button onClick={forceRefresh} className="text-blue-500 font-bold underline"><i className="fa-solid fa-rotate-right mr-1"></i> กดโหลดข้อมูลล่าสุดอีกครั้ง</button></div>}
             
             {visitedList.map((v, i) => {
-              const sName = getVal(v, 'studentname', 'ชื่อนักเรียน');
-              const sNo = getVal(v, 'studentno', 'เลขที่');
-              const vDate = getVal(v, 'visitdate', 'วันที่เยี่ยม');
+              const sName = getVal(v, 'studentname', 'studentName', 'ชื่อนักเรียน');
+              const sNo = getVal(v, 'studentno', 'studentNo', 'เลขที่');
+              const vDate = getVal(v, 'visitdate', 'visitDate', 'วันที่เยี่ยม');
+              const isGen = generating === sName;
               return (
                 <div key={i} className="glass-card p-6 md:p-8 rounded-[2.5rem] border border-white flex flex-col justify-between hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-300 group bg-white/90">
                   <div className="mb-8 relative">
@@ -766,8 +947,8 @@
                     <h4 className="font-bold text-slate-800 text-lg md:text-xl truncate tracking-tight">{sName || 'ไม่ระบุชื่อ'}</h4>
                     <p className="text-xs md:text-sm text-slate-500 font-medium mt-2 bg-slate-50 inline-block px-3 py-1.5 rounded-lg border border-slate-100"><i className="fa-solid fa-calendar text-emerald-500 mr-1.5"></i>เยี่ยมเมื่อ: {vDate ? new Date(vDate).toLocaleDateString('th-TH') : '-'}</p>
                   </div>
-                  <button onClick={() => generatePDF(sName)} className="w-full bg-slate-800 hover:bg-gradient-to-r hover:from-rose-500 hover:to-orange-500 text-white py-3.5 md:py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md group-hover:shadow-xl transform group-hover:scale-[1.02]">
-                    <i className="fa-solid fa-print"></i> พิมพ์เอกสาร
+                  <button onClick={() => generatePDF(sName)} disabled={isGen} className="w-full bg-slate-800 hover:bg-gradient-to-r hover:from-rose-500 hover:to-orange-500 text-white py-3.5 md:py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md group-hover:shadow-xl transform group-hover:scale-[1.02] disabled:opacity-70">
+                    {isGen ? <><i className="fa-solid fa-circle-notch fa-spin"></i> กำลังสร้าง...</> : <><i className="fa-solid fa-print"></i> พิมพ์เอกสาร</>}
                   </button>
                 </div>
               );
@@ -781,31 +962,89 @@
     root.render(<DashboardApp />);
   </script>
 
-  <!-- PDF Template Hidden -->
+  <!-- === PDF TEMPLATE ใหม่ทั้งหมด - ครอบคลุมทุกฟิลด์ === -->
   <div id="pdf-report-container">
-    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 25px;">
-      <h2 style="font-size: 22px; font-weight: bold; margin: 0;">แบบรายงานผลการเยี่ยมบ้านนักเรียน</h2>
-      <h3 style="font-size: 18px; margin: 8px 0 0 0;">โรงเรียนป่าก้าง ภาคเรียนที่ 1 ปีการศึกษา 2568</h3>
+    <!-- Header -->
+    <div style="text-align: center; border-bottom: 3px double #1e40af; padding-bottom: 18px; margin-bottom: 22px;">
+      <h2 style="font-size: 22px; font-weight: bold; margin: 0; color: #1e3a8a;">แบบรายงานผลการเยี่ยมบ้านนักเรียน</h2>
+      <h3 style="font-size: 16px; margin: 6px 0 0 0; color: #475569;">โรงเรียนป่าก้าง  ภาคเรียนที่ <span id="pdf-semester">-</span> ปีการศึกษา 2568</h3>
     </div>
     
-    <div style="margin-bottom: 20px; font-size: 15px; line-height: 1.8;">
-      <strong>ชื่อ-นามสกุลนักเรียน:</strong> <span id="pdf-name"></span><br>
-      <strong>ชั้นประถมศึกษาปีที่:</strong> <span id="pdf-class"></span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>เลขที่:</strong> <span id="pdf-no"></span><br>
-      <strong>วันที่ดำเนินการเยี่ยมบ้าน:</strong> <span id="pdf-date"></span>
-    </div>
-
-    <table class="pdf-table">
-      <tr><th>ลักษณะที่อยู่อาศัย</th><td id="pdf-t1"></td></tr>
-      <tr><th>ระยะทางจากบ้านถึงโรงเรียน</th><td id="pdf-t2"></td></tr>
-      <tr><th>วิธีการเดินทางมาโรงเรียน</th><td id="pdf-t3"></td></tr>
-      <tr><th>สภาพแวดล้อมและสภาพบ้าน</th><td id="pdf-t4"></td></tr>
-      <tr><th>สรุปผลการเยี่ยมบ้าน</th><td id="pdf-r1" style="color: red; font-weight: bold;"></td></tr>
-      <tr><th>บันทึกเพิ่มเติมจากครูประจำชั้น</th><td id="pdf-r2"></td></tr>
+    <!-- ข้อมูลพื้นฐาน -->
+    <div class="pdf-section-title">1. ข้อมูลพื้นฐานนักเรียน</div>
+    <table class="pdf-table" style="margin-top:0; border-radius:0 0 4px 4px;">
+      <tr><th>ชื่อ-นามสกุล</th><td id="pdf-name">-</td></tr>
+      <tr><th>ชื่อเล่น</th><td id="pdf-nickname">-</td></tr>
+      <tr><th>ชั้นเรียน</th><td id="pdf-class">-</td></tr>
+      <tr><th>เลขที่</th><td id="pdf-no">-</td></tr>
+      <tr><th>วันที่ดำเนินการเยี่ยมบ้าน</th><td id="pdf-date">-</td></tr>
+      <tr><th>สถานะการเยี่ยม</th><td id="pdf-status" style="font-weight:bold; color:#059669;">-</td></tr>
+      <tr><th>ครูประจำชั้น (ผู้บันทึก)</th><td id="pdf-teacher">-</td></tr>
     </table>
 
-    <div style="margin-top: 30px;">
-      <h4 style="font-size: 16px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px;">ภาพถ่ายประกอบการเยี่ยมบ้าน</h4>
-      <div id="pdf-images" style="margin-top: 15px;"></div>
+    <!-- การสังเกต -->
+    <div class="pdf-section-title">2. การสังเกตและสอบถามเบื้องต้น</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th style="width:32%;">รายละเอียดการสังเกต</th><td id="pdf-observations">-</td></tr>
+    </table>
+
+    <!-- ที่พัก -->
+    <div class="pdf-section-title">3. ข้อมูลที่พักอาศัยและการเดินทาง</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>ลักษณะที่พักอาศัย</th><td id="pdf-housetype">-</td></tr>
+      <tr><th>ระยะทางจากบ้านถึงโรงเรียน</th><td id="pdf-distance">-</td></tr>
+      <tr><th>วิธีการเดินทาง</th><td id="pdf-travel">-</td></tr>
+      <tr><th>สภาพบ้าน</th><td id="pdf-housecond">-</td></tr>
+      <tr><th>สาธารณูปโภค (น้ำ/ไฟ)</th><td id="pdf-utilities">-</td></tr>
+      <tr><th>สภาพแวดล้อมรอบบ้าน</th><td id="pdf-environment">-</td></tr>
+    </table>
+
+    <!-- ครอบครัว -->
+    <div class="pdf-section-title">4. ข้อมูลครอบครัว</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>จำนวนสมาชิกในครอบครัว</th><td id="pdf-members">-</td></tr>
+      <tr><th>จำนวนพี่น้อง</th><td id="pdf-siblings">-</td></tr>
+      <tr><th>ความสัมพันธ์ในครอบครัว</th><td id="pdf-rel">-</td></tr>
+      <tr><th>รายได้ครอบครัวเฉลี่ย</th><td id="pdf-income">-</td></tr>
+      <tr><th>ภาระงานของนักเรียน</th><td id="pdf-duties">-</td></tr>
+      <tr><th>กิจกรรมที่ทำร่วมกัน</th><td id="pdf-activities">-</td></tr>
+    </table>
+
+    <!-- ความเสี่ยง -->
+    <div class="pdf-section-title">5. ข้อมูลด้านความเสี่ยง</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>ด้านสุขภาพ</th><td id="pdf-risk-health">-</td></tr>
+      <tr><th>ด้านความปลอดภัย</th><td id="pdf-risk-safety">-</td></tr>
+      <tr><th>ด้านการเดินทาง</th><td id="pdf-risk-travel">-</td></tr>
+      <tr><th>ด้านเศรษฐกิจ/การงาน</th><td id="pdf-risk-work">-</td></tr>
+      <tr><th>ด้านสังคม/การคบเพื่อน</th><td id="pdf-risk-social">-</td></tr>
+      <tr><th>ด้านสารเสพติด</th><td id="pdf-risk-substance">-</td></tr>
+      <tr><th>ข้อห่วงใยของผู้ปกครอง</th><td id="pdf-concerns">-</td></tr>
+    </table>
+
+    <!-- สรุปผล -->
+    <div class="pdf-section-title" style="background:#dc2626;">6. สรุปผลการเยี่ยมบ้าน</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>สรุปความเห็นของครู</th><td id="pdf-result" style="color:#dc2626; font-weight:bold;">-</td></tr>
+      <tr><th>บันทึกเพิ่มเติม</th><td id="pdf-notes">-</td></tr>
+    </table>
+
+    <!-- รูปภาพ -->
+    <div class="pdf-section-title" style="background:#059669;">7. ภาพถ่ายประกอบการเยี่ยมบ้าน</div>
+    <div id="pdf-images" style="padding:10px; border:1px solid #333; border-top:none; border-radius:0 0 4px 4px; background:white;"></div>
+
+    <!-- ลายเซ็น -->
+    <div style="margin-top: 40px; display: flex; justify-content: space-around; padding: 20px 0;">
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px dotted #333; margin-bottom: 6px; height: 40px;"></div>
+        <div style="font-size: 13px;">(ลงชื่อ).............................................</div>
+        <div style="font-size: 12px; margin-top: 4px;">ครูประจำชั้น</div>
+      </div>
+      <div style="text-align: center; width: 40%;">
+        <div style="border-bottom: 1px dotted #333; margin-bottom: 6px; height: 40px;"></div>
+        <div style="font-size: 13px;">(ลงชื่อ).............................................</div>
+        <div style="font-size: 12px; margin-top: 4px;">ผู้อำนวยการโรงเรียน</div>
+      </div>
     </div>
   </div>
 </body>
