@@ -19,14 +19,13 @@
     body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; margin: 0; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    .fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     
     .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.6); }
     
-    /* ซ่อน Template PDF */
     #pdf-report-container { position: absolute; left: -9999px; top: 0; width: 794px; background: white; padding: 40px; font-family: 'Prompt', sans-serif; color: #000; }
     .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 15px; }
     .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 8px; text-align: left; }
@@ -39,9 +38,8 @@
   <div id="root" class="h-full"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
-    // 🔴 🔴 🔴 เปลี่ยน URL ตรงนี้ 🔴 🔴 🔴
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxd5kApYf97c5Q5O7H_6duQBA5-K_f5ioVds2WAeQKTB-p2OTHHV9T8dQN2r-Z1XtaL/exec";
 
     // --- Utilities API ---
@@ -63,6 +61,17 @@
     const REL_OPTS = ["อบอุ่นดีมาก","อบอุ่นดี","ปานกลาง","ไม่ค่อยอบอุ่น","มีปัญหา"];
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
+
+    // ฟังก์ชันดึงค่าจาก JSON ที่ยืดหยุ่นที่สุด (แก้ปัญหาเรื่องพิมพ์เว้นวรรคผิดใน Google Sheet)
+    const getVal = (obj, ...keys) => {
+      if (!obj) return '';
+      const objKeys = Object.keys(obj);
+      for (let key of keys) {
+        const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === String(key).trim().toLowerCase());
+        if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return String(obj[foundKey]).trim();
+      }
+      return '';
+    };
 
     // --- Sub Components ---
     const FormInput = ({ label, type="text", value, onChange, placeholder="" }) => (
@@ -110,6 +119,10 @@
       const [deviceMode, setDeviceMode] = useState('desktop');
       const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'true';
 
+      const [globalStudents, setGlobalStudents] = useState([]);
+      const [globalVisits, setGlobalVisits] = useState([]);
+      const [isDataLoaded, setIsDataLoaded] = useState(false);
+
       useEffect(() => {
         const handleResize = () => {
           const mobile = window.innerWidth < 768;
@@ -125,12 +138,34 @@
       useEffect(() => {
         const savedUser = localStorage.getItem("hv_user");
         if (!savedUser) { window.location.href = "login.html"; return; }
-        setUser(JSON.parse(savedUser));
+        const u = JSON.parse(savedUser);
+        setUser(u);
+        fetchInitialData(u);
       }, []);
+
+      const fetchInitialData = async (u) => {
+        setIsDataLoaded(false);
+        try {
+          const [sRes, vRes] = await Promise.all([
+            api.get("getStudents", { classLevel: u.classLevel }),
+            api.get("getVisitsFull", { classLevel: u.classLevel }) // โหลดข้อมูลเต็มรูปแบบมาเตรียมไว้เลย
+          ]);
+          if (sRes.success) setGlobalStudents(sRes.data);
+          if (vRes.success) setGlobalVisits(vRes.data);
+          setIsDataLoaded(true);
+        } catch (e) {
+          setIsDataLoaded(true);
+          showToast("โหลดข้อมูลล้มเหลว", "error");
+        }
+      };
 
       const logout = () => { localStorage.removeItem("hv_user"); window.location.href = "login.html"; };
       const showToast = (msg, type="success") => setToast({msg, type});
-      const refreshData = () => setRefreshKey(k => k + 1);
+      
+      const forceRefreshData = () => {
+        setRefreshKey(k => k + 1);
+        if (user) fetchInitialData(user);
+      };
 
       if (!user) return <div className="flex h-screen items-center justify-center bg-slate-50"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 drop-shadow-md"></i></div>;
 
@@ -240,10 +275,17 @@
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 custom-scroll">
               <div className="max-w-5xl mx-auto pb-20">
-                {view === "list" && <StudentList user={user} onSelect={(s) => {setSelectedStudent(s); setView("form");}} showToast={showToast} refreshKey={refreshKey} />}
-                {view === "form" && <VisitForm user={user} student={selectedStudent} onDone={() => {setView("list"); setSelectedStudent(null); showToast("บันทึกเยี่ยมบ้านเรียบร้อย", "success"); refreshData();}} onBack={() => {setView("list"); setSelectedStudent(null);}} showToast={showToast} />}
-                {view === "manage" && <StudentManage user={user} showToast={showToast} refreshKey={refreshKey} />}
-                {view === "reports" && <ReportExport user={user} showToast={showToast} refreshKey={refreshKey} />}
+                {view === "list" && <StudentList user={user} students={globalStudents} visits={globalVisits} isDataLoaded={isDataLoaded} onSelect={(s) => {setSelectedStudent(s); setView("form");}} forceRefresh={forceRefreshData} />}
+                
+                {view === "form" && <VisitForm user={user} student={selectedStudent} globalVisits={globalVisits}
+                  onDone={() => { setView("list"); setSelectedStudent(null); showToast("บันทึกข้อมูลเรียบร้อย", "success"); forceRefreshData(); }} 
+                  onBack={() => { setView("list"); setSelectedStudent(null); }} 
+                  showToast={showToast} 
+                />}
+                
+                {view === "manage" && <StudentManage user={user} showToast={showToast} onRefreshNeeded={forceRefreshData} />}
+                
+                {view === "reports" && <ReportExport user={user} showToast={showToast} visits={globalVisits} isDataLoaded={isDataLoaded} forceRefresh={forceRefreshData} />}
               </div>
             </div>
           </main>
@@ -252,29 +294,14 @@
     }
 
     // --- 1. หน้าแสดงรายชื่อ ---
-    function StudentList({ user, onSelect, showToast, refreshKey }) {
-      const [students, setStudents] = useState([]);
-      const [visits, setVisits] = useState([]);
-      const [loading, setLoading] = useState(true);
+    function StudentList({ user, students, visits, isDataLoaded, onSelect, forceRefresh }) {
       const [search, setSearch] = useState("");
 
-      useEffect(() => {
-        setLoading(true);
-        Promise.all([
-          api.get("getStudents", { classLevel: user.classLevel }),
-          api.get("getVisits", { classLevel: user.classLevel })
-        ]).then(([sRes, vRes]) => {
-          if (sRes.success) setStudents(sRes.data);
-          if (vRes.success) setVisits(vRes.data);
-          setLoading(false);
-        }).catch(() => { setLoading(false); showToast("โหลดข้อมูลล้มเหลว", "error"); });
-      }, [user, refreshKey]);
-
-      const getStatus = (name) => { const v = visits.find(v => String(v.studentName).trim() === String(name).trim()); return v ? String(v.visitStatus).trim() : "ยังไม่เยี่ยม"; };
+      const getStatus = (name) => { const v = visits.find(v => String(v.studentName).trim() === String(name).trim() || getVal(v, 'studentname', 'ชื่อนักเรียน') === String(name).trim()); return v ? (String(v.visitStatus).trim() || getVal(v, 'visitstatus', 'สถานะ')) : "ยังไม่เยี่ยม"; };
       const filtered = students.filter(s => !search || s.studentName.includes(search) || s.nickname?.includes(search) || s.studentNo?.includes(search));
       const visitedCount = students.filter(s => getStatus(s.studentName) === "เยี่ยมแล้ว").length;
 
-      if (loading) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-6 block drop-shadow-md"></i><span className="font-bold text-slate-500 text-lg tracking-widest">กำลังดึงข้อมูลนักเรียน...</span></div>;
+      if (!isDataLoaded) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-6 block drop-shadow-md"></i><span className="font-bold text-slate-500 text-lg tracking-widest">กำลังดึงข้อมูลนักเรียน...</span></div>;
 
       return (
         <div className="slide-up">
@@ -300,9 +327,12 @@
             <div>
               <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">รายชื่อนักเรียน <span className="text-blue-600 bg-blue-100/50 border border-blue-200 px-3 py-1 rounded-xl ml-2 text-xl inline-block shadow-sm">ชั้น {user.classLevel}</span></h2>
             </div>
-            <div className="relative w-full lg:w-80 group">
-              <i className="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors text-lg"></i>
-              <input type="text" placeholder="ค้นหาชื่อ หรือ เลขที่..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 font-bold text-sm md:text-base outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all text-slate-700" />
+            <div className="flex gap-2 w-full lg:w-auto">
+              <button onClick={forceRefresh} className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3.5 rounded-2xl font-bold transition-all shadow-sm"><i className="fa-solid fa-rotate-right"></i></button>
+              <div className="relative w-full lg:w-72 group">
+                <i className="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400 group-focus-within:text-blue-500 transition-colors text-lg"></i>
+                <input type="text" placeholder="ค้นหาชื่อ หรือ เลขที่..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-12 pr-4 font-bold text-sm md:text-base outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 shadow-sm transition-all text-slate-700" />
+              </div>
             </div>
           </div>
 
@@ -312,7 +342,7 @@
             {filtered.map((s, i) => {
               const isDone = getStatus(s.studentName) === "เยี่ยมแล้ว";
               return (
-                <div key={i} onClick={() => onSelect(s)} className="glass-card p-4 md:p-5 rounded-[1.5rem] hover:border-blue-400 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex items-center justify-between group fade-in bg-white/90" style={{animationDelay: `${i*0.03}s`}}>
+                <div key={i} onClick={() => onSelect(s)} className="glass-card p-4 md:p-5 rounded-[1.5rem] hover:border-blue-400 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex items-center justify-between group fade-in bg-white/90" style={{animationDelay: `${(i%15)*0.03}s`}}>
                   <div className="flex items-center gap-4 md:gap-5 overflow-hidden">
                     <div className="w-14 h-14 md:w-16 md:h-16 rounded-[1.2rem] bg-slate-100 text-slate-500 flex items-center justify-center font-black text-xl md:text-2xl flex-shrink-0 group-hover:bg-gradient-to-br group-hover:from-blue-500 group-hover:to-indigo-500 group-hover:text-white transition-all shadow-inner group-hover:shadow-[0_8px_20px_rgba(59,130,246,0.3)]">{s.studentNo}</div>
                     <div className="truncate">
@@ -335,23 +365,97 @@
       );
     }
 
-    // --- 2. ฟอร์มเยี่ยมบ้าน ---
-    function VisitForm({ user, student, onDone, onBack, showToast }) {
+    // --- 2. ฟอร์มเยี่ยมบ้านอัจฉริยะ (ดึงข้อมูลเก่ากลับมา และ Auto Save 1 วิ) ---
+    function VisitForm({ user, student, globalVisits, onDone, onBack, showToast }) {
       const [tab, setTab] = useState(0);
       const [saving, setSaving] = useState(false);
       const [gpsLoading, setGpsLoading] = useState(false);
-      const [images, setImages] = useState([null, null, null, null]);
+      const [isInitialLoad, setIsInitialLoad] = useState(true);
+      const [draftSaved, setDraftSaved] = useState(false);
       
-      const [form, setForm] = useState({
-        semester: "1", visitStatus: "เยี่ยมแล้ว", visitDate: new Date().toISOString().split("T")[0], observations: "",
-        houseType: "", distanceKm: "", travelMethod: "", houseCondition: "", utilities: "", environment: "",
-        familyMembers: "", siblings: "", familyRelationship: "", familyIncome: "", studentDuties: "", familyActivities: "",
-        riskHealth: "", riskSafety: "", riskTravel: "", riskWork: "", riskSocial: "", riskSubstance: "",
-        parentConcerns: "", visitResult: "", teacherNotes: ""
-      });
+      const [form, setForm] = useState({});
+      const [images, setImages] = useState([null, null, null, null]);
+
+      const TABS = ["สถานะการเยี่ยม", "ที่พัก & GPS", "ครอบครัว", "ความเสี่ยง", "อัปโหลด & สรุป"];
+
+      // ดึงข้อมูลเดิมจากฐานข้อมูล หรือ Draft มาใส่ใน Form
+      useEffect(() => {
+        if (!globalVisits) return;
+        
+        // 1. หาข้อมูลเก่าจาก Google Sheet (Backend)
+        const backendData = globalVisits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === String(student.studentName).trim());
+
+        let initForm = {
+          semester: backendData ? getVal(backendData, 'semester', 'ภาคเรียน') || "1" : "1",
+          visitStatus: backendData ? getVal(backendData, 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ') || "เยี่ยมแล้ว" : "เยี่ยมแล้ว",
+          visitDate: backendData ? getVal(backendData, 'visitdate', 'วันที่เยี่ยม') ? new Date(getVal(backendData, 'visitdate', 'วันที่เยี่ยม')).toISOString().split("T")[0] : new Date().toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          observations: backendData ? getVal(backendData, 'observations', 'การสังเกต') : "",
+          houseType: backendData ? getVal(backendData, 'housetype', 'ลักษณะที่พัก') : "",
+          distanceKm: backendData ? getVal(backendData, 'distancekm', 'ระยะทาง') : "",
+          travelMethod: backendData ? getVal(backendData, 'travelmethod', 'วิธีการเดินทาง') : "",
+          houseCondition: backendData ? getVal(backendData, 'housecondition', 'สภาพบ้าน') : "",
+          utilities: backendData ? getVal(backendData, 'utilities', 'สาธารณูปโภค') : "",
+          environment: backendData ? getVal(backendData, 'environment', 'สภาพแวดล้อม') : "",
+          familyMembers: backendData ? getVal(backendData, 'familymembers', 'จำนวนสมาชิก') : "",
+          siblings: backendData ? getVal(backendData, 'siblings', 'พี่น้อง') : "",
+          familyRelationship: backendData ? getVal(backendData, 'familyrelationship', 'ความสัมพันธ์') : "",
+          familyIncome: backendData ? getVal(backendData, 'familyincome', 'รายได้') : "",
+          studentDuties: backendData ? getVal(backendData, 'studentduties', 'ภาระงาน') : "",
+          familyActivities: backendData ? getVal(backendData, 'familyactivities', 'กิจกรรม') : "",
+          riskHealth: backendData ? getVal(backendData, 'riskhealth', 'สุขภาพ') : "",
+          riskSafety: backendData ? getVal(backendData, 'risksafety', 'ความปลอดภัย') : "",
+          riskTravel: backendData ? getVal(backendData, 'risktravel', 'การเดินทาง') : "",
+          riskWork: backendData ? getVal(backendData, 'riskwork', 'เศรษฐกิจ') : "",
+          riskSocial: backendData ? getVal(backendData, 'risksocial', 'การคบเพื่อน') : "",
+          riskSubstance: backendData ? getVal(backendData, 'risksubstance', 'สารเสพติด') : "",
+          parentConcerns: backendData ? getVal(backendData, 'parentconcerns', 'ข้อห่วงใย') : "",
+          visitResult: backendData ? getVal(backendData, 'visitresult', 'สรุปผล') : "",
+          teacherNotes: backendData ? getVal(backendData, 'teachernotes', 'บันทึกเพิ่มเติม') : "",
+        };
+
+        let initImages = [null, null, null, null];
+        if (backendData) {
+          const imgStr = getVal(backendData, 'images', 'รูปภาพ');
+          if (imgStr) {
+            const imgArr = imgStr.split(',');
+            for (let i = 0; i < 4; i++) {
+              if (imgArr[i] && imgArr[i].trim() !== "") initImages[i] = imgArr[i].trim();
+            }
+          }
+        }
+
+        // 2. ดึงข้อมูล Draft จาก LocalStorage (ถ้ามีและผู้ใช้ยังพิมพ์ค้างไว้)
+        const draftKey = `draft_visit_${student.studentNo}`;
+        const draftStr = localStorage.getItem(draftKey);
+        if (draftStr) {
+           try {
+             const draft = JSON.parse(draftStr);
+             initForm = { ...initForm, ...draft.form };
+             if (draft.images) {
+                 draft.images.forEach((img, i) => { if (img) initImages[i] = img; });
+             }
+           } catch(e) {}
+        }
+
+        setForm(initForm);
+        setImages(initImages);
+        setTimeout(() => setIsInitialLoad(false), 500);
+
+      }, [student, globalVisits]);
+
+      // 3. ระบบ Auto-save Draft (1 วินาทีหลังจากพิมพ์เสร็จ)
+      useEffect(() => {
+        if (isInitialLoad) return;
+        const timer = setTimeout(() => {
+            const draftKey = `draft_visit_${student.studentNo}`;
+            localStorage.setItem(draftKey, JSON.stringify({ form, images, timestamp: Date.now() }));
+            setDraftSaved(true);
+            setTimeout(() => setDraftSaved(false), 2000);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }, [form, images, isInitialLoad]);
 
       const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-      const TABS = ["สถานะการเยี่ยม", "ที่พัก & GPS", "ครอบครัว", "ความเสี่ยง", "อัปโหลด & สรุป"];
 
       const calcDistance = (lat1, lon1, lat2, lon2) => {
         const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -395,8 +499,18 @@
         const data = { ...form, teacherUsername: user.username, teacherName: user.fullName, classLevel: user.classLevel, studentNo: student.studentNo, studentName: student.studentName, nickname: student.nickname, imagesBase64: images.filter(img => img !== null) };
         const res = await api.post({ action: "saveVisit", data });
         if (!res.success) { showToast(res.message || "เกิดข้อผิดพลาด", "error"); setSaving(false); return; }
+        
+        // ลบ Draft ทิ้งเมื่อบันทึกเสร็จสมบูรณ์
+        localStorage.removeItem(`draft_visit_${student.studentNo}`);
         setSaving(false); onDone();
       };
+
+      // ถ้าย้อนกลับโดยไม่เซฟจริง ก็เก็บ Draft ไว้
+      const handleBack = () => {
+        onBack();
+      }
+
+      if (isInitialLoad) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-6 block"></i><span className="font-bold text-slate-500 text-lg">กำลังเตรียมแบบฟอร์ม...</span></div>;
 
       return (
         <div className="slide-up max-w-4xl mx-auto">
@@ -404,7 +518,7 @@
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-10 -translate-y-10 pointer-events-none"></div>
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="flex items-center gap-5 w-full">
-                <button onClick={onBack} className="w-12 h-12 md:w-14 md:h-14 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-[1.2rem] flex items-center justify-center transition-colors flex-shrink-0"><i className="fa-solid fa-arrow-left text-xl"></i></button>
+                <button onClick={handleBack} className="w-12 h-12 md:w-14 md:h-14 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-[1.2rem] flex items-center justify-center transition-colors flex-shrink-0"><i className="fa-solid fa-arrow-left text-xl"></i></button>
                 <div className="overflow-hidden">
                   <h2 className="text-2xl md:text-4xl font-black tracking-tight drop-shadow-md truncate">{student.studentName}</h2>
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -417,15 +531,21 @@
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto custom-scroll pb-4 mb-4 snap-x">
-            {TABS.map((t, i) => (
-              <button key={i} onClick={() => setTab(i)} 
-                className={`snap-start flex-1 min-w-[130px] md:min-w-[150px] px-2 py-4 rounded-[1.2rem] font-bold text-xs md:text-sm transition-all duration-300 whitespace-nowrap border-2 
-                ${tab === i ? 'bg-white border-blue-500 text-blue-600 shadow-md shadow-blue-500/10 transform scale-100' : 'bg-white/50 border-transparent text-slate-400 hover:bg-white hover:text-slate-600 transform scale-95'}`}>
-                <div className={`w-6 h-6 rounded-full mx-auto mb-1.5 flex items-center justify-center text-[10px] ${tab===i?'bg-blue-100 text-blue-600':'bg-slate-200 text-slate-500'}`}>{i+1}</div>
-                {t}
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+             <div className="flex gap-2 overflow-x-auto custom-scroll pb-2 p-1 bg-slate-200/50 rounded-2xl w-full snap-x">
+              {TABS.map((t, i) => (
+                <button key={i} onClick={() => setTab(i)} 
+                  className={`snap-start flex-1 min-w-[130px] md:min-w-[150px] px-2 py-4 rounded-[1.2rem] font-bold text-xs md:text-sm transition-all duration-300 whitespace-nowrap border-2 
+                  ${tab === i ? 'bg-white border-blue-500 text-blue-600 shadow-md shadow-blue-500/10 transform scale-100' : 'bg-white/50 border-transparent text-slate-400 hover:bg-white hover:text-slate-600 transform scale-95'}`}>
+                  <div className={`w-6 h-6 rounded-full mx-auto mb-1.5 flex items-center justify-center text-[10px] ${tab===i?'bg-blue-100 text-blue-600':'bg-slate-200 text-slate-500'}`}>{i+1}</div>
+                  {t}
+                </button>
+              ))}
+             </div>
+          </div>
+
+          <div className="flex justify-end mb-4 h-6">
+              {draftSaved && <span className="text-xs font-bold text-emerald-500 fade-in bg-emerald-50 px-3 py-1 rounded-full"><i className="fa-solid fa-cloud-arrow-up mr-1"></i> บันทึกร่างอัตโนมัติแล้ว</span>}
           </div>
 
           <div className="bg-white/90 backdrop-blur-xl p-6 md:p-10 rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-white min-h-[450px]">
@@ -452,7 +572,7 @@
               {tab === 3 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8"><FormInput label="ด้านสุขภาพ" value={form.riskHealth} onChange={e=>handleChange("riskHealth", e.target.value)}/><FormInput label="ด้านความปลอดภัย" value={form.riskSafety} onChange={e=>handleChange("riskSafety", e.target.value)}/><FormInput label="ด้านการเดินทาง" value={form.riskTravel} onChange={e=>handleChange("riskTravel", e.target.value)}/><FormInput label="ด้านเศรษฐกิจ/การงาน" value={form.riskWork} onChange={e=>handleChange("riskWork", e.target.value)}/><FormInput label="ด้านการคบเพื่อน/สังคม" value={form.riskSocial} onChange={e=>handleChange("riskSocial", e.target.value)}/><FormInput label="ด้านสารเสพติด" value={form.riskSubstance} onChange={e=>handleChange("riskSubstance", e.target.value)}/><div className="col-span-full mt-4"><FormTextarea label="ข้อห่วงใยของผู้ปกครอง (ถ้ามี)" value={form.parentConcerns} onChange={e=>handleChange("parentConcerns", e.target.value)} rows={4}/></div></div>}
               
               {tab === 4 && <div>
-                <h4 className="font-extrabold text-slate-800 mb-4 text-sm md:text-base border-l-4 border-blue-500 pl-3">อัปโหลดรูปภาพประกอบ <span className="font-medium text-slate-400 text-xs hidden md:inline ml-2">(ระบบบีบอัดและอัปโหลดเข้า Google Drive อัตโนมัติ)</span></h4>
+                <h4 className="font-extrabold text-slate-800 mb-4 text-sm md:text-base border-l-4 border-blue-500 pl-3">อัปโหลดรูปภาพประกอบ <span className="font-medium text-slate-400 text-xs hidden md:inline ml-2">(ดึงรูปเดิมมาแสดง หรืออัปโหลดใหม่)</span></h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">
                   {[0,1,2,3].map(n => (
                     <div key={n} className="relative aspect-square border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group shadow-sm">
@@ -479,7 +599,7 @@
               ) : (
                 <button onClick={handleSave} disabled={saving} className="w-full md:w-auto px-12 py-4 rounded-2xl font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3 disabled:opacity-70 transform hover:-translate-y-1">
                   {saving ? <i className="fa-solid fa-circle-notch fa-spin text-xl"></i> : <i className="fa-solid fa-cloud-arrow-up text-xl"></i>} 
-                  {saving ? "กำลังอัปโหลดรูปและบันทึก..." : "บันทึกข้อมูลเยี่ยมบ้าน"}
+                  {saving ? "กำลังอัปโหลดรูปและส่งเข้า Google Sheet..." : "บันทึกข้อมูลและอัปโหลดรูปลงระบบ"}
                 </button>
               )}
             </div>
@@ -489,7 +609,7 @@
     }
 
     // --- 3. หน้าจัดการข้อมูลนักเรียน ---
-    function StudentManage({ user, showToast, refreshKey }) {
+    function StudentManage({ user, showToast, onRefreshNeeded }) {
       const [students, setStudents] = useState([]);
       const [loading, setLoading] = useState(true);
 
@@ -497,12 +617,12 @@
         setLoading(true);
         api.get("getStudents", { classLevel: user.classLevel }).then(r => { if (r.success) setStudents(r.data); setLoading(false); });
       };
-      useEffect(() => { loadData(); }, [refreshKey]);
+      useEffect(() => { loadData(); }, []);
 
       const handleDelete = async (id) => {
         if(!confirm(`ยืนยันการลบนักเรียนเลขที่ ${id}?`)) return;
         const res = await api.post({ action: "deleteStudent", studentNo: id, classLevel: user.classLevel });
-        if(res.success) { showToast("ลบสำเร็จ", "success"); loadData(); } else showToast("ลบไม่สำเร็จ", "error");
+        if(res.success) { showToast("ลบสำเร็จ", "success"); loadData(); onRefreshNeeded(); } else showToast("ลบไม่สำเร็จ", "error");
       };
 
       const handleImportExcel = (e) => {
@@ -515,7 +635,7 @@
           const newStudents = data.slice(1).filter(r => r[0] && r[1]).map(r => ({ studentNo: r[0], studentName: r[1], nickname: r[2]||"", classLevel: r[3]||user.classLevel }));
           
           const res = await api.post({ action: "importStudents", students: newStudents });
-          if(res.success) { showToast(`นำเข้าสำเร็จ ${newStudents.length} คน`, "success"); loadData(); } else showToast("เกิดข้อผิดพลาดในการนำเข้า", "error");
+          if(res.success) { showToast(`นำเข้าสำเร็จ ${newStudents.length} คน`, "success"); loadData(); onRefreshNeeded(); } else showToast("เกิดข้อผิดพลาดในการนำเข้า", "error");
         };
         reader.readAsBinaryString(file); e.target.value = "";
       };
@@ -557,21 +677,9 @@
       );
     }
 
-    // --- 4. หน้าส่งออกรายงาน PDF แบบสุดยอด (ดึงครบ ตัดช่องว่าง 100%) ---
-    function ReportExport({ user, showToast, refreshKey }) {
-      const [visits, setVisits] = useState([]);
-      const [loading, setLoading] = useState(true);
-
-      useEffect(() => {
-        setLoading(true);
-        api.get("getVisitsFull", { classLevel: user.classLevel }).then(r => { 
-          if (r.success) setVisits(r.data); 
-          else showToast("ไม่สามารถโหลดข้อมูลรายงานได้", "error");
-          setLoading(false); 
-        }).catch(() => { setLoading(false); showToast("เชื่อมต่อขัดข้อง", "error"); });
-      }, [refreshKey, user]);
-
-      // ฟังก์ชันดึงค่าจาก JSON แบบตัดช่องว่าง (แก้ปัญหา Sheet ตั้งชื่อคอลัมน์คลาดเคลื่อน)
+    // --- 4. หน้าพิมพ์รายงาน PDF ---
+    function ReportExport({ user, showToast, visits, isDataLoaded, forceRefresh }) {
+      
       const getVal = (obj, ...keys) => {
         if (!obj) return '';
         const objKeys = Object.keys(obj);
@@ -584,7 +692,11 @@
 
       const generatePDF = (studentName) => {
         const data = visits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === String(studentName).trim());
-        if(!data) return showToast("ไม่พบข้อมูลรายงานการเยี่ยม", "error");
+        
+        if(!data) {
+           showToast("ข้อมูลรายงานใบนี้อาจกำลังประมวลผลอยู่เบื้องหลัง กรุณากดรีเฟรช 1 ครั้ง", "error");
+           return;
+        }
 
         showToast("กำลังประมวลผล PDF กรุณารอสักครู่...", "success");
         
@@ -622,7 +734,7 @@
         setTimeout(() => { html2pdf().set(opt).from(element).save().then(() => { element.style.left = '-9999px'; }); }, 1000);
       };
 
-      if (loading) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-rose-500 mb-6 block drop-shadow-md"></i><span className="font-bold text-slate-500 text-lg">กำลังประมวลผลข้อมูลรายงาน...</span></div>;
+      if (!isDataLoaded) return <div className="text-center py-32 fade-in"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-rose-500 mb-6 block drop-shadow-md"></i><span className="font-bold text-slate-500 text-lg">กำลังประมวลผลข้อมูลรายงาน...</span></div>;
 
       const visitedList = visits.filter(v => getVal(v, 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ') === "เยี่ยมแล้ว");
 
@@ -633,11 +745,14 @@
               <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-3 tracking-tight">พิมพ์รายงาน PDF</h2>
               <p className="text-sm md:text-base text-slate-500 font-medium bg-white px-4 py-2 rounded-xl inline-block shadow-sm border border-slate-100">เลือกนักเรียนที่เยี่ยมแล้ว เพื่อพิมพ์รายงานรายบุคคลพร้อมรูปภาพ</p>
             </div>
-            <div className="hidden md:block bg-rose-50 text-rose-500 px-5 py-3 rounded-2xl font-bold"><i className="fa-solid fa-file-pdf mr-2"></i> {visitedList.length} รายการพร้อมพิมพ์</div>
+            <div className="flex gap-3">
+              <button onClick={forceRefresh} className="hidden md:flex bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 px-5 py-3 rounded-2xl font-bold items-center transition-colors"><i className="fa-solid fa-rotate-right mr-2"></i> โหลดข้อมูลล่าสุด</button>
+              <div className="hidden md:flex bg-rose-50 text-rose-500 px-5 py-3 rounded-2xl font-bold items-center"><i className="fa-solid fa-file-pdf mr-2"></i> {visitedList.length} รายการพร้อมพิมพ์</div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-            {visitedList.length === 0 && <div className="col-span-full text-center py-16 bg-white/50 rounded-[3rem] border border-dashed border-slate-300 shadow-sm"><div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm"><i className="fa-solid fa-folder-open text-4xl text-slate-300"></i></div><p className="text-slate-500 font-bold text-lg">ยังไม่มีข้อมูลนักเรียนที่ถูกบันทึกว่า "เยี่ยมแล้ว"</p></div>}
+            {visitedList.length === 0 && <div className="col-span-full text-center py-16 bg-white/50 rounded-[3rem] border border-dashed border-slate-300 shadow-sm"><div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm"><i className="fa-solid fa-folder-open text-4xl text-slate-300"></i></div><p className="text-slate-500 font-bold text-lg mb-2">ยังไม่มีข้อมูลนักเรียนที่ถูกบันทึกว่า "เยี่ยมแล้ว"</p><button onClick={forceRefresh} className="text-blue-500 font-bold underline"><i className="fa-solid fa-rotate-right mr-1"></i> กดโหลดข้อมูลล่าสุดอีกครั้ง</button></div>}
             
             {visitedList.map((v, i) => {
               const sName = getVal(v, 'studentname', 'ชื่อนักเรียน');
