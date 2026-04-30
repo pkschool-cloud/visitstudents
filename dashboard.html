@@ -741,7 +741,7 @@
       );
     }
 
-    // --- 4. หน้าพิมพ์รายงาน PDF (เขียนใหม่ทั้งหมด) ---
+    // --- 4. หน้าพิมพ์รายงาน PDF (ปรับให้ดึงภาพด้วย Base64 เสมอ) ---
     function ReportExport({ user, showToast, visits, isDataLoaded, forceRefresh }) {
       const [generating, setGenerating] = useState(null);
 
