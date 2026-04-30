@@ -44,10 +44,9 @@
     // 🔴 🔴 🔴 เปลี่ยน URL ตรงนี้ 🔴 🔴 🔴
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxd5kApYf97c5Q5O7H_6duQBA5-K_f5ioVds2WAeQKTB-p2OTHHV9T8dQN2r-Z1XtaL/exec";
 
-    // --- Utilities API (แก้ไขระบบแคชให้ดึงคนมาครบ 100%) ---
+    // --- Utilities API ---
     const api = {
       async get(action, params = {}) {
-        // เพิ่ม t: Date.now() เพื่อหลอกเบราว์เซอร์ไม่ให้ดึง Cache เก่า
         const q = new URLSearchParams({ action, t: Date.now(), ...params }).toString();
         try { const r = await fetch(`${SCRIPT_URL}?${q}`); return await r.json(); } 
         catch { return { success: false, message: "เชื่อมต่อขัดข้อง" }; }
@@ -108,7 +107,6 @@
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
       
-      // ระบบ Device Simulator
       const [deviceMode, setDeviceMode] = useState('desktop');
       const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'true';
 
@@ -136,35 +134,27 @@
 
       if (!user) return <div className="flex h-screen items-center justify-center bg-slate-50"><i className="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 drop-shadow-md"></i></div>;
 
-      // 🔴 ส่วนของ Device Simulator (ถ้าไม่ได้กด Desktop ให้ครอบด้วย Iframe สร้างมือถือจำลอง)
       if (deviceMode !== 'desktop' && !isPreviewMode) {
         return (
           <div className="flex flex-col items-center justify-center h-screen w-full bg-slate-900 p-4 relative overflow-hidden fade-in">
-            {/* พื้นหลังตกแต่งหลังกรอบจำลอง */}
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[100px] rounded-full pointer-events-none"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[100px] rounded-full pointer-events-none"></div>
 
-            {/* แถบเครื่องมือจำลองอุปกรณ์ */}
             <div className="flex gap-4 mb-8 bg-white/10 backdrop-blur-md p-2.5 rounded-2xl shadow-2xl border border-white/10 z-10">
                <button onClick={()=>setDeviceMode('desktop')} className="w-12 h-12 rounded-xl text-slate-300 hover:text-white hover:bg-white/20 transition-all font-bold flex items-center justify-center gap-2 px-4"><i className="fa-solid fa-desktop text-xl"></i></button>
                <button onClick={()=>setDeviceMode('tablet')} className={`w-12 h-12 rounded-xl transition-all ${deviceMode==='tablet'?'bg-blue-500 text-white shadow-lg shadow-blue-500/40':'text-slate-300 hover:text-white hover:bg-white/20'}`}><i className="fa-solid fa-tablet-screen-button text-xl"></i></button>
                <button onClick={()=>setDeviceMode('mobile')} className={`w-12 h-12 rounded-xl transition-all ${deviceMode==='mobile'?'bg-blue-500 text-white shadow-lg shadow-blue-500/40':'text-slate-300 hover:text-white hover:bg-white/20'}`}><i className="fa-solid fa-mobile-screen-button text-xl"></i></button>
             </div>
             
-            {/* โครงสร้างหน้าจอจำลอง (Mockup) */}
             <div className={`relative bg-white transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)] border-[14px] border-slate-800 z-10 flex flex-col
               ${deviceMode === 'tablet' ? 'w-[768px] h-[1024px] max-h-[80vh] rounded-[2rem]' : 'w-[390px] h-[844px] max-h-[85vh] rounded-[3rem]'}`}>
-                {/* รอยบากกล้องมือถือ */}
                 {deviceMode === 'mobile' && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-[1.2rem] z-50"></div>}
-                
-                {/* ดึงตัวเองมาเปิดซ้ำด้วย iframe ทำให้ Responsive ทำงานได้สมบูรณ์แบบ */}
                 <iframe src={window.location.href + (window.location.href.includes('?') ? '&preview=true' : '?preview=true')} className="w-full h-full border-none bg-slate-50 flex-1"></iframe>
             </div>
           </div>
         );
       }
 
-      // --- หน้าจอหลักของ Web App ---
       return (
         <div className="flex h-full w-full bg-slate-50 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] fade-in">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -173,7 +163,6 @@
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>
           )}
 
-          {/* Sidebar */}
           <aside className={`sidebar-transition fixed md:relative z-50 bg-white/80 backdrop-blur-2xl border-r border-slate-200 flex flex-col h-full flex-shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.04)]
             ${isSidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'}`}>
             
@@ -225,7 +214,6 @@
             </div>
           </aside>
 
-          {/* Main Content */}
           <main className="flex-1 flex flex-col h-full overflow-hidden relative w-full">
             <header className="h-16 md:h-24 bg-white/60 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-8 flex items-center justify-between flex-shrink-0 z-20">
               <div className="flex items-center gap-3 md:gap-5">
@@ -241,7 +229,6 @@
                 </div>
               </div>
               
-              {/* ปุ่ม Device Simulator (แสดงเฉพาะบน Desktop จริงๆ และไม่ใช่ Preview) */}
               {!isMobile && !isPreviewMode && (
                 <div className="hidden lg:flex items-center gap-1.5 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
                   <button onClick={() => setDeviceMode('desktop')} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${deviceMode==='desktop'?'bg-blue-50 text-blue-600 font-bold shadow-sm':'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`} title="Desktop View"><i className="fa-solid fa-desktop"></i></button>
@@ -264,7 +251,7 @@
       );
     }
 
-    // --- 1. หน้าแสดงรายชื่อนักเรียน ---
+    // --- 1. หน้าแสดงรายชื่อ ---
     function StudentList({ user, onSelect, showToast, refreshKey }) {
       const [students, setStudents] = useState([]);
       const [visits, setVisits] = useState([]);
@@ -283,7 +270,7 @@
         }).catch(() => { setLoading(false); showToast("โหลดข้อมูลล้มเหลว", "error"); });
       }, [user, refreshKey]);
 
-      const getStatus = (name) => { const v = visits.find(v => v.studentName === name); return v ? v.visitStatus : "ยังไม่เยี่ยม"; };
+      const getStatus = (name) => { const v = visits.find(v => String(v.studentName).trim() === String(name).trim()); return v ? String(v.visitStatus).trim() : "ยังไม่เยี่ยม"; };
       const filtered = students.filter(s => !search || s.studentName.includes(search) || s.nickname?.includes(search) || s.studentNo?.includes(search));
       const visitedCount = students.filter(s => getStatus(s.studentName) === "เยี่ยมแล้ว").length;
 
@@ -291,7 +278,6 @@
 
       return (
         <div className="slide-up">
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-10">
             <div className="glass-card p-6 rounded-[2rem] flex items-center justify-between shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
               <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
@@ -349,7 +335,7 @@
       );
     }
 
-    // --- 2. ฟอร์มเยี่ยมบ้านอัจฉริยะ (แยก FormInput เพื่อไม่ให้หลุดโฟกัส) ---
+    // --- 2. ฟอร์มเยี่ยมบ้าน ---
     function VisitForm({ user, student, onDone, onBack, showToast }) {
       const [tab, setTab] = useState(0);
       const [saving, setSaving] = useState(false);
@@ -414,7 +400,6 @@
 
       return (
         <div className="slide-up max-w-4xl mx-auto">
-          {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 md:p-10 text-white shadow-xl shadow-blue-500/20 mb-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-10 -translate-y-10 pointer-events-none"></div>
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -432,7 +417,6 @@
             </div>
           </div>
 
-          {/* Stepper Navigation */}
           <div className="flex gap-2 overflow-x-auto custom-scroll pb-4 mb-4 snap-x">
             {TABS.map((t, i) => (
               <button key={i} onClick={() => setTab(i)} 
@@ -444,27 +428,17 @@
             ))}
           </div>
 
-          {/* Form Content */}
           <div className="bg-white/90 backdrop-blur-xl p-6 md:p-10 rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-white min-h-[450px]">
             <div className="fade-in" key={tab}>
-              {/* Tab 1 */}
-              {tab === 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                <FormSelect label="ภาคเรียน" value={form.semester} onChange={e=>handleChange("semester", e.target.value)} options={["1","2"]}/>
-                <FormSelect label="สถานะการเยี่ยม" value={form.visitStatus} onChange={e=>handleChange("visitStatus", e.target.value)} options={VISIT_STAT}/>
-                <FormInput label="วันที่เยี่ยมบ้าน" type="date" value={form.visitDate} onChange={e=>handleChange("visitDate", e.target.value)}/>
-                <div className="col-span-full"><FormTextarea label="การสังเกตและสอบถามเบื้องต้น" value={form.observations} onChange={e=>handleChange("observations", e.target.value)} rows={4}/></div>
-              </div>}
+              {tab === 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8"><FormSelect label="ภาคเรียน" value={form.semester} onChange={e=>handleChange("semester", e.target.value)} options={["1","2"]}/><FormSelect label="สถานะการเยี่ยม" value={form.visitStatus} onChange={e=>handleChange("visitStatus", e.target.value)} options={VISIT_STAT}/><FormInput label="วันที่เยี่ยมบ้าน" type="date" value={form.visitDate} onChange={e=>handleChange("visitDate", e.target.value)}/><div className="col-span-full"><FormTextarea label="การสังเกตและสอบถามเบื้องต้น" value={form.observations} onChange={e=>handleChange("observations", e.target.value)} rows={4}/></div></div>}
               
-              {/* Tab 2 */}
               {tab === 1 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 <FormInput label="ลักษณะที่พัก (เช่น บ้านเดี่ยว, หอพัก)" value={form.houseType} onChange={e=>handleChange("houseType", e.target.value)}/>
                 <div className="mb-5 relative">
                   <label className="block text-sm font-bold text-slate-600 mb-2 ml-1">ระยะทางถึง รร. (กม.)</label>
                   <div className="flex gap-2">
                     <input type="number" value={form.distanceKm} onChange={e=>handleChange("distanceKm", e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-700 shadow-inner" placeholder="ระบุตัวเลข (เช่น 2.5)"/>
-                    <button onClick={getGPS} disabled={gpsLoading} className="bg-slate-800 text-white w-14 rounded-xl flex items-center justify-center font-bold shadow-md hover:shadow-lg hover:bg-slate-700 transition-all disabled:opacity-70 flex-shrink-0" title="ดึงพิกัด GPS อัตโนมัติ">
-                      {gpsLoading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-location-crosshairs text-lg"></i>}
-                    </button>
+                    <button onClick={getGPS} disabled={gpsLoading} className="bg-slate-800 text-white w-14 rounded-xl flex items-center justify-center font-bold shadow-md hover:shadow-lg hover:bg-slate-700 transition-all disabled:opacity-70 flex-shrink-0" title="ดึงพิกัด GPS อัตโนมัติ">{gpsLoading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-location-crosshairs text-lg"></i>}</button>
                   </div>
                 </div>
                 <FormInput label="วิธีการเดินทาง" value={form.travelMethod} onChange={e=>handleChange("travelMethod", e.target.value)}/>
@@ -473,30 +447,10 @@
                 <div className="col-span-full"><FormTextarea label="สภาพแวดล้อมรอบบ้าน" value={form.environment} onChange={e=>handleChange("environment", e.target.value)} rows={3}/></div>
               </div>}
               
-              {/* Tab 3 */}
-              {tab === 2 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                <FormInput label="จำนวนสมาชิกในบ้าน (คน)" type="number" value={form.familyMembers} onChange={e=>handleChange("familyMembers", e.target.value)}/>
-                <FormInput label="จำนวนพี่น้อง (คน)" type="number" value={form.siblings} onChange={e=>handleChange("siblings", e.target.value)}/>
-                <FormSelect label="ความสัมพันธ์ในครอบครัว" value={form.familyRelationship} onChange={e=>handleChange("familyRelationship", e.target.value)} options={REL_OPTS}/>
-                <FormInput label="รายได้ครอบครัวเฉลี่ย (บาท)" type="number" value={form.familyIncome} onChange={e=>handleChange("familyIncome", e.target.value)}/>
-                <div className="col-span-full">
-                  <FormInput label="ภาระงานของนักเรียนเมื่ออยู่บ้าน" value={form.studentDuties} onChange={e=>handleChange("studentDuties", e.target.value)}/>
-                  <FormTextarea label="กิจกรรมที่มักทำร่วมกัน" value={form.familyActivities} onChange={e=>handleChange("familyActivities", e.target.value)} rows={3}/>
-                </div>
-              </div>}
+              {tab === 2 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8"><FormInput label="จำนวนสมาชิกในบ้าน (คน)" type="number" value={form.familyMembers} onChange={e=>handleChange("familyMembers", e.target.value)}/><FormInput label="จำนวนพี่น้อง (คน)" type="number" value={form.siblings} onChange={e=>handleChange("siblings", e.target.value)}/><FormSelect label="ความสัมพันธ์ในครอบครัว" value={form.familyRelationship} onChange={e=>handleChange("familyRelationship", e.target.value)} options={REL_OPTS}/><FormInput label="รายได้ครอบครัวเฉลี่ย (บาท)" type="number" value={form.familyIncome} onChange={e=>handleChange("familyIncome", e.target.value)}/><div className="col-span-full"><FormInput label="ภาระงานของนักเรียนเมื่ออยู่บ้าน" value={form.studentDuties} onChange={e=>handleChange("studentDuties", e.target.value)}/><FormTextarea label="กิจกรรมที่มักทำร่วมกัน" value={form.familyActivities} onChange={e=>handleChange("familyActivities", e.target.value)} rows={3}/></div></div>}
               
-              {/* Tab 4 */}
-              {tab === 3 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                <FormInput label="ด้านสุขภาพ" value={form.riskHealth} onChange={e=>handleChange("riskHealth", e.target.value)}/>
-                <FormInput label="ด้านความปลอดภัย" value={form.riskSafety} onChange={e=>handleChange("riskSafety", e.target.value)}/>
-                <FormInput label="ด้านการเดินทาง" value={form.riskTravel} onChange={e=>handleChange("riskTravel", e.target.value)}/>
-                <FormInput label="ด้านเศรษฐกิจ/การงาน" value={form.riskWork} onChange={e=>handleChange("riskWork", e.target.value)}/>
-                <FormInput label="ด้านการคบเพื่อน/สังคม" value={form.riskSocial} onChange={e=>handleChange("riskSocial", e.target.value)}/>
-                <FormInput label="ด้านสารเสพติด" value={form.riskSubstance} onChange={e=>handleChange("riskSubstance", e.target.value)}/>
-                <div className="col-span-full mt-4"><FormTextarea label="ข้อห่วงใยของผู้ปกครอง (ถ้ามี)" value={form.parentConcerns} onChange={e=>handleChange("parentConcerns", e.target.value)} rows={4}/></div>
-              </div>}
+              {tab === 3 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8"><FormInput label="ด้านสุขภาพ" value={form.riskHealth} onChange={e=>handleChange("riskHealth", e.target.value)}/><FormInput label="ด้านความปลอดภัย" value={form.riskSafety} onChange={e=>handleChange("riskSafety", e.target.value)}/><FormInput label="ด้านการเดินทาง" value={form.riskTravel} onChange={e=>handleChange("riskTravel", e.target.value)}/><FormInput label="ด้านเศรษฐกิจ/การงาน" value={form.riskWork} onChange={e=>handleChange("riskWork", e.target.value)}/><FormInput label="ด้านการคบเพื่อน/สังคม" value={form.riskSocial} onChange={e=>handleChange("riskSocial", e.target.value)}/><FormInput label="ด้านสารเสพติด" value={form.riskSubstance} onChange={e=>handleChange("riskSubstance", e.target.value)}/><div className="col-span-full mt-4"><FormTextarea label="ข้อห่วงใยของผู้ปกครอง (ถ้ามี)" value={form.parentConcerns} onChange={e=>handleChange("parentConcerns", e.target.value)} rows={4}/></div></div>}
               
-              {/* Tab 5 */}
               {tab === 4 && <div>
                 <h4 className="font-extrabold text-slate-800 mb-4 text-sm md:text-base border-l-4 border-blue-500 pl-3">อัปโหลดรูปภาพประกอบ <span className="font-medium text-slate-400 text-xs hidden md:inline ml-2">(ระบบบีบอัดและอัปโหลดเข้า Google Drive อัตโนมัติ)</span></h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">
@@ -517,7 +471,6 @@
               </div>}
             </div>
 
-            {/* Navigation Buttons */}
             <div className="flex flex-col-reverse md:flex-row justify-between gap-4 mt-10 pt-8 border-t border-slate-100/80">
               <button onClick={() => setTab(Math.max(0, tab - 1))} disabled={tab === 0} className="w-full md:w-auto px-6 py-4 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-slate-800 disabled:opacity-30 disabled:hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"><i className="fa-solid fa-arrow-left"></i> ย้อนกลับ</button>
               
@@ -604,7 +557,7 @@
       );
     }
 
-    // --- 4. หน้าพิมพ์รายงาน PDF (ดึงข้อมูลแบบฉลาด) ---
+    // --- 4. หน้าส่งออกรายงาน PDF แบบสุดยอด (ดึงครบ ตัดช่องว่าง 100%) ---
     function ReportExport({ user, showToast, refreshKey }) {
       const [visits, setVisits] = useState([]);
       const [loading, setLoading] = useState(true);
@@ -618,19 +571,19 @@
         }).catch(() => { setLoading(false); showToast("เชื่อมต่อขัดข้อง", "error"); });
       }, [refreshKey, user]);
 
-      // ฟังก์ชันดึงค่าจาก JSON แบบยืดหยุ่น (แก้ปัญหาตัวพิมพ์เล็ก/ใหญ่ หรือหัวข้อคอลัมน์ชื่อไม่ตรง)
+      // ฟังก์ชันดึงค่าจาก JSON แบบตัดช่องว่าง (แก้ปัญหา Sheet ตั้งชื่อคอลัมน์คลาดเคลื่อน)
       const getVal = (obj, ...keys) => {
         if (!obj) return '';
         const objKeys = Object.keys(obj);
         for (let key of keys) {
-          const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === key.toLowerCase());
-          if (foundKey && obj[foundKey]) return obj[foundKey];
+          const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === String(key).trim().toLowerCase());
+          if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return String(obj[foundKey]).trim();
         }
         return '';
       };
 
       const generatePDF = (studentName) => {
-        const data = visits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === studentName);
+        const data = visits.find(v => getVal(v, 'studentname', 'ชื่อนักเรียน') === String(studentName).trim());
         if(!data) return showToast("ไม่พบข้อมูลรายงานการเยี่ยม", "error");
 
         showToast("กำลังประมวลผล PDF กรุณารอสักครู่...", "success");
