@@ -42,14 +42,28 @@
     .btn-press:active { transform: scale(0.96); box-shadow: 0 2px 5px -2px rgba(0,0,0,0.1); }
     
     .hide-scroll::-webkit-scrollbar { display: none; }
+
+    /* 🌟 หัวใจสำคัญ: ระบบ Print ด้วย Browser Native ไม่มีทางพัง 🌟 */
+    @media print {
+      @page { size: A4 portrait; margin: 20mm 15mm; } /* เผื่อขอบด้านบนเยอะขึ้นเวลาย่อ 99% จะได้ไม่ชน */
+      body { background-color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .screen-only { display: none !important; }
+      .print-only { display: block !important; }
+      .break-after-page { page-break-after: always; }
+      .avoid-break { page-break-inside: avoid; }
+    }
+    @media screen {
+      .print-only { display: none !important; }
+    }
   </style>
 </head>
-<body class="h-screen overflow-hidden bg-slate-50">
+<body>
   <div id="root" class="h-full w-full"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
+    // 🔴 ใส่ URL Google Apps Script ดั้งเดิมของคุณครูได้เลยครับ 🔴
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwu0Dw9TUcLFhNyQ0wSI_8efgKyeaJrJBXdDV2_WuCUkWY10SZkTI4XtwYdTgR0YHjE/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
@@ -125,6 +139,7 @@
       } catch(e) { return new Date().toISOString().split("T")[0]; }
     };
 
+    // ============= UI Components =============
     const PremiumInput = ({ label, value, onChange, type="text", placeholder="", icon, disabled=false }) => (
       <div className="mb-6 pop-in">
         <label className="block text-sm font-bold text-slate-500 mb-2 pl-4">{label}</label>
@@ -219,6 +234,20 @@
       );
     };
 
+    // ============= การจัดรูปแบบแถวตารางในหน้าพิมพ์ =============
+    const PrintSectionHeader = ({ title }) => (
+      <tr className="bg-[#f1f5f9] border-y border-[#cbd5e1]">
+        <td colSpan="2" className="py-2 px-4 font-bold text-[#0f172a] text-[13px]">{title}</td>
+      </tr>
+    );
+
+    const PrintDataRow = ({ label, value, highlight }) => (
+      <tr className="border-b border-[#e2e8f0]">
+        <td className="py-2 px-4 font-bold text-[#475569] bg-[#fafbfc] border-r border-[#e2e8f0] w-[35%] text-[13px] align-top">{label}</td>
+        <td className={`py-2 px-4 text-[13px] align-top ${highlight ? 'font-bold text-[#1e40af]' : 'text-[#0f172a]'}`}>{value || '-'}</td>
+      </tr>
+    );
+
     // ============= Main Dashboard App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
@@ -236,16 +265,14 @@
 
       const [adminClassFilter, setAdminClassFilter] = useState("ทั้งหมด");
       const [sidebarSearch, setSidebarSearch] = useState("");
+
+      // สถานะสำหรับการทำ Native Print
+      const [printStudents, setPrintStudents] = useState(null);
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
-      const checkIsAdmin = (lvl) => {
-        const c = String(lvl).toLowerCase().trim();
-        return c === "แอดมิน" || c === "admin" || c === "ทั้งหมด" || c === "ผู้บริหาร";
-      };
-
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_final_v8");
+        const u = localStorage.getItem("hv_user_final_v11");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -253,21 +280,32 @@
         }
       }, []);
 
+      // จัดการคำสั่งสั่งพิมพ์
+      useEffect(() => {
+        if (printStudents && printStudents.length > 0) {
+          const timer = setTimeout(() => {
+            window.print();
+            setPrintStudents(null); // ล้างข้อมูลหลังพิมพ์เสร็จ เพื่อกลับหน้าจอหลัก
+          }, 800);
+          return () => clearTimeout(timer);
+        }
+      }, [printStudents]);
+
       const loadAllData = async (u) => {
         setIsDataLoaded(false);
         const [sRes, vRes] = await Promise.all([
           api.get("getStudents", { classLevel: u.classLevel }),
           api.get("getVisitsFull", { classLevel: u.classLevel })
         ]);
-        if (sRes.success) setGlobalStudents(sRes.data);
-        if (vRes.success) setGlobalVisits(vRes.data);
+        if (sRes.success && Array.isArray(sRes.data)) setGlobalStudents(sRes.data);
+        if (vRes.success && Array.isArray(vRes.data)) setGlobalVisits(vRes.data);
         setIsDataLoaded(true);
       };
 
       const handleLogin = async (code, stopLoading) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success && res.data) {
-          localStorage.setItem("hv_user_final_v8", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_final_v11", JSON.stringify(res.data));
           setUser(res.data); 
           loadAllData(res.data);
           setShowWelcome(true);
@@ -339,127 +377,226 @@
         : [];
 
       return (
-        <div className="flex h-screen bg-[#f4f7fb] fade-in">
-          {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-          {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
-          
-          {isSaving && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in p-4">
-               <div className="bg-white px-10 py-8 rounded-[2rem] shadow-2xl flex flex-col items-center bounce-in text-center">
-                  <div className="relative w-20 h-20 mb-4 flex items-center justify-center mx-auto">
-                    <div className="absolute inset-0 border-[4px] border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
-                    <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500"></i>
+        <>
+          {/* 🖨️ โซนกระดาษสำหรับสั่ง Print โดยเฉพาะ (ซ่อนในโหมดหน้าจอปกติ) 🖨️ */}
+          {printStudents && (
+            <div className="print-only bg-white text-black font-[Sarabun] w-full">
+              {printStudents.map((s, index) => {
+                const v = globalVisits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
+                const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
+                const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
+                const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
+                const dateStr = new Date().toLocaleDateString("th-TH", {year:'numeric', month:'short', day:'numeric'});
+
+                return (
+                  <div key={s.studentNo} className="break-after-page w-full mx-auto">
+                    
+                    {/* Header โลโก้ ชื่อโรงเรียน */}
+                    <div className="text-center mb-6">
+                      <h1 className="text-[#1e3a8a] text-[24px] font-bold mb-1">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
+                      <div className="h-[2px] w-full bg-[#3b82f6] mx-auto mb-2"></div>
+                      <p className="text-[#475569] text-[14px]">โรงเรียนป่าก้าง | วันที่พิมพ์: {dateStr} | ครู: {user.fullName} | ชั้น: {getVal(s, "classLevel")}</p>
+                    </div>
+
+                    {/* กล่องตาราง */}
+                    <div className="border-2 border-[#60a5fa] rounded-lg overflow-hidden mb-8 avoid-break">
+                      <div className="bg-[#eff6ff] py-2 px-4 border-b-2 border-[#60a5fa]">
+                        <h2 className="text-[#1e3a8a] text-[16px] font-bold m-0">{index+1}. เลขที่ {s.studentNo} - {s.studentName}</h2>
+                      </div>
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr>
+                            <th className="bg-[#e0e7ff] text-[#1e3a8a] font-bold text-left py-2 px-4 border-b border-r border-[#bfdbfe] w-[35%]">หัวข้อข้อมูล</th>
+                            <th className="bg-[#e0e7ff] text-[#1e3a8a] font-bold text-left py-2 px-4 border-b border-[#bfdbfe]">รายละเอียดที่บันทึก</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <PrintSectionHeader title="1. ข้อมูลทั่วไป" />
+                          <PrintDataRow label="ชื่อเล่น" value={s.nickname} />
+                          <PrintDataRow label="วันที่เยี่ยมบ้าน" value={vDate} />
+                          <PrintDataRow label="สถานะการเยี่ยม" value={visitStatus} highlight={true} />
+
+                          <PrintSectionHeader title="2. ที่พักอาศัยและการเดินทาง" />
+                          <PrintDataRow label="ระยะทางจากโรงเรียน" value={dist} />
+                          <PrintDataRow label="ลักษณะที่พักอาศัย" value={getVal(v, "houseType")} />
+                          <PrintDataRow label="สภาพบ้าน" value={getVal(v, "houseCondition")} />
+                          <PrintDataRow label="วิธีการเดินทาง" value={getVal(v, "travelMethod")} />
+                          <PrintDataRow label="สาธารณูปโภค" value={getVal(v, "utilities")} />
+                          <PrintDataRow label="สภาพแวดล้อม" value={getVal(v, "environment")} />
+
+                          <PrintSectionHeader title="3. ข้อมูลครอบครัว" />
+                          <PrintDataRow label="จำนวนสมาชิกในบ้าน" value={getVal(v, "familyMembers") ? `${getVal(v, "familyMembers")} คน` : null} />
+                          <PrintDataRow label="จำนวนพี่น้อง" value={getVal(v, "siblings") ? `${getVal(v, "siblings")} คน` : null} />
+                          <PrintDataRow label="รายได้ครอบครัวเฉลี่ย" value={getVal(v, "familyIncome") ? `${getVal(v, "familyIncome")} บาท/เดือน` : null} />
+                          <PrintDataRow label="ความสัมพันธ์ในครอบครัว" value={getVal(v, "familyRelationship")} />
+                          <PrintDataRow label="ภาระงานเมื่ออยู่บ้าน" value={getVal(v, "studentDuties")} />
+                          <PrintDataRow label="กิจกรรมที่มักทำร่วมกัน" value={getVal(v, "familyActivities")} />
+
+                          <PrintSectionHeader title="4. ข้อมูลด้านความเสี่ยง" />
+                          <PrintDataRow label="ด้านสุขภาพ" value={getVal(v, "riskHealth")} />
+                          <PrintDataRow label="ด้านความปลอดภัย" value={getVal(v, "riskSafety")} />
+                          <PrintDataRow label="ด้านการเดินทาง" value={getVal(v, "riskTravel")} />
+                          <PrintDataRow label="ด้านเศรษฐกิจ/การงาน" value={getVal(v, "riskWork")} />
+                          <PrintDataRow label="ด้านการคบเพื่อน/สังคม" value={getVal(v, "riskSocial")} />
+                          <PrintDataRow label="ด้านสารเสพติด" value={getVal(v, "riskSubstance")} />
+                          <PrintDataRow label="ข้อห่วงใยของผู้ปกครอง" value={getVal(v, "parentConcerns")} />
+
+                          <PrintSectionHeader title="5. สรุปผล" />
+                          <PrintDataRow label="สรุปผลการประเมิน" value={getVal(v, "visitResult")} highlight={true} />
+                          <PrintDataRow label="บันทึกเพิ่มเติมจากครู" value={getVal(v, "teacherNotes")} />
+                          <PrintDataRow label="การสังเกตเบื้องต้น" value={getVal(v, "observations")} />
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* ลายเซ็น */}
+                    <div className="flex justify-around text-center mt-12 mb-8 text-[14px] text-[#0f172a] avoid-break">
+                      <div className="w-[40%]">
+                        <div className="border-b border-dashed border-[#94a3b8] h-10 mb-3"></div>
+                        <p className="mb-1 text-[#475569]">ลงชื่อ ............................................</p>
+                        <p className="mb-1 font-bold">({user.fullName})</p>
+                        <p className="text-[#475569]">ครูประจำชั้น</p>
+                      </div>
+                      <div className="w-[40%]">
+                        <div className="border-b border-dashed border-[#94a3b8] h-10 mb-3"></div>
+                        <p className="mb-1 text-[#475569]">ลงชื่อ ............................................</p>
+                        <p className="mb-1 font-bold">(........................................)</p>
+                        <p className="text-[#475569]">ผู้อำนวยการสถานศึกษา</p>
+                      </div>
+                    </div>
+
                   </div>
-                  <p className="font-black text-slate-800 text-lg">กำลังประมวลผลข้อมูลในระบบ...</p>
-               </div>
+                )
+              })}
             </div>
           )}
 
-          {window.innerWidth < 768 && isSidebarOpen && <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
-          
-          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full transition-transform duration-300 shadow-[10px_0_30px_rgba(0,0,0,0.02)] ${isSidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full md:translate-x-0 md:w-[90px]'}`}>
-             <div className="p-8 border-b border-slate-50 flex flex-col items-center">
-                <div className={`bg-gradient-to-tr ${isAdmin ? 'from-purple-100 to-pink-50' : 'from-blue-50 to-indigo-50'} rounded-[1.5rem] mb-4 flex items-center justify-center shadow-inner transition-all ${isSidebarOpen ? 'w-24 h-24' : 'w-12 h-12'}`}>
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=ffffff&color=${isAdmin ? '9333EA' : '2563EB'}&bold=true`} className="w-full h-full rounded-[1.5rem] object-cover" />
-                </div>
-                {isSidebarOpen && (
-                  <div className="text-center fade-in">
-                    <h2 className="font-black text-slate-800 tracking-tight">{user.fullName}</h2>
-                    <p className={`text-sm font-bold px-4 py-1.5 rounded-full mt-2 inline-block shadow-sm ${isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>{isAdmin ? 'ผู้ดูแลระบบ' : `ชั้น ${user.classLevel}`}</p>
-                  </div>
-                )}
-             </div>
-             
-             {isSidebarOpen && (
-               <div className="px-5 mt-5 mb-2 relative fade-in z-50">
-                 <div className="input-wrapper flex items-center bg-slate-50 border-slate-200 rounded-[1.2rem] px-4 py-3">
-                   <i className="fa-solid fa-search text-slate-400"></i>
-                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัตินักเรียน..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
+          {/* 💻 โซนหน้าจอหลักของระบบ (ซ่อนตอนสั่ง Print) 💻 */}
+          <div className={`screen-only flex h-screen bg-[#f4f7fb] fade-in ${printStudents ? 'hidden' : ''}`}>
+            {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+            {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+            
+            {isSaving && (
+              <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in p-4">
+                 <div className="bg-white px-10 py-8 rounded-[2rem] shadow-2xl flex flex-col items-center bounce-in text-center">
+                    <div className="relative w-20 h-20 mb-4 flex items-center justify-center mx-auto">
+                      <div className="absolute inset-0 border-[4px] border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
+                      <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500"></i>
+                    </div>
+                    <p className="font-black text-slate-800 text-lg">กำลังประมวลผลข้อมูลในระบบ...</p>
                  </div>
-                 {sidebarSearch && (
-                   <div className="absolute top-full left-5 right-5 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden pop-in">
-                     {sidebarSearchResults.length === 0 ? (
-                        <div className="p-4 text-center text-slate-400 text-sm font-bold">ไม่พบรายชื่อ</div>
-                     ) : sidebarSearchResults.map((s, i) => (
-                        <button key={i} onClick={() => { 
-                          setSelectedStudent(s); 
-                          setView("profile"); 
-                          setSidebarSearch(""); 
-                          if(window.innerWidth < 768) setIsSidebarOpen(false); 
-                        }} className="w-full text-left px-5 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center gap-3 transition-colors group cursor-pointer">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">{s.studentNo}</div>
-                          <div className="flex-1 overflow-hidden">
-                            <span className="font-black text-slate-800 text-sm group-hover:text-blue-600 truncate block">{s.studentName}</span>
-                          </div>
-                        </button>
-                     ))}
-                   </div>
-                 )}
-               </div>
-             )}
+              </div>
+            )}
 
-             <nav className="flex-1 p-5 space-y-2 overflow-y-auto hide-scroll z-40">
-                <NavBtn icon="fa-chart-pie" label="สรุปภาพรวม" active={view==="dashboard"} open={isSidebarOpen} onClick={()=>{setView("dashboard"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
-                <NavBtn icon="fa-users" label="รายชื่อทั้งหมด" active={view==="students" || view==="form" || view==="profile"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
-                <NavBtn icon="fa-calendar-check" label="ตารางนัดหมาย" active={view==="appointments"} open={isSidebarOpen} onClick={()=>{setView("appointments"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
-                <div className="my-3 border-t border-slate-100"></div>
-                <NavBtn icon="fa-user-gear" label="จัดการรายชื่อ" active={view==="manage"} open={isSidebarOpen} onClick={()=>{setView("manage"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="emerald" />
-                <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
-                <div className="my-3 border-t border-slate-100"></div>
-                <NavBtn icon="fa-book" label="คู่มือการใช้งาน" active={view==="manual"} open={isSidebarOpen} onClick={()=>{setView("manual"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="slate" />
-             </nav>
-             <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_final_v8"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
-                 <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
-               </button>
-             </div>
-          </aside>
-
-          <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-            <header className="h-24 bg-white/60 backdrop-blur-xl px-6 md:px-10 flex items-center justify-between z-10 border-b border-white">
-               <div className="flex items-center gap-5">
-                 <button onClick={()=>setIsSidebarOpen(!isSidebarOpen)} className="w-14 h-14 bg-white rounded-full shadow-sm hover:shadow-md flex items-center justify-center text-slate-600 btn-press transition-all cursor-pointer"><i className="fa-solid fa-bars text-lg"></i></button>
-                 
-                 {isAdmin ? (
-                   <div className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-purple-100">
-                     <div className="bg-purple-100 text-purple-600 w-10 h-10 rounded-full flex items-center justify-center"><i className="fa-solid fa-filter"></i></div>
-                     <select value={adminClassFilter} onChange={e=>setAdminClassFilter(e.target.value)} className="bg-transparent font-black text-slate-700 outline-none pr-4 cursor-pointer text-sm md:text-base">
-                       <option value="ทั้งหมด">ภาพรวมทั้งโรงเรียน</option>
-                       {uniqueClasses.map(c => <option key={c} value={c}>ชั้น {c}</option>)}
-                     </select>
-                   </div>
-                 ) : (
-                   <h1 className="font-black text-xl md:text-2xl text-slate-800 tracking-tight hidden sm:block">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
-                 )}
+            {window.innerWidth < 768 && isSidebarOpen && <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
+            
+            <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full transition-transform duration-300 shadow-[10px_0_30px_rgba(0,0,0,0.02)] ${isSidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full md:translate-x-0 md:w-[90px]'}`}>
+               <div className="p-8 border-b border-slate-50 flex flex-col items-center">
+                  <div className={`bg-gradient-to-tr ${isAdmin ? 'from-purple-100 to-pink-50' : 'from-blue-50 to-indigo-50'} rounded-[1.5rem] mb-4 flex items-center justify-center shadow-inner transition-all ${isSidebarOpen ? 'w-24 h-24' : 'w-12 h-12'}`}>
+                    <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=ffffff&color=${isAdmin ? '9333EA' : '2563EB'}&bold=true`} className="w-full h-full rounded-[1.5rem] object-cover" />
+                  </div>
+                  {isSidebarOpen && (
+                    <div className="text-center fade-in">
+                      <h2 className="font-black text-slate-800 tracking-tight">{user.fullName}</h2>
+                      <p className={`text-sm font-bold px-4 py-1.5 rounded-full mt-2 inline-block shadow-sm ${isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>{isAdmin ? 'ผู้ดูแลระบบ' : `ชั้น ${user.classLevel}`}</p>
+                    </div>
+                  )}
                </div>
                
-               <button onClick={()=>loadAllData(user)} className="bg-white border border-slate-100 hover:border-blue-200 text-slate-600 hover:text-blue-600 px-6 py-3.5 rounded-full font-bold text-sm btn-press flex items-center gap-3 shadow-sm transition-all cursor-pointer">
-                 <i className={`fa-solid fa-rotate-right ${!isDataLoaded ? 'fa-spin text-blue-500' : ''}`}></i><span className="hidden md:inline">โหลดข้อมูลล่าสุด</span>
-               </button>
-            </header>
-            
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll" onClick={() => setSidebarSearch("")}>
-              <div className="max-w-5xl mx-auto pb-20">
-                {view === "dashboard" && <Dashboard visits={displayedVisits} students={displayedStudents} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} isAdmin={isAdmin} />}
-                {view === "students" && <Students students={displayedStudents} visits={displayedVisits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
-                {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
-                {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
-                {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
-                
-                {view === "manual" && <ManualView />}
-                
-                {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
-                {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
+               {isSidebarOpen && (
+                 <div className="px-5 mt-5 mb-2 relative fade-in z-50">
+                   <div className="input-wrapper flex items-center bg-slate-50 border-slate-200 rounded-[1.2rem] px-4 py-3">
+                     <i className="fa-solid fa-search text-slate-400"></i>
+                     <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัตินักเรียน..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
+                   </div>
+                   {sidebarSearch && (
+                     <div className="absolute top-full left-5 right-5 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden pop-in">
+                       {sidebarSearchResults.length === 0 ? (
+                          <div className="p-4 text-center text-slate-400 text-sm font-bold">ไม่พบรายชื่อ</div>
+                       ) : sidebarSearchResults.map((s, i) => (
+                          <button key={i} onClick={() => { 
+                            setSelectedStudent(s); 
+                            setView("profile"); 
+                            setSidebarSearch(""); 
+                            if(window.innerWidth < 768) setIsSidebarOpen(false); 
+                          }} className="w-full text-left px-5 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center gap-3 transition-colors group cursor-pointer">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">{s.studentNo}</div>
+                            <div className="flex-1 overflow-hidden">
+                              <span className="font-black text-slate-800 text-sm group-hover:text-blue-600 truncate block">{s.studentName}</span>
+                            </div>
+                          </button>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+               )}
 
-                <div className="mt-16 pt-6 border-t border-slate-200/60 text-center fade-in">
-                  <p className="text-sm font-bold text-slate-400 tracking-wide">
-                    © 2026 Developed by Thianrawich. All Rights Reserved.
-                  </p>
+               <nav className="flex-1 p-5 space-y-2 overflow-y-auto hide-scroll z-40">
+                  <NavBtn icon="fa-chart-pie" label="สรุปภาพรวม" active={view==="dashboard"} open={isSidebarOpen} onClick={()=>{setView("dashboard"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
+                  <NavBtn icon="fa-users" label="รายชื่อทั้งหมด" active={view==="students" || view==="form" || view==="profile"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
+                  <NavBtn icon="fa-calendar-check" label="ตารางนัดหมาย" active={view==="appointments"} open={isSidebarOpen} onClick={()=>{setView("appointments"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
+                  <div className="my-3 border-t border-slate-100"></div>
+                  <NavBtn icon="fa-user-gear" label="จัดการรายชื่อ" active={view==="manage"} open={isSidebarOpen} onClick={()=>{setView("manage"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="emerald" />
+                  <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
+                  <div className="my-3 border-t border-slate-100"></div>
+                  <NavBtn icon="fa-book" label="คู่มือการใช้งาน" active={view==="manual"} open={isSidebarOpen} onClick={()=>{setView("manual"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="slate" />
+               </nav>
+               <div className="p-6 border-t border-slate-50">
+                 <button onClick={()=>{localStorage.removeItem("hv_user_final_v11"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+                   <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
+                 </button>
+               </div>
+            </aside>
+
+            <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+              <header className="h-24 bg-white/60 backdrop-blur-xl px-6 md:px-10 flex items-center justify-between z-10 border-b border-white">
+                 <div className="flex items-center gap-5">
+                   <button onClick={()=>setIsSidebarOpen(!isSidebarOpen)} className="w-14 h-14 bg-white rounded-full shadow-sm hover:shadow-md flex items-center justify-center text-slate-600 btn-press transition-all cursor-pointer"><i className="fa-solid fa-bars text-lg"></i></button>
+                   
+                   {isAdmin ? (
+                     <div className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-purple-100">
+                       <div className="bg-purple-100 text-purple-600 w-10 h-10 rounded-full flex items-center justify-center"><i className="fa-solid fa-filter"></i></div>
+                       <select value={adminClassFilter} onChange={e=>setAdminClassFilter(e.target.value)} className="bg-transparent font-black text-slate-700 outline-none pr-4 cursor-pointer text-sm md:text-base">
+                         <option value="ทั้งหมด">ภาพรวมทั้งโรงเรียน</option>
+                         {uniqueClasses.map(c => <option key={c} value={c}>ชั้น {c}</option>)}
+                       </select>
+                     </div>
+                   ) : (
+                     <h1 className="font-black text-xl md:text-2xl text-slate-800 tracking-tight hidden sm:block">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
+                   )}
+                 </div>
+                 
+                 <button onClick={()=>loadAllData(user)} className="bg-white border border-slate-100 hover:border-blue-200 text-slate-600 hover:text-blue-600 px-6 py-3.5 rounded-full font-bold text-sm btn-press flex items-center gap-3 shadow-sm transition-all cursor-pointer">
+                   <i className={`fa-solid fa-rotate-right ${!isDataLoaded ? 'fa-spin text-blue-500' : ''}`}></i><span className="hidden md:inline">โหลดข้อมูลล่าสุด</span>
+                 </button>
+              </header>
+              
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll" onClick={() => setSidebarSearch("")}>
+                <div className="max-w-5xl mx-auto pb-20">
+                  {view === "dashboard" && <Dashboard visits={displayedVisits} students={displayedStudents} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} isAdmin={isAdmin} />}
+                  {view === "students" && <Students students={displayedStudents} visits={displayedVisits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
+                  {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
+                  {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
+                  
+                  {/* 🌟 หน้าส่งออก PDF ที่ส่ง onPrint ไปให้ 🌟 */}
+                  {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} onPrint={(students) => setPrintStudents(students)} />}
+                  
+                  {view === "manual" && <ManualView />}
+                  
+                  {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
+                  {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
+
+                  {/* 🔴 Copyright สวยๆ ด้านล่างสุด 🔴 */}
+                  <div className="mt-16 pt-6 border-t border-slate-200/60 text-center fade-in">
+                    <p className="text-sm font-bold text-slate-400 tracking-wide">
+                      © 2026 Developed by Thianrawich. All Rights Reserved.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </main>
-        </div>
+            </main>
+          </div>
+        </>
       );
     }
 
@@ -811,14 +948,14 @@
               <h3 className="text-xl font-black text-slate-800 mb-3">3. การส่งออกและพิมพ์รายงานรูปแบบ PDF</h3>
               <div className="bg-rose-50/50 p-6 rounded-2xl border border-rose-100 mb-4">
                 <p className="text-slate-600 font-medium leading-relaxed">
-                  ระบบประมวลผลเอกสาร PDF ผ่านการ <b>"เปิดหน้าต่างใหม่ (New Tab)"</b> เพื่อรักษาโครงสร้างของเอกสารทางวิชาการให้มีความถูกต้องและหลีกเลี่ยงข้อผิดพลาดในการแสดงผล
+                  ระบบประมวลผลเอกสาร PDF ผ่านการ <b>"เปิดหน้าต่างใหม่ (New Tab)"</b> และใช้ระบบสั่งพิมพ์ของเบราว์เซอร์ เพื่อรักษาโครงสร้างของเอกสารทางวิชาการให้มีความถูกต้องและหลีกเลี่ยงข้อผิดพลาดในการแสดงผล
                 </p>
               </div>
               <ul className="space-y-3 text-slate-600 font-medium leading-relaxed grid grid-cols-1 md:grid-cols-2 gap-x-4">
                 <li><i className="fa-solid fa-1 text-rose-500 mr-2"></i> เข้าสู่เมนู "ส่งออกรายงาน" และเลือกรายชื่อนักเรียนที่ต้องการพิมพ์รายงาน</li>
                 <li><i className="fa-solid fa-2 text-rose-500 mr-2"></i> คลิกปุ่ม <b>"พิมพ์ / เซฟ PDF"</b> สีดำด้านล่างสุด เพื่อสั่งการระบบ</li>
-                <li><i className="fa-solid fa-3 text-rose-500 mr-2"></i> ระบบจะแสดงผลหน้าต่างการพิมพ์ (Print Dialog) โดยอัตโนมัติ</li>
-                <li><i className="fa-solid fa-4 text-rose-500 mr-2"></i> กรุณาเลือกรูปแบบปลายทางเป็น <b>"บันทึกเป็น PDF (Save as PDF)"</b> เพื่อจัดเก็บไฟล์ หรือเลือกเครื่องพิมพ์ที่เชื่อมต่อเพื่อสั่งพิมพ์ลงกระดาษ</li>
+                <li><i className="fa-solid fa-3 text-rose-500 mr-2"></i> ระบบจะเปิดหน้าต่างใหม่ พร้อมแสดงหน้าต่างการพิมพ์ (Print Dialog) โดยอัตโนมัติ</li>
+                <li><i className="fa-solid fa-4 text-rose-500 mr-2"></i> กรุณาเลือกปลายทางเป็น <b>"บันทึกเป็น PDF (Save as PDF)"</b> เพื่อจัดเก็บไฟล์ หรือเลือกเครื่องพิมพ์ที่เชื่อมต่อเพื่อสั่งพิมพ์ลงกระดาษโดยตรง</li>
               </ul>
               <div className="mt-5 text-sm font-bold text-rose-600 flex items-center">
                 <i className="fa-solid fa-circle-exclamation mr-2"></i> ข้อควรระวัง: หากระบบไม่แสดงหน้าต่างการพิมพ์ กรุณาตรวจสอบและอนุญาตการแสดงผล Pop-up ที่มุมขวาบนของแถบที่อยู่เว็บ (URL Bar)
@@ -841,7 +978,9 @@
       );
     }
 
-    function ReportExport({ user, students, visits, showToast, isLoaded }) {
+    // 🌟 ระบบ PDF ใหม่: สั่งเปิดแท็บใหม่แทนการดาวน์โหลด เพื่อใช้ระบบ Print ของเบราว์เซอร์ 🌟
+    // 🌟 รับ Prop: onPrint เพื่อส่งข้อมูลนักเรียนให้ component หลักจัดหน้าพิมพ์ 🌟
+    function ReportExport({ user, students, visits, showToast, isLoaded, onPrint }) {
       const [selectedStudents, setSelectedStudents] = useState(new Set());
 
       const toggleStudent = (no) => {
@@ -866,160 +1005,12 @@
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
-      const exportPDF = () => {
+      // 🔴 ฟังก์ชันสั่งพิมพ์ (ส่งรายชื่อไปให้ตัวหลักจัดการ)
+      const handlePrint = () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
-        
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
-        const dateStr = new Date().toLocaleDateString("th-TH", {year:'numeric', month:'short', day:'numeric'});
-
-        let htmlContent = `
-        <!DOCTYPE html>
-        <html lang="th">
-        <head>
-          <meta charset="UTF-8">
-          <title>พิมพ์รายงานเยี่ยมบ้าน</title>
-          <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-          <style>
-            body { font-family: 'Sarabun', sans-serif; color: #1e293b; margin: 0; padding: 20px; background: #fff; }
-            @page { size: A4; margin: 25mm 15mm 20mm 15mm; } 
-            @media print {
-              body { padding: 0; }
-              .page-container { padding-top: 10px; }
-              .page-break-after { page-break-after: always; }
-              .page-break-before { page-break-before: always; }
-              .no-break { page-break-inside: avoid; }
-              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            }
-            .page-container { padding: 20px; }
-            .header-title { text-align: center; color: #1e3a8a; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-            .header-line { height: 2px; background-color: #3b82f6; width: 100%; margin: 0 auto 10px auto; }
-            .header-sub { text-align: center; color: #475569; font-size: 14px; margin-bottom: 25px; }
-            .report-box { border: 2px solid #60a5fa; border-radius: 8px; overflow: hidden; margin-bottom: 30px; }
-            .student-head { background-color: #eff6ff; padding: 12px 16px; border-bottom: 2px solid #60a5fa; color: #1e3a8a; font-size: 18px; font-weight: 700; }
-            table { width: 100%; border-collapse: collapse; font-size: 14px; }
-            th { background-color: #e0e7ff; color: #1e3a8a; padding: 10px 15px; border-bottom: 1px solid #bfdbfe; text-align: left; }
-            th:first-child { border-right: 1px solid #bfdbfe; width: 35%; }
-            td { padding: 8px 15px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-            td:first-child { border-right: 1px solid #e2e8f0; font-weight: 600; color: #475569; background-color: #f8fafc; }
-            .section-row td { background-color: #f1f5f9 !important; font-weight: 700; color: #0f172a; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; border-right: none !important; }
-            .result-val { font-weight: 700; color: #1e40af; }
-            .signatures { margin-top: 50px; display: flex; justify-content: space-around; text-align: center; }
-            .sig-block { width: 40%; font-size: 15px; color: #0f172a; }
-            .sig-line { border-bottom: 1px dashed #94a3b8; height: 40px; margin-bottom: 10px; }
-          </style>
-        </head>
-        <body>
-        `;
-
-        targetStudents.forEach((s, index) => {
-            const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
-            const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
-            const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
-            const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
-
-            htmlContent += `
-            <div class="page-container ${index < targetStudents.length - 1 ? 'page-break-after' : ''}">
-              <div class="header-title">รายงานผลการเยี่ยมบ้านนักเรียน</div>
-              <div class="header-line"></div>
-              <div class="header-sub">โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</div>
-
-              <div class="report-box">
-                <div class="student-head">${index + 1}. ${s.studentNo} - ${s.studentName} (ส่วนที่ 1)</div>
-                <table>
-                  <thead>
-                    <tr><th>ข้อมูล</th><th>รายละเอียด</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr class="section-row"><td colspan="2">1. ข้อมูลทั่วไป</td></tr>
-                    <tr><td>ชื่อเล่น</td><td>${s.nickname || '-'}</td></tr>
-                    <tr><td>วันที่เยี่ยม</td><td>${vDate}</td></tr>
-                    <tr><td>สถานะ</td><td class="result-val">${visitStatus}</td></tr>
-
-                    <tr class="section-row"><td colspan="2">2. ที่พักอาศัยและการเดินทาง</td></tr>
-                    <tr><td>ระยะทาง</td><td>${dist}</td></tr>
-                    <tr><td>ลักษณะที่พัก</td><td>${getVal(v, "houseType") || '-'}</td></tr>
-                    <tr><td>สภาพบ้าน</td><td>${getVal(v, "houseCondition") || '-'}</td></tr>
-                    <tr><td>วิธีการเดินทาง</td><td>${getVal(v, "travelMethod") || '-'}</td></tr>
-                    <tr><td>สาธารณูปโภค</td><td>${getVal(v, "utilities") || '-'}</td></tr>
-                    <tr><td>สภาพแวดล้อม</td><td>${getVal(v, "environment") || '-'}</td></tr>
-
-                    <tr class="section-row"><td colspan="2">3. ข้อมูลครอบครัว</td></tr>
-                    <tr><td>จำนวนสมาชิกในบ้าน</td><td>${getVal(v, "familyMembers") ? getVal(v, "familyMembers") + " คน" : '-'}</td></tr>
-                    <tr><td>จำนวนพี่น้อง</td><td>${getVal(v, "siblings") ? getVal(v, "siblings") + " คน" : '-'}</td></tr>
-                    <tr><td>รายได้ครอบครัวเฉลี่ย</td><td>${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
-                    <tr><td>ความสัมพันธ์</td><td>${getVal(v, "familyRelationship") || '-'}</td></tr>
-                    <tr><td>ภาระงานเมื่ออยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
-                    <tr><td>กิจกรรมที่มักทำร่วมกัน</td><td>${getVal(v, "familyActivities") || '-'}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              
-              <div class="page-break-before"></div>
-
-              <div class="report-box" style="margin-top: 20px;">
-                <div class="student-head">${index + 1}. ${s.studentNo} - ${s.studentName} (ส่วนที่ 2)</div>
-                <table>
-                  <thead>
-                    <tr><th>ข้อมูล</th><th>รายละเอียด</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr class="section-row"><td colspan="2">4. ข้อมูลด้านความเสี่ยง</td></tr>
-                    <tr><td>ด้านสุขภาพ</td><td>${getVal(v, "riskHealth") || '-'}</td></tr>
-                    <tr><td>ด้านความปลอดภัย</td><td>${getVal(v, "riskSafety") || '-'}</td></tr>
-                    <tr><td>ด้านการเดินทาง</td><td>${getVal(v, "riskTravel") || '-'}</td></tr>
-                    <tr><td>ด้านเศรษฐกิจ/การงาน</td><td>${getVal(v, "riskWork") || '-'}</td></tr>
-                    <tr><td>ด้านการคบเพื่อน/สังคม</td><td>${getVal(v, "riskSocial") || '-'}</td></tr>
-                    <tr><td>ด้านยาเสพติด</td><td>${getVal(v, "riskSubstance") || '-'}</td></tr>
-                    <tr><td>ข้อห่วงใยของผู้ปกครอง</td><td>${getVal(v, "parentConcerns") || '-'}</td></tr>
-
-                    <tr class="section-row"><td colspan="2">5. สรุปผล</td></tr>
-                    <tr><td>สรุปผลการประเมิน</td><td class="result-val">${getVal(v, "visitResult") || '-'}</td></tr>
-                    <tr><td>บันทึกเพิ่มเติม</td><td>${getVal(v, "teacherNotes") || '-'}</td></tr>
-                    <tr><td>การสังเกตเบื้องต้น</td><td>${getVal(v, "observations") || '-'}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="signatures no-break">
-                <div class="sig-block">
-                  <div class="sig-line"></div>
-                  <p style="margin: 5px 0;">ลงชื่อ ............................................</p>
-                  <p style="margin: 5px 0;"><strong>(${user.fullName})</strong></p>
-                  <p style="margin: 5px 0; color: #475569;">ครูประจำชั้น</p>
-                </div>
-                <div class="sig-block">
-                  <div class="sig-line"></div>
-                  <p style="margin: 5px 0;">ลงชื่อ ............................................</p>
-                  <p style="margin: 5px 0;"><strong>(........................................)</strong></p>
-                  <p style="margin: 5px 0; color: #475569;">ผู้อำนวยการสถานศึกษา</p>
-                </div>
-              </div>
-            </div>
-            `;
-        });
-
-        htmlContent += `
-          <script>
-            window.onload = function() {
-              setTimeout(() => {
-                window.print();
-              }, 500);
-            }
-          <\/script>
-        </body>
-        </html>
-        `;
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-            setSelectedStudents(new Set());
-            showToast("เปิดหน้าต่างพิมพ์สำเร็จ", "success");
-        } else {
-            showToast("เบราว์เซอร์บล็อกการเปิดแท็บใหม่ กรุณาอนุญาต Pop-up", "error");
-        }
+        onPrint(targetStudents); // เรียกใช้ฟังก์ชันที่รับมาจาก DashboardApp
+        setSelectedStudents(new Set());
       };
 
       if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mx-auto"></div></div>;
@@ -1038,7 +1029,7 @@
            <div className="border-t border-slate-200 pt-8 mb-6 flex justify-between items-end">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">พิมพ์รายงานรายบุคคล (PDF)</h3>
-                <p className="text-slate-500 font-medium">เปิดแท็บใหม่เพื่อดูตัวอย่างและสั่งพิมพ์ (เลือกรายชื่อนักเรียนที่ต้องการพิมพ์)</p>
+                <p className="text-slate-500 font-medium">เข้าสู่โหมดการพิมพ์เพื่อดูตัวอย่างและจัดทำเอกสาร (เลือกนักเรียนที่ต้องการพิมพ์)</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={selectAll} className="text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer">เลือกทั้งหมด</button>
@@ -1063,8 +1054,8 @@
 
            {visitedList.length > 0 && (
              <div className="text-center">
-               <button onClick={exportPDF} className="px-10 py-5 rounded-full font-black text-white bg-slate-900 hover:bg-rose-500 btn-press shadow-xl transition-colors text-lg flex items-center justify-center mx-auto gap-3 cursor-pointer">
-                 <i className="fa-solid fa-print"></i> พิมพ์ / เซฟ PDF (เปิดแท็บใหม่)
+               <button onClick={handlePrint} disabled={selectedStudents.size === 0} className="px-10 py-5 rounded-full font-black text-white bg-slate-900 hover:bg-rose-500 disabled:opacity-50 btn-press shadow-xl transition-colors text-lg flex items-center justify-center mx-auto gap-3 cursor-pointer">
+                 <i className="fa-solid fa-print"></i> พิมพ์ / เซฟ PDF 
                </button>
              </div>
            )}
