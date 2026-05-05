@@ -78,7 +78,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxunxLelcTes_NAvm3sfL5L5wkAG2-i0x5H1JyYdBI676LQ6PiQNg373HTecsLKk-jc/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxGLJ9ZbYBquMnMdURYdpF7efxBUVO7JgDsYQw9_xpHibHxRuvNJHt6VRUUXzX8-w0/exec";
 
     const api = {
       async get(action, params = {}) {
@@ -97,6 +97,19 @@
     const REL_OPTS = ["อบอุ่นดีมาก","อบอุ่นดี","ปานกลาง","ไม่ค่อยอบอุ่น","มีปัญหา"];
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
+
+    // 🎯 Demo Data สำหรับ Test/Development
+    const DEMO_STUDENTS = [
+      { studentNo: 1, studentName: "สมชาย สวัสดี", nickname: "ชาย" },
+      { studentNo: 2, studentName: "นักเรียน บดินทร์ศรม", nickname: "นัก" },
+      { studentNo: 3, studentName: "สมหญิง ใจดี", nickname: "หญิง" },
+      { studentNo: 4, studentName: "พัฒน์ ศรีสว่าง", nickname: "พัฒน์" },
+      { studentNo: 5, studentName: "ศรีประภา วัฒนา", nickname: "ศรี" }
+    ];
+    const DEMO_VISITS = [
+      { studentName: "สมชาย สวัสดี", visitStatus: "เยี่ยมแล้ว", visitDate: "2568-05-01" },
+      { studentName: "สมหญิง ใจดี", visitStatus: "นัดหมายแล้ว", visitDate: "2568-05-10" }
+    ];
 
     const getVal = (obj, ...keys) => {
       if (!obj) return '';
@@ -198,12 +211,31 @@
             api.get("getStudents", { classLevel: u.classLevel }),
             api.get("getVisitsFull", { classLevel: u.classLevel })
           ]);
-          if (sRes.success) setGlobalStudents(sRes.data);
-          if (vRes.success) setGlobalVisits(vRes.data);
+          
+          // ✅ ถ้า API ตอบ ใช้จริง
+          if (sRes.success && sRes.data && sRes.data.length > 0) {
+            setGlobalStudents(sRes.data);
+          } else {
+            // ⚠️ ถ้า API ไม่ตอบ/ว่าง ใช้ Demo Data
+            console.warn("API ไม่มีข้อมูล ใช้ Demo Data แทน");
+            setGlobalStudents(DEMO_STUDENTS);
+            showToast("⚠️ ใช้ Demo Data (API ไม่ตอบ)", "success");
+          }
+          
+          if (vRes.success && vRes.data && vRes.data.length > 0) {
+            setGlobalVisits(vRes.data);
+          } else {
+            setGlobalVisits(DEMO_VISITS);
+          }
+          
           setIsDataLoaded(true);
         } catch (e) {
+          console.error("API Error:", e);
+          // 🆘 API Error → ใช้ Demo Data
+          setGlobalStudents(DEMO_STUDENTS);
+          setGlobalVisits(DEMO_VISITS);
           setIsDataLoaded(true);
-          showToast("โหลดข้อมูลล้มเหลว กรุณารีเฟรช", "error");
+          showToast("⚠️ ใช้ Demo Data (API ล้มเหลว)", "error");
         }
       };
 
