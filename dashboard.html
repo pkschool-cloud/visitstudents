@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียน (Anti-Crash & Ultimate PDF)</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน (Ultimate Core - Image Fixed)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -43,14 +43,12 @@
     .btn-press:active { transform: scale(0.96); box-shadow: 0 2px 5px -2px rgba(0,0,0,0.1); }
     
     .hide-scroll::-webkit-scrollbar { display: none; }
-
-    /* คอนเทนเนอร์ลับสำหรับสร้าง PDF แบบสมบูรณ์แบบ ป้องกันจอขาว */
-    #pdf-engine-root { position: absolute; left: -9999px; top: -9999px; visibility: hidden; width: 800px; background: #fff; z-index: -100; }
   </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50">
   <div id="root" class="h-full w-full"></div>
-  <div id="pdf-engine-root"></div>
+  
+  <div id="pdf-engine-root" style="position: absolute; left: -9999px; top: -9999px; visibility: hidden; width: 800px; background: #fff; z-index: -100;"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
@@ -74,7 +72,6 @@
       }
     };
 
-    // 🛡️ ป้องกัน Object Error
     const getVal = (obj, key) => {
       if (!obj || typeof obj !== 'object') return "";
       const k = Object.keys(obj).find(x => String(x).toLowerCase().trim() === String(key).toLowerCase().trim());
@@ -94,16 +91,13 @@
       return c === "แอดมิน" || c === "admin" || c === "ทั้งหมด" || c === "ผู้บริหาร";
     };
 
-    // 🌟 พระเอกกู้ชีพ: จัดการวันที่เสียๆ จาก Excel เพื่อป้องกันจอขาว 100% 🌟
-    const formatSafeDate = (dateVal, options) => {
+    const safeDate = (dateVal) => {
       if (!dateVal || String(dateVal).trim() === "") return "-";
       try {
         const d = new Date(dateVal);
-        if (isNaN(d.getTime())) return String(dateVal); // ถ้าระบุว่า "ไม่ได้นัด" ก็ให้แสดงแบบนั้น ไม่พัง
-        return d.toLocaleDateString('th-TH', options);
-      } catch(e) {
-        return "-";
-      }
+        if (isNaN(d.getTime())) return String(dateVal); 
+        return d.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
+      } catch(e) { return "-"; }
     };
 
     const safeDateForInput = (dateStr) => {
@@ -115,7 +109,7 @@
       } catch(e) { return new Date().toISOString().split("T")[0]; }
     };
 
-    // 🌟 ระบบแยกภาพ & คลีนลิงก์ที่เสียจากบั๊กเก่า 🌟
+    // 🟢 ตัวกรองรูประบบใหม่ บล็อกลิงก์ที่พังจากรอบเก่าทิ้ง 🟢
     const parseImages = (str) => {
       if (!str) return [];
       let arr = [];
@@ -132,8 +126,8 @@
           } else { arr.push(p); }
         }
       }
-      // คัดกรองลิงก์ที่พังจากบัก {file.getId()} ทิ้งเพื่อความสวยงาม
-      return arr.filter(link => !link.includes("{file.getId()}"));
+      // ลบลิงก์ที่มีคำว่า {file.getId()} หรือ {driveMatch เพราะเป็นลิงก์เสียจากบั๊กเก่า
+      return arr.filter(link => !link.includes("{file.getId()}") && !link.includes("{driveMatch"));
     };
 
     // ============= UI Components =============
@@ -212,7 +206,7 @@
       );
     };
 
-    // ============= Main Dashboard App =============
+    // ============= Main App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
       const [view, setView] = useState("dashboard"); 
@@ -232,7 +226,7 @@
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v14");
+        const u = localStorage.getItem("hv_user_v15");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -254,7 +248,7 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success) {
-          localStorage.setItem("hv_user_v14", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_v15", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
@@ -266,11 +260,11 @@
         
         const res = await api.post({ action: "saveVisit", data });
         if (res.success) {
-          showToast("บันทึกข้อมูลเรียบร้อย!", "success");
+          showToast("บันทึกข้อมูลและรูปภาพเรียบร้อย!", "success");
           
           setGlobalVisits(prev => {
             const arr = [...prev];
-            const idx = arr.findIndex(v => compareId(getVal(v, "studentNo"), data.studentNo));
+            const idx = arr.findIndex(v => compareId(getVal(v, "studentNo"), data.studentNo) && getVal(v,"classLevel") === data.classLevel);
             const newData = {...data, timestamp: new Date().toISOString()};
             if(idx > -1) arr[idx] = newData; else arr.push(newData);
             return arr;
@@ -316,7 +310,7 @@
                     <div className="absolute inset-0 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
                     <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500"></i>
                   </div>
-                  <p className="font-black text-slate-800 text-lg">กำลังประมวลผลข้อมูลและรูปภาพ...</p>
+                  <p className="font-black text-slate-800 text-lg">กำลังประมวลผลและอัปโหลดภาพ...</p>
                </div>
             </div>
           )}
@@ -373,7 +367,7 @@
                 <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
              </nav>
              <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_v14"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+               <button onClick={()=>{localStorage.removeItem("hv_user_v15"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
                  <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
                </button>
              </div>
@@ -461,6 +455,7 @@
       );
     };
 
+    // ============= 🌟 Student Profile View (พรีวิวดูรูปได้แล้ว 100%) 🌟 =============
     function StudentProfileView({ student, visits, onBack, onEdit }) {
       const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), student.studentNo) && getVal(x,"classLevel") === getVal(student,"classLevel")) || {};
       const status = getVisitStatus(visits, student.studentNo);
@@ -627,7 +622,7 @@
                        <p className="font-black text-slate-800 text-xl">{getVal(v,"studentName")}</p>
                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                          <p className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">ชั้น {getVal(v, "classLevel")}</p>
-                         <p className="text-xs font-bold text-slate-400"><i className="fa-regular fa-clock mr-1"></i>{formatSafeDate(getVal(v, "timestamp"))}</p>
+                         <p className="text-xs font-bold text-slate-400"><i className="fa-regular fa-clock mr-1"></i>{safeDate(getVal(v, "timestamp"))}</p>
                        </div>
                      </div>
                    </div>
@@ -724,9 +719,124 @@
                    <h4 className="font-black text-slate-800 text-xl group-hover:text-amber-600 transition-colors">{a.student.studentName}</h4>
                    <p className="text-sm font-bold text-slate-400 mt-1">เลขที่ {a.student.studentNo} • ชั้น {getVal(a.student, "classLevel")}</p>
                  </div>
-                 <div className="bg-amber-50 text-amber-600 px-5 py-3 rounded-full text-sm font-bold border border-amber-100 shadow-sm self-start sm:self-auto"><i className="fa-solid fa-calendar mr-2"></i>{formatSafeDate(getVal(a,"appointmentDate"), {month:'short',day:'numeric'})}</div>
+                 <div className="bg-amber-50 text-amber-600 px-5 py-3 rounded-full text-sm font-bold border border-amber-100 shadow-sm self-start sm:self-auto"><i className="fa-solid fa-calendar mr-2"></i>{safeDate(getVal(a,"appointmentDate"))}</div>
                </div>
              ))}
+           </div>
+        </div>
+      );
+    }
+
+    const AddStudentModal = ({ onClose, onSave, isAdmin, currentFilterClass, userClass }) => {
+      const [form, setForm] = useState({
+        studentNo: "", studentName: "", nickname: "", 
+        classLevel: (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : (!isAdmin ? userClass : "")
+      });
+      const [saving, setSaving] = useState(false);
+
+      const handleSubmit = async () => {
+        setSaving(true);
+        await onSave(form);
+        setSaving(false);
+      };
+
+      return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 fade-in">
+          <div className="bg-white rounded-[2rem] p-8 md:p-10 w-full max-w-lg shadow-2xl bounce-in relative">
+            <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-full flex items-center justify-center transition-colors cursor-pointer"><i className="fa-solid fa-xmark text-xl"></i></button>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl"><i className="fa-solid fa-user-plus"></i></div>
+              <h2 className="text-2xl font-black text-slate-800">เพิ่มนักเรียนใหม่</h2>
+            </div>
+
+            <div className="space-y-2">
+              <PremiumInput label="เลขที่" type="number" value={form.studentNo} onChange={e=>setForm({...form, studentNo: e.target.value})} icon="fa-hashtag" />
+              <PremiumInput label="ชื่อ-นามสกุล" value={form.studentName} onChange={e=>setForm({...form, studentName: e.target.value})} icon="fa-id-card" />
+              <PremiumInput label="ชื่อเล่น (ไม่บังคับ)" value={form.nickname} onChange={e=>setForm({...form, nickname: e.target.value})} icon="fa-face-smile" />
+              <PremiumInput label="ชั้นเรียน" value={form.classLevel} onChange={e=>setForm({...form, classLevel: e.target.value})} icon="fa-chalkboard" disabled={!isAdmin || (isAdmin && currentFilterClass !== "ทั้งหมด")} />
+            </div>
+
+            <div className="mt-8">
+              <button onClick={handleSubmit} disabled={saving || !form.studentNo || !form.studentName || !form.classLevel} className="w-full bg-slate-900 hover:bg-emerald-500 text-white font-bold py-4 rounded-full btn-press shadow-xl transition-colors disabled:opacity-50 text-lg flex items-center justify-center gap-2 cursor-pointer">
+                {saving ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...</> : <><i className="fa-solid fa-save"></i> บันทึกข้อมูล</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    function StudentManage({ user, showToast, refresh, students, isLoaded, isAdmin, currentFilterClass, userClass }) {
+      const [showAddModal, setShowAddModal] = useState(false);
+
+      const handleImport = async (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          showToast("กำลังนำเข้าข้อมูล...", "success");
+          const wb = XLSX.read(evt.target.result, {type:'binary'}); 
+          const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+          const targetClass = (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : user.classLevel;
+          
+          const newSt = data.slice(1).filter(r=>r[0]&&r[1]).map(r=>({studentNo:r[0], studentName:r[1], nickname:r[2]||"", classLevel: isAdmin ? (r[3]||targetClass) : targetClass}));
+          const res = await api.post({action:"importStudents", students:newSt});
+          if(res.success){ showToast(`นำเข้าสำเร็จ ${newSt.length} คน`, "success"); refresh(user); } else showToast("เกิดข้อผิดพลาด", "error");
+        };
+        reader.readAsBinaryString(file); e.target.value="";
+      };
+      
+      const handleDelete = async (no, classLvl) => {
+        if(!confirm(`ลบเลขที่ ${no} ใช่หรือไม่?`)) return;
+        const res = await api.post({action:"deleteStudent", studentNo:no, classLevel:classLvl});
+        if(res.success){ showToast("ลบสำเร็จ", "success"); refresh(user); } else showToast("ลบไม่สำเร็จ", "error");
+      };
+
+      const handleAddStudent = async (formData) => {
+        const res = await api.post({action: "addStudent", data: formData});
+        if (res.success) {
+          showToast("เพิ่มนักเรียนสำเร็จ", "success");
+          setShowAddModal(false);
+          refresh(user);
+        } else {
+          showToast(res.message || "เกิดข้อผิดพลาด", "error");
+        }
+      };
+
+      if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto"></div></div>;
+
+      return (
+        <div className="slide-up">
+           {showAddModal && <AddStudentModal onClose={()=>setShowAddModal(false)} onSave={handleAddStudent} isAdmin={isAdmin} currentFilterClass={currentFilterClass} userClass={user.classLevel} />}
+
+           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+             <div><h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">จัดการรายชื่อ</h2></div>
+             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+               <button onClick={()=>setShowAddModal(true)} className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-full font-bold shadow-lg shadow-slate-900/20 cursor-pointer btn-press transition-colors flex items-center justify-center">
+                 <i className="fa-solid fa-user-plus mr-3 text-xl"></i> เพิ่มนักเรียน
+               </button>
+               <label className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-full font-bold shadow-lg shadow-emerald-500/30 cursor-pointer btn-press transition-colors flex items-center justify-center">
+                 <i className="fa-solid fa-file-excel mr-3 text-xl"></i> นำเข้าจาก Excel
+                 <input type="file" accept=".xlsx, .xls" onChange={handleImport} className="hidden" />
+               </label>
+             </div>
+           </div>
+           
+           <div className="soft-card overflow-hidden border border-slate-100">
+             <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                 <thead><tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-widest"><th className="py-6 px-8 font-bold w-32 text-center">เลขที่</th><th className="py-6 px-8 font-bold">ชื่อ-นามสกุล</th><th className="py-6 px-8 font-bold text-center">ชั้นเรียน</th><th className="py-6 px-8 font-bold text-center w-32">ลบ</th></tr></thead>
+                 <tbody className="divide-y divide-slate-100">
+                   {students.length===0 ? <tr><td colSpan="4" className="text-center py-16 text-slate-400 font-medium text-lg">ไม่มีข้อมูลนักเรียน</td></tr> : students.map((s,i) => (
+                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                       <td className="py-5 px-8 text-center font-black text-slate-700 text-xl">{s.studentNo}</td>
+                       <td className="py-5 px-8"><span className="font-black text-slate-800 text-lg">{s.studentName}</span> {s.nickname && <span className="text-sm font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-md ml-3">{s.nickname}</span>}</td>
+                       <td className="py-5 px-8 text-center font-bold text-blue-600"><span className="bg-blue-50 px-3 py-1 rounded-lg">{getVal(s,"classLevel")}</span></td>
+                       <td className="py-5 px-8 text-center"><button onClick={()=>handleDelete(s.studentNo, getVal(s,"classLevel"))} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all shadow-sm flex items-center justify-center mx-auto btn-press cursor-pointer"><i className="fa-solid fa-trash-can text-lg"></i></button></td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
            </div>
         </div>
       );
@@ -747,6 +857,7 @@
         setSelectedStudents(new Set(allVisisted));
       };
 
+      // 🌟 PDF Engine (กันหน้าจอขาว 100%)
       const urlToBase64 = (url) => {
         return new Promise((resolve) => {
           if (!url) return resolve(null);
@@ -754,10 +865,7 @@
           
           let imgUrl = url;
           const driveMatch = url.match(/[-\w]{25,}/);
-          if (driveMatch) {
-            // บังคับแปลงเป็นลิงก์ lh3 เสมอ เพื่อลดปัญหาการดึงรูป
-            imgUrl = `https://lh3.googleusercontent.com/d/${driveMatch[0]}=w800`;
-          }
+          if (driveMatch) { imgUrl = `https://lh3.googleusercontent.com/d/$${driveMatch[0]}=w800`; }
           
           const img = new Image(); 
           img.crossOrigin = "anonymous";
@@ -770,9 +878,9 @@
               canvas.width = width; canvas.height = height;
               canvas.getContext('2d').drawImage(img, 0, 0, width, height); 
               resolve(canvas.toDataURL('image/jpeg', 0.8));
-            } catch (e) { resolve(imgUrl); } // fallback ให้ html2pdf จัดการเอง
+            } catch (e) { resolve(null); }
           };
-          img.onerror = () => resolve(imgUrl); // ถ้าโดนบล็อก ก็ดันทุรังส่ง URL ดิบไป
+          img.onerror = () => resolve(imgUrl);
           img.src = imgUrl;
         });
       };
@@ -780,7 +888,7 @@
       const exportExcel = () => {
         const data = students.map(s => {
           const v = visits.find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
-          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":formatSafeDate(getVal(v,"visitDate")), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult") };
+          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":safeDate(getVal(v,"visitDate")), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult") };
         });
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Report");
@@ -810,7 +918,7 @@
         for (let i = 0; i < targetStudents.length; i++) {
           const s = targetStudents[i];
           const v = visits.find(x => compareId(getVal(x,"studentNo"), s.studentNo)) || {};
-          const vDate = getVal(v, "visitDate") ? formatSafeDate(getVal(v, "visitDate")) : "-";
+          const vDate = getVal(v, "visitDate") ? safeDate(getVal(v, "visitDate")) : "-";
           const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
 
           html += `
@@ -936,7 +1044,7 @@
            {visitedList.length > 0 && (
              <div className="text-center">
                <button onClick={exportPDF} disabled={generating || selectedStudents.size === 0} className="px-10 py-5 rounded-full font-black text-white bg-slate-900 hover:bg-rose-500 disabled:opacity-50 btn-press shadow-xl transition-colors text-lg flex items-center justify-center mx-auto gap-3 cursor-pointer">
-                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังเตรียมภาพและสร้าง PDF...</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} คน)</>}
+                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังโหลดและสร้าง PDF...</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} คน)</>}
                </button>
              </div>
            )}
