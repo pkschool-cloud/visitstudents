@@ -219,8 +219,13 @@
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
+      const checkIsAdmin = (lvl) => {
+        const c = String(lvl).toLowerCase().trim();
+        return c === "แอดมิน" || c === "admin" || c === "ทั้งหมด" || c === "ผู้บริหาร";
+      };
+
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_final_v5");
+        const u = localStorage.getItem("hv_user_final_v6");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -234,15 +239,15 @@
           api.get("getStudents", { classLevel: u.classLevel }),
           api.get("getVisitsFull", { classLevel: u.classLevel })
         ]);
-        if (sRes.success && Array.isArray(sRes.data)) setGlobalStudents(sRes.data);
-        if (vRes.success && Array.isArray(vRes.data)) setGlobalVisits(vRes.data);
+        if (sRes.success) setGlobalStudents(sRes.data);
+        if (vRes.success) setGlobalVisits(vRes.data);
         setIsDataLoaded(true);
       };
 
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
-        if (res.success && res.data) {
-          localStorage.setItem("hv_user_final_v5", JSON.stringify(res.data));
+        if (res.success) {
+          localStorage.setItem("hv_user_final_v6", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
@@ -412,7 +417,7 @@
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
                 
-                {/* 🌟 หน้าส่งออก PDF ที่เปลี่ยนระบบให้เด้ง Tab แทนโหลด 🌟 */}
+                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดแบบสุดยอด 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
                 {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
@@ -845,7 +850,7 @@
       );
     }
 
-    // 🌟 ระบบ PDF ใหม่: สั่งเปิดแท็บใหม่แทนการดาวน์โหลด เพื่อใช้ระบบ Print ของเบราว์เซอร์ 🌟
+    // 🌟 ระบบ PDF ใหม่: สั่งเปิดแท็บใหม่แทนการดาวน์โหลด + ตัดหน้ากึ่งกลางสมบูรณ์แบบ 🌟
     function ReportExport({ user, students, visits, showToast, isLoaded }) {
       const [selectedStudents, setSelectedStudents] = useState(new Set());
 
@@ -891,7 +896,8 @@
             @page { size: A4; margin: 15mm; }
             @media print {
               body { padding: 0; }
-              .page-break { page-break-after: always; }
+              .page-break-after { page-break-after: always; }
+              .page-break-before { page-break-before: always; }
               .no-break { page-break-inside: avoid; }
               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             }
@@ -915,22 +921,21 @@
         <body>
         `;
 
-        // นำข้อมูลเด็กแต่ละคนมาต่อเป็น HTML
         targetStudents.forEach((s, index) => {
             const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
             const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
             const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
             const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
 
-            // เพิ่มคลาส .page-break เพื่อตัดหน้ากระดาษ (ยกเว้นคนสุดท้าย)
+            // 🌟 สร้าง Layout แบบแบ่ง 2 หน้ากระดาษต่อ 1 คน 🌟
             htmlContent += `
-            <div class="${index < targetStudents.length - 1 ? 'page-break' : ''}">
+            <div>
               <div class="header-title">รายงานผลการเยี่ยมบ้านนักเรียน</div>
               <div class="header-line"></div>
               <div class="header-sub">โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</div>
 
               <div class="report-box">
-                <div class="student-head">${index + 1}. ${s.studentNo} - ${s.studentName}</div>
+                <div class="student-head">${index + 1}. ${s.studentNo} - ${s.studentName} (ส่วนที่ 1)</div>
                 <table>
                   <thead>
                     <tr><th>ข้อมูล</th><th>รายละเอียด</th></tr>
@@ -956,7 +961,19 @@
                     <tr><td>ความสัมพันธ์</td><td>${getVal(v, "familyRelationship") || '-'}</td></tr>
                     <tr><td>ภาระงานอยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
                     <tr><td>กิจกรรมที่มักทำร่วมกัน</td><td>${getVal(v, "familyActivities") || '-'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div class="page-break-before"></div>
 
+              <div class="report-box" style="margin-top: 20px;">
+                <div class="student-head">${index + 1}. ${s.studentNo} - ${s.studentName} (ส่วนที่ 2)</div>
+                <table>
+                  <thead>
+                    <tr><th>ข้อมูล</th><th>รายละเอียด</th></tr>
+                  </thead>
+                  <tbody>
                     <tr class="section-row"><td colspan="2">4. ข้อมูลด้านความเสี่ยง</td></tr>
                     <tr><td>ด้านสุขภาพ</td><td>${getVal(v, "riskHealth") || '-'}</td></tr>
                     <tr><td>ด้านความปลอดภัย</td><td>${getVal(v, "riskSafety") || '-'}</td></tr>
@@ -989,6 +1006,7 @@
                 </div>
               </div>
             </div>
+            ${index < targetStudents.length - 1 ? '<div class="page-break-after"></div>' : ''}
             `;
         });
 
