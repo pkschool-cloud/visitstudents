@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียน (The Absolute Masterpiece)</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน (Stable Text Edition)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -44,7 +44,7 @@
     
     .hide-scroll::-webkit-scrollbar { display: none; }
 
-    /* คอนเทนเนอร์ลับสำหรับสร้าง PDF ไม่ให้หน้าจอขาว */
+    /* คอนเทนเนอร์ลับสำหรับสร้าง PDF */
     #pdf-engine-root { position: absolute; left: -9999px; top: -9999px; visibility: hidden; width: 800px; background: #fff; z-index: -100; }
   </style>
 </head>
@@ -55,11 +55,8 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 1. URL ของคุณครู 🔴
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhsSolB88xpEQUdzV6GuYeY_GTI7kGDFQWzk6ApTEz5esM_IQitAqR0g4z--9GxNzT/exec";
-    
-    // 🔴 2. รหัส API ของคุณครู 🔴
-    const IMGBB_API_KEY = "aab833b4afe2c9bb60af70f87f60a508";
+    // 🔴 URL ที่คุณครูให้มาล่าสุดครับ
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwu0Dw9TUcLFhNyQ0wSI_8efgKyeaJrJBXdDV2_WuCUkWY10SZkTI4XtwYdTgR0YHjE/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
     const HOUSE_COND = ["ดีมาก","ดี","ปานกลาง","ทรุดโทรม","ไม่ปลอดภัย"];
@@ -67,7 +64,7 @@
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
-    // 🛡️ Error Boundary กันหน้าจอขาว
+    // 🛡️ Error Boundary (กันหน้าจอขาว 100%)
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { hasError: false, error: null }; }
       static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -135,17 +132,6 @@
       } catch(e) { return new Date().toISOString().split("T")[0]; }
     };
 
-    const parseImages = (str) => {
-      if (!str) return [];
-      let arr = String(str).includes("|||") ? String(str).split("|||") : String(str).split(",");
-      return arr.map(s => s.trim()).filter(Boolean).map(link => {
-        if (link.startsWith("DRIVE_ID:")) return `https://drive.google.com/uc?export=view&id=${link.replace("DRIVE_ID:", "")}`;
-        const match = link.match(/[-\w]{25,}/);
-        if (match && link.includes('drive.google.com')) return `https://drive.google.com/uc?export=view&id=${match[0]}`;
-        return link; 
-      });
-    };
-
     // ============= UI Components =============
     const PremiumInput = ({ label, value, onChange, type="text", placeholder="", icon, disabled=false }) => (
       <div className="mb-6 pop-in">
@@ -188,6 +174,40 @@
       );
     };
 
+    const GpsPopup = ({ status, distance }) => {
+      if (!status) return null;
+      return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center bounce-in w-[340px]">
+            {status === "loading" && (
+              <>
+                <div className="relative flex justify-center items-center w-24 h-24 bg-blue-50 rounded-full mb-6">
+                  <div className="absolute inset-0 border-[4px] border-blue-300 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] opacity-70"></div>
+                  <i className="fa-solid fa-location-crosshairs text-4xl text-blue-500"></i>
+                </div>
+                <h3 className="font-black text-slate-800 text-2xl mb-1">คำนวณพิกัด</h3>
+                <p className="font-medium text-slate-500 text-center">ค้นหาระยะทางจากโรงเรียน...</p>
+              </>
+            )}
+            {status === "success" && (
+              <>
+                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i></div>
+                <h3 className="font-black text-slate-800 text-2xl mb-1">สำเร็จ!</h3>
+                <p className="font-medium text-slate-500 text-center">ห่างจากโรงเรียน <span className="font-black text-emerald-600 text-xl">{distance} กม.</span></p>
+              </>
+            )}
+            {status === "error" && (
+              <>
+                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i></div>
+                <h3 className="font-black text-slate-800 text-2xl mb-1">ข้อผิดพลาด</h3>
+                <p className="font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือปิด GPS ไว้</p>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    };
+
     // ============= Main App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
@@ -200,7 +220,6 @@
       
       const [isDataLoaded, setIsDataLoaded] = useState(false);
       const [isSaving, setIsSaving] = useState(false);
-      const [savingStatus, setSavingStatus] = useState("กำลังเชื่อมต่อเซิร์ฟเวอร์...");
       const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
       const [adminClassFilter, setAdminClassFilter] = useState("ทั้งหมด");
@@ -209,7 +228,7 @@
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v17");
+        const u = localStorage.getItem("hv_user_v19");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -231,87 +250,50 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success && res.data) {
-          localStorage.setItem("hv_user_v17", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_v19", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
 
-      // 🚀 ระบบเซฟผ่าน ImgBB ขั้นสุดยอด (ส่งตามคู่มือเป๊ะๆ ไม่มีพังแน่นอน) 🚀
-      const saveVisit = async (formData, images) => {
+      // บันทึกข้อมูล (ไม่มีรูปภาพ)
+      const saveVisit = async (formData) => {
         setIsSaving(true);
-        try {
-          const finalImageUrls = [];
+        const data = { ...formData, teacherCode: user.code, teacherName: user.fullName, classLevel: formData.classLevel || user.classLevel };
+        
+        const res = await api.post({ action: "saveVisit", data });
+        if (res.success) {
+          showToast("บันทึกข้อมูลเรียบร้อย!", "success");
           
-          for (let i = 0; i < images.length; i++) {
-            if (images[i].startsWith("data:image")) {
-              setSavingStatus(`กำลังอัปโหลดรูปที่ ${i + 1}/${images.length} ไปที่คลาวด์...`);
-              
-              try {
-                // ดึงเฉพาะรหัสตัวอักษรของภาพออกมา (ทิ้งส่วนหัว data:image/jpeg;base64,)
-                const base64Data = images[i].split(',')[1];
-                
-                // ใช้ URLSearchParams ตามรูปแบบ x-www-form-urlencoded ที่ ImgBB ต้องการ!
-                const urlencoded = new URLSearchParams();
-                urlencoded.append("image", base64Data);
+          setGlobalVisits(prev => {
+            const arr = Array.isArray(prev) ? [...prev] : [];
+            const idx = arr.findIndex(v => compareId(getVal(v, "studentNo"), data.studentNo) && getVal(v,"classLevel") === data.classLevel);
+            const newData = {...data, timestamp: new Date().toISOString()};
+            if(idx > -1) arr[idx] = newData; else arr.push(newData);
+            return arr;
+          });
 
-                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                  method: "POST",
-                  body: urlencoded,
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                  }
-                });
-                
-                const uploadResult = await res.json();
-                
-                // ถ้าอัปโหลดสำเร็จ จะได้ลิงก์ตรงกลับมา
-                if (uploadResult.success) {
-                  finalImageUrls.push(uploadResult.data.url);
-                } else {
-                  console.error("ImgBB Error:", uploadResult);
-                  showToast(`อัปโหลดรูปที่ ${i+1} ไม่สำเร็จ กรุณาลองใหม่`, "warning");
-                }
-              } catch (imgErr) {
-                console.error("Upload Catch Error:", imgErr);
-                showToast(`เน็ตเวิร์กมีปัญหาตอนอัปรูปที่ ${i+1}`, "error");
-              }
-            } else {
-              // รูปลิงก์เดิมที่เคยอัปไปแล้ว
-              finalImageUrls.push(images[i]);
-            }
-          }
+          api.get("getVisitsFull", { classLevel: user.classLevel }).then(r => { if(r.success) setGlobalVisits(r.data); });
+          setView("profile"); 
+        } else {
+          showToast(res.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
+        }
+        setIsSaving(false);
+      };
 
-          setSavingStatus("กำลังบันทึกข้อมูลลงฐานระบบ...");
-          const finalImagesString = finalImageUrls.join("|||"); 
-          
-          const data = { 
-            ...formData, 
-            images: finalImagesString, 
-            teacherCode: user.code, 
-            teacherName: user.fullName, 
-            classLevel: formData.classLevel || user.classLevel, 
-            imagesBase64: [], 
-            existingImageUrls: finalImageUrls 
-          };
-          
-          const res = await api.post({ action: "saveVisit", data });
-          
-          if (res.success) {
-            showToast("บันทึกข้อมูลและอัปโหลดรูปภาพสำเร็จ!", "success");
-            setGlobalVisits(prev => {
-              const arr = Array.isArray(prev) ? [...prev] : [];
-              const idx = arr.findIndex(v => compareId(getVal(v, "studentNo"), data.studentNo) && getVal(v,"classLevel") === data.classLevel);
-              const newData = {...data, timestamp: new Date().toISOString()};
-              if(idx > -1) arr[idx] = newData; else arr.push(newData);
-              return arr;
-            });
-            api.get("getVisitsFull", { classLevel: user.classLevel }).then(r => { if(r.success) setGlobalVisits(r.data); });
-            setView("profile"); 
-          } else {
-            showToast(res.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
-          }
-        } catch (e) {
-          showToast("ล้มเหลว: อินเทอร์เน็ตมีปัญหาหรือเซิร์ฟเวอร์ไม่ตอบสนอง", "error");
+      // 🔴 ฟังก์ชันลบข้อมูลการเยี่ยมบ้าน กรณีเยี่ยมผิดคน 🔴
+      const deleteVisitRecord = async (studentNo, classLevel) => {
+        if(!confirm(`⚠️ คำเตือน!\n\nคุณกำลังจะลบข้อมูลการเยี่ยมบ้านของเลขที่ ${studentNo}\nเมื่อลบแล้ว สถานะจะกลับเป็น "ยังไม่เยี่ยม" ทันที\n\nยืนยันการลบข้อมูลหรือไม่?`)) return;
+        
+        setIsSaving(true);
+        const res = await api.post({ action: "deleteVisitRecord", studentNo, classLevel });
+        if(res.success) {
+          showToast("ล้างข้อมูลการเยี่ยมบ้านเรียบร้อย", "success");
+          // อัปเดต state ทันที
+          setGlobalVisits(prev => prev.filter(v => !(compareId(getVal(v, "studentNo"), studentNo) && getVal(v, "classLevel") === classLevel)));
+          setView("students");
+          setSelectedStudent(null);
+        } else {
+          showToast(res.message || "ไม่สามารถลบข้อมูลได้", "error");
         }
         setIsSaving(false);
       };
@@ -342,14 +324,13 @@
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
           
           {isSaving && (
-            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-[9999] flex items-center justify-center fade-in p-4">
-               <div className="bg-white px-8 py-10 rounded-[2rem] shadow-2xl flex flex-col items-center bounce-in text-center w-full max-w-sm border border-blue-100">
-                  <div className="relative w-24 h-24 mb-6 flex items-center justify-center mx-auto">
-                    <div className="absolute inset-0 border-[5px] border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
-                    <i className="fa-solid fa-cloud-arrow-up text-4xl text-blue-500"></i>
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in p-4">
+               <div className="bg-white px-10 py-8 rounded-[2rem] shadow-2xl flex flex-col items-center bounce-in text-center">
+                  <div className="relative w-20 h-20 mb-4 flex items-center justify-center mx-auto">
+                    <div className="absolute inset-0 border-[4px] border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
+                    <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500"></i>
                   </div>
-                  <h3 className="font-black text-slate-800 text-2xl mb-3">ระบบกำลังทำงาน</h3>
-                  <p className="text-sm font-bold text-blue-600 bg-blue-50 px-5 py-2.5 rounded-full">{savingStatus}</p>
+                  <p className="font-black text-slate-800 text-lg">กำลังซิงค์ข้อมูลกับฐานระบบ...</p>
                </div>
             </div>
           )}
@@ -406,7 +387,7 @@
                 <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
              </nav>
              <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_v16"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+               <button onClick={()=>{localStorage.removeItem("hv_user_v19"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
                  <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
                </button>
              </div>
@@ -442,11 +423,13 @@
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
                 
-                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดใหม่ (ดึงภาพก่อนเสมอ) 🌟 */}
+                {/* 🌟 หน้าส่งออก PDF ที่ลบรูปภาพทิ้งทั้งหมดแล้ว 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
-                {/* 🌟 หน้าประวัติ 🌟 */}
-                {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} />}
+                {/* 🌟 หน้าประวัติ ส่งปุ่มลบข้อมูลไปด้วย 🌟 */}
+                {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
+                
+                {/* 🌟 หน้าฟอร์มแบบใหม่ ไม่มีช่องแนบรูปภาพ 🌟 */}
                 {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
               </div>
             </div>
@@ -497,20 +480,26 @@
       );
     };
 
-    function StudentProfileView({ student, visits, onBack, onEdit }) {
+    function StudentProfileView({ student, visits, onBack, onEdit, onDeleteVisit }) {
       const v = [...visits].reverse().find(x => compareId(getVal(x,"studentNo"), student.studentNo) && getVal(x,"classLevel") === getVal(student,"classLevel")) || {};
       const status = getVisitStatus(visits, student.studentNo);
-      
-      const images = parseImages(getVal(v, "images"));
       const disp = (val) => val ? <span className="font-bold text-slate-800">{val}</span> : <span className="text-slate-300 font-medium">-</span>;
 
       return (
         <div className="slide-up">
-          <div className="flex items-center justify-between mb-8">
-            <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer"><i className="fa-solid fa-arrow-left text-xl"></i></button>
-            <button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-full font-bold shadow-lg shadow-blue-500/30 btn-press flex items-center gap-3 cursor-pointer">
-              <i className="fa-solid fa-pen-to-square"></i> บันทึก / แก้ไขข้อมูล
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer self-start"><i className="fa-solid fa-arrow-left text-xl"></i></button>
+            <div className="flex gap-3">
+              {/* 🔴 ปุ่มลบข้อมูล (จะโชว์ก็ต่อเมื่อเคยเยี่ยมแล้ว) 🔴 */}
+              {status !== "ยังไม่เยี่ยม" && (
+                <button onClick={() => onDeleteVisit(student.studentNo, getVal(student, "classLevel"))} className="bg-white border-2 border-rose-100 hover:border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white px-6 py-3.5 rounded-full font-bold shadow-sm transition-colors cursor-pointer flex items-center gap-2">
+                  <i className="fa-solid fa-trash-can"></i> ล้างข้อมูล
+                </button>
+              )}
+              <button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-full font-bold shadow-lg shadow-blue-500/30 btn-press flex items-center gap-3 cursor-pointer">
+                <i className="fa-solid fa-pen-to-square"></i> {status === "ยังไม่เยี่ยม" ? "บันทึกข้อมูล" : "แก้ไขข้อมูล"}
+              </button>
+            </div>
           </div>
 
           <div className="soft-card p-8 md:p-12 mb-8 relative overflow-hidden">
@@ -590,25 +579,6 @@
                   </div>
                 </div>
              </div>
-          </div>
-
-          <div className="soft-card p-8 md:p-12 mb-8">
-            <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center"><i className="fa-regular fa-images text-blue-600 mr-3"></i> ภาพถ่ายประกอบ</h3>
-            {images.length === 0 ? (
-              <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50">
-                <i className="fa-solid fa-camera text-5xl text-slate-300 mb-4 block"></i>
-                <p className="text-slate-500 font-bold text-lg">ยังไม่มีรูปภาพ</p>
-                <button onClick={onEdit} className="mt-4 text-blue-600 font-bold hover:underline cursor-pointer">กดปุ่มแก้ไขข้อมูลเพื่อแนบรูป</button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {images.map((img, i) => (
-                  <div key={i} className="aspect-square rounded-[1.5rem] overflow-hidden border border-slate-200 shadow-sm bg-slate-100 hover:shadow-lg transition-shadow">
-                    <img src={img} className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-500" onClick={()=>window.open(img, "_blank")} />
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       );
@@ -899,27 +869,10 @@
         setSelectedStudents(new Set(allVisisted));
       };
 
-      // 🌟 ดึงรูปลง PDF (แปลงกลับเป็น Base64 จาก ImgBB)
-      const urlToBase64 = async (url) => {
-        try {
-          if (!url) return null;
-          if (url.startsWith('data:image')) return url;
-          const imgRes = await fetch(url);
-          const blob = await imgRes.blob();
-          return await new Promise(resolve => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-        } catch(e) {
-          return url; // ถ้าติดบล็อก ก็ส่งลิงก์ดิบไปลุ้น
-        }
-      };
-
       const exportExcel = () => {
         const data = students.map(s => {
           const v = visits.find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
-          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":safeDateForDisplay(getVal(v,"visitDate")), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult"), "ลิงก์รูปภาพ":parseImages(getVal(v,"images")).join(" , ") || "-" };
+          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":safeDateForDisplay(getVal(v,"visitDate")), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult") };
         });
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Report");
@@ -927,14 +880,16 @@
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
+      // ส่งออก PDF แบบไม่มีรูป
       const exportPDF = async () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
         
         setGenerating(true);
-        setPdfProgress("เตรียมข้อมูล PDF...");
+        setPdfProgress("กำลังจัดหน้ากระดาษ PDF...");
 
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
         const dateStr = new Date().toLocaleDateString("th-TH");
+
         const container = document.getElementById("pdf-engine-root");
         
         let html = `
@@ -944,17 +899,6 @@
             <p style="color: #64748b; font-size: 13px; margin: 0;">พิมพ์เมื่อ: ${dateStr} | ข้อมูลโดย: ${user.fullName}</p>
           </div>
         `;
-
-        let totalImages = 0; let loadedImages = 0;
-        const studentImages = [];
-        
-        for (let i = 0; i < targetStudents.length; i++) {
-          const s = targetStudents[i];
-          const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo)) || {};
-          const imgs = parseImages(getVal(v, 'images'));
-          studentImages.push(imgs);
-          totalImages += imgs.length;
-        }
 
         for (let i = 0; i < targetStudents.length; i++) {
           const s = targetStudents[i];
@@ -993,39 +937,21 @@
                   </tbody>
                 </table>
               </div>
+            </div>
           `;
-
-          const imgs = studentImages[i];
-          if (imgs.length > 0) {
-            html += `<div style="padding: 12px; border-top: 1px solid #94a3b8; background-color: #f1f5f9; page-break-inside: avoid;">
-                       <p style="font-weight:bold; margin-top:0; margin-bottom:8px; font-size:13px; color:#475569;">ภาพประกอบการเยี่ยมบ้าน:</p>
-                       <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content: flex-start;">`;
-            
-            for (let url of imgs) {
-              loadedImages++;
-              setPdfProgress(`กำลังแปลงภาพลง PDF ${loadedImages}/${totalImages}`);
-              const finalImgSrc = await urlToBase64(url);
-              html += `<div style="width: 220px; height: 160px; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; background: #fff;">
-                         <img src="${finalImgSrc}" style="width:100%; height:100%; object-fit:contain;" />
-                       </div>`;
-            }
-            html += `  </div></div>`;
-          }
-          html += `</div>`;
         }
 
-        setPdfProgress("กำลังจัดทำหน้ากระดาษ PDF...");
         container.innerHTML = html;
         container.style.visibility = "visible";
 
         try {
-          await new Promise(r => setTimeout(r, 1000)); 
+          await new Promise(r => setTimeout(r, 500)); 
           await document.fonts.ready;
 
           await html2pdf().set({
             margin: 12,
             filename: `รายงานเยี่ยมบ้าน_จำนวน${targetStudents.length}คน.pdf`,
-            image: { type: 'jpeg', quality: 0.95 },
+            image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
           }).from(container).save();
@@ -1057,7 +983,7 @@
            <div className="border-t border-slate-200 pt-8 mb-6 flex justify-between items-end">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">พิมพ์รายงานรายบุคคล (PDF)</h3>
-                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ</p>
+                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ (ระบบแสดงผลเฉพาะข้อมูล Text เท่านั้น)</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={selectAll} className="text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer">เลือกทั้งหมด</button>
@@ -1103,34 +1029,15 @@
         travelMethod: getVal(exist,"travelMethod"), houseCondition: getVal(exist,"houseCondition"), utilities: getVal(exist,"utilities"), environment: getVal(exist,"environment"),
         familyMembers: getVal(exist,"familyMembers"), siblings: getVal(exist,"siblings"), familyRelationship: getVal(exist,"familyRelationship"), familyIncome: getVal(exist,"familyIncome"), studentDuties: getVal(exist,"studentDuties"), familyActivities: getVal(exist,"familyActivities"),
         riskHealth: getVal(exist,"riskHealth"), riskSafety: getVal(exist,"riskSafety"), riskTravel: getVal(exist,"riskTravel"), riskWork: getVal(exist,"riskWork"), riskSocial: getVal(exist,"riskSocial"), riskSubstance: getVal(exist,"riskSubstance"), parentConcerns: getVal(exist,"parentConcerns"),
-        visitResult: getVal(exist,"visitResult"), teacherNotes: getVal(exist,"teacherNotes"), 
-        images: parseImages(getVal(exist, "images"))
+        visitResult: getVal(exist,"visitResult"), teacherNotes: getVal(exist,"teacherNotes")
       });
       
       const [step, setStep] = useState(0);
       const [gpsStatus, setGpsStatus] = useState(null);
       const [gpsDist, setGpsDist] = useState("");
       
-      const STEPS = ["ข้อมูลเบื้องต้น", "ที่พัก", "ครอบครัว", "ความเสี่ยง", "รูปภาพ"];
+      const STEPS = ["ข้อมูลเบื้องต้น", "ที่พัก", "ครอบครัว", "ความเสี่ยง"];
       const update = (k, v) => setForm(p => ({...p, [k]:v}));
-
-      const handleImage = (e) => {
-        Array.from(e.target.files).forEach(file => {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            const img = new Image(); img.src = ev.target.result;
-            img.onload = () => {
-              const canvas = document.createElement("canvas");
-              const ratio = Math.min(1, 800 / img.width); 
-              canvas.width = img.width * ratio; canvas.height = img.height * ratio;
-              canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-              update("images", [...(form.images||[]), canvas.toDataURL("image/jpeg", 0.7)]);
-            };
-          };
-          reader.readAsDataURL(file);
-        });
-        e.target.value = "";
-      };
 
       const getGPS = () => {
         setGpsStatus("loading");
@@ -1155,9 +1062,9 @@
           </div>
 
           <div className="bg-white p-3 rounded-full mb-8 shadow-[0_4px_15px_rgba(0,0,0,0.03)] border border-slate-100 flex justify-between relative mx-2">
-            <div className="absolute top-1/2 left-[10%] right-[10%] h-2 bg-slate-100 -translate-y-1/2 -z-10 rounded-full"><div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700 ease-out rounded-full shadow-sm" style={{ width: `${(step/(STEPS.length-1))*100}%` }}></div></div>
+            <div className="absolute top-1/2 left-[12.5%] right-[12.5%] h-2 bg-slate-100 -translate-y-1/2 -z-10 rounded-full"><div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700 ease-out rounded-full shadow-sm" style={{ width: `${(step/(STEPS.length-1))*100}%` }}></div></div>
             {STEPS.map((s, i) => (
-              <div key={i} onClick={() => setStep(i)} className="flex flex-col items-center cursor-pointer group btn-press w-1/5">
+              <div key={i} onClick={() => setStep(i)} className="flex flex-col items-center cursor-pointer group btn-press w-1/4">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-black mb-2 transition-all border-[4px] ${step === i ? "bg-white border-blue-600 text-blue-600 scale-110 shadow-lg" : step > i ? "bg-blue-500 border-blue-500 text-white" : "bg-slate-50 border-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:border-slate-100"}`}>
                   {step > i ? <i className="fa-solid fa-check text-lg"></i> : i+1}
                 </div>
@@ -1212,25 +1119,10 @@
               <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านสังคม/เพื่อน" icon="fa-users-slash" value={form.riskSocial} onChange={e=>update("riskSocial", e.target.value)} /></div>
               <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านยาเสพติด" icon="fa-smoking" value={form.riskSubstance} onChange={e=>update("riskSubstance", e.target.value)} /></div>
               <div className="col-span-full"><PremiumTextarea label="ข้อห่วงใยของผู้ปกครอง" value={form.parentConcerns} onChange={e=>update("parentConcerns", e.target.value)} /></div>
-            </div>}
-
-            {step === 4 && <div className="space-y-2 fade-in">
-              <PremiumSelect label="สรุปความเห็นของครู" icon="fa-clipboard-user" value={form.visitResult} onChange={e=>update("visitResult", e.target.value)} options={RESULT_OPTS} />
-              <PremiumTextarea label="บันทึกเพิ่มเติมจากครู" value={form.teacherNotes} onChange={e=>update("teacherNotes", e.target.value)} rows={4} />
-              <div className="mb-5 pop-in">
-                <label className="block text-sm font-bold text-slate-500 mb-4 pl-4">รูปภาพประกอบ ({form.images.length} รูป)</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {form.images.map((img, i) => (
-                    <div key={i} className="relative aspect-square rounded-[1.5rem] overflow-hidden group border-4 border-slate-50 shadow-sm">
-                      <img src={img} className="w-full h-full object-cover" />
-                      <button onClick={()=>update("images", form.images.filter((_,idx)=>idx!==i))} className="absolute inset-0 bg-rose-500/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm btn-press cursor-pointer"><i className="fa-solid fa-trash text-white text-3xl drop-shadow-md"></i></button>
-                    </div>
-                  ))}
-                  <label className="border-4 border-dashed border-blue-200 bg-blue-50/50 rounded-[1.5rem] flex flex-col items-center justify-center aspect-square cursor-pointer hover:bg-blue-100 hover:border-blue-400 transition-colors btn-press shadow-sm cursor-pointer">
-                    <i className="fa-solid fa-camera text-4xl text-blue-400 mb-3 drop-shadow-sm"></i><span className="text-sm font-bold text-blue-600">เพิ่มรูปภาพ</span>
-                    <input type="file" accept="image/*" multiple onChange={handleImage} className="hidden"/>
-                  </label>
-                </div>
+              
+              <div className="col-span-full mt-4 border-t border-slate-100 pt-6">
+                 <PremiumSelect label="สรุปความเห็นของครู" icon="fa-clipboard-user" value={form.visitResult} onChange={e=>update("visitResult", e.target.value)} options={RESULT_OPTS} />
+                 <PremiumTextarea label="บันทึกเพิ่มเติมจากครู" value={form.teacherNotes} onChange={e=>update("teacherNotes", e.target.value)} rows={3} />
               </div>
             </div>}
 
@@ -1239,7 +1131,7 @@
               {step < STEPS.length-1 ? (
                 <button onClick={() => setStep(step+1)} className="px-12 py-4 rounded-full font-black text-white bg-slate-900 hover:bg-blue-600 shadow-xl shadow-slate-300 btn-press transition-all text-lg cursor-pointer">ถัดไป <i className="fa-solid fa-arrow-right ml-3"></i></button>
               ) : (
-                <button onClick={() => onSave(form, form.images)} className="px-12 py-4 rounded-full font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-xl shadow-blue-500/40 btn-press transition-all text-lg cursor-pointer"><i className="fa-solid fa-cloud-arrow-up mr-3"></i> บันทึกเข้าระบบจริง</button>
+                <button onClick={() => onSave(form)} className="px-12 py-4 rounded-full font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-xl shadow-blue-500/40 btn-press transition-all text-lg cursor-pointer"><i className="fa-solid fa-cloud-arrow-up mr-3"></i> บันทึกข้อมูล</button>
               )}
             </div>
           </div>
