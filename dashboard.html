@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - ระบบเยี่ยมบ้านนักเรียน</title>
+  <title>Dashboard - ระบบเยี่ยมบ้านนักเรียนอัจฉริยะ</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -22,7 +22,6 @@
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    /* Elegant Animations */
     .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     .slide-up { animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     .stagger-1 { animation-delay: 0.05s; }
@@ -32,7 +31,6 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Clean Luxury Glass Card */
     .glass-card { 
       background: #ffffff; 
       border: 1px solid rgba(226, 232, 240, 0.8); 
@@ -45,7 +43,6 @@
       border-color: rgba(148, 163, 184, 0.3);
     }
 
-    /* Custom Form Elements */
     .luxury-input {
       background-color: #f8fafc;
       border: 1.5px solid #e2e8f0;
@@ -57,7 +54,6 @@
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
     }
     
-    /* PDF Fix */
     #pdf-report-container { 
       position: fixed; left: 0; top: 0; width: 794px; background: white; padding: 40px; 
       font-family: 'Sarabun', sans-serif; color: #000; z-index: -9999; visibility: hidden; pointer-events: none;
@@ -78,7 +74,6 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // === UPDATED SCRIPT URL ===
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxunxLelcTes_NAvm3sfL5L5wkAG2-i0x5H1JyYdBI676LQ6PiQNg373HTecsLKk-jc/exec";
 
     const api = {
@@ -124,7 +119,6 @@
       return getVal(v, 'visitStatus', 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ', 'status') || "ยังไม่เยี่ยม";
     };
 
-    // --- Modern UI Components ---
     const FormInput = ({ label, type="text", value, onChange, placeholder="" }) => (
       <div className="mb-6">
         <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
@@ -159,7 +153,6 @@
       );
     };
 
-    // --- Main Dashboard ---
     function DashboardApp() {
       const [user, setUser] = useState(null);
       const [view, setView] = useState("list"); 
@@ -168,7 +161,6 @@
       const [refreshKey, setRefreshKey] = useState(0);
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
       const [globalStudents, setGlobalStudents] = useState([]);
       const [globalVisits, setGlobalVisits] = useState([]);
       const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -184,9 +176,13 @@
         return () => window.removeEventListener('resize', handleResize);
       }, []);
 
+      // จุดสำคัญ: ระบบเช็คการล็อกอิน โดยใช้ LocalStorage จากหน้า login.html
       useEffect(() => {
         const savedUser = localStorage.getItem("hv_user");
-        if (!savedUser) { window.location.href = "login.html"; return; }
+        if (!savedUser) { 
+          window.location.href = "login.html"; // เด้งกลับไปหน้า login.html ใน Branch นี้
+          return; 
+        }
         const u = JSON.parse(savedUser);
         setUser(u);
         fetchInitialData(u);
@@ -217,15 +213,9 @@
       return (
         <div className="flex h-full w-full bg-[#f8fafc] text-slate-700 font-sans fade-in selection:bg-blue-100 selection:text-blue-900">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-          
-          {isMobile && isSidebarOpen && (
-            <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>
-          )}
+          {isMobile && isSidebarOpen && <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
 
-          {/* Elegant Sidebar */}
-          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-in-out
-            ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
-            
+          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
             <div className="p-6 flex flex-col items-center border-b border-slate-50">
               <div className={`rounded-full p-1 mb-3 bg-gradient-to-tr from-blue-100 to-indigo-50 transition-all duration-300 ${isSidebarOpen ? 'w-20 h-20' : 'w-12 h-12'}`}>
                 <img src={`https://ui-avatars.com/api/?name=${user.fullName}&background=ffffff&color=2563EB&bold=true`} className="w-full h-full rounded-full object-cover shadow-sm border-2 border-white" />
@@ -252,7 +242,6 @@
             </div>
           </aside>
 
-          {/* Main Content Area */}
           <main className="flex-1 flex flex-col h-full overflow-hidden relative">
             <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100/50 px-6 flex items-center justify-between z-20 flex-shrink-0">
               <div className="flex items-center gap-4">
@@ -294,10 +283,474 @@
       </button>
     );
 
-    // --- 1. หน้าแสดงรายชื่อ (ปรับปรุงให้คลีน มี Filter) ---
     function StudentList({ user, students, visits, isDataLoaded, onSelect, forceRefresh }) {
       const [search, setSearch] = useState("");
-      const [statusFilter, setStatusFilter] = useState('all'); // all, visited, not_visited, appointed
+      const [statusFilter, setStatusFilter] = useState('all');
 
       const filtered = students.filter(s => {
-        const matchSearch = !search || s.studentName.includes(search) || s.nickname?.includes(search) || String(s.studentNo).includes(
+        const matchSearch = !search || s.studentName.includes(search) || s.nickname?.includes(search) || String(s.studentNo).includes(search);
+        const status = getVisitStatus(visits, s.studentName);
+        let matchStatus = true;
+        if(statusFilter === 'visited') matchStatus = status === 'เยี่ยมแล้ว';
+        if(statusFilter === 'not_visited') matchStatus = status === 'ยังไม่เยี่ยม';
+        if(statusFilter === 'appointed') matchStatus = status === 'นัดหมายแล้ว';
+        return matchSearch && matchStatus;
+      });
+
+      const visitedCount = students.filter(s => getVisitStatus(visits, s.studentName) === "เยี่ยมแล้ว").length;
+
+      if (!isDataLoaded) return <div className="text-center py-32 fade-in"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div><span className="font-medium text-slate-500">กำลังโหลดข้อมูลนักเรียน...</span></div>;
+
+      return (
+        <div className="slide-up">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 stagger-1">
+            <StatCard label="นักเรียนทั้งหมด" count={students.length} icon="fa-users" color="text-blue-600" bg="bg-blue-50" />
+            <StatCard label="เยี่ยมแล้ว" count={visitedCount} icon="fa-check-circle" color="text-emerald-600" bg="bg-emerald-50" />
+            <StatCard label="ยังไม่เยี่ยม" count={students.length - visitedCount} icon="fa-clock" color="text-amber-500" bg="bg-amber-50" />
+          </div>
+
+          <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 mb-8 stagger-2">
+            <div className="flex bg-slate-50 p-1 rounded-2xl w-full md:w-auto overflow-x-auto hide-scroll">
+               {[{id:'all', label:'ทั้งหมด'}, {id:'not_visited', label:'ยังไม่เยี่ยม'}, {id:'appointed', label:'นัดหมาย'}, {id:'visited', label:'เยี่ยมแล้ว'}].map(f => (
+                 <button key={f.id} onClick={()=>setStatusFilter(f.id)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${statusFilter===f.id ? 'bg-white text-slate-800 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>{f.label}</button>
+               ))}
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <div className="relative w-full md:w-64">
+                <i className="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+                <input type="text" placeholder="ค้นหาชื่อ, เลขที่..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-11 pr-4 font-medium text-sm focus:ring-2 focus:ring-blue-100 outline-none text-slate-700 transition-all" />
+              </div>
+              <button onClick={forceRefresh} className="bg-slate-50 hover:bg-slate-100 text-slate-500 px-4 py-3 rounded-2xl transition-colors"><i className="fa-solid fa-rotate-right"></i></button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-3">
+            {filtered.length === 0 && <div className="col-span-full text-center py-16"><p className="text-slate-400 font-medium">ไม่พบข้อมูลที่ค้นหา</p></div>}
+            
+            {filtered.map((s, i) => {
+              const status = getVisitStatus(visits, s.studentName);
+              const isDone = status === "เยี่ยมแล้ว"; const isApp = status === "นัดหมายแล้ว";
+              return (
+                <div key={i} onClick={() => onSelect(s)} className="glass-card p-5 rounded-3xl cursor-pointer group fade-in flex flex-col justify-between" style={{animationDelay: `${(i%10)*0.05}s`}}>
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0 transition-colors ${isDone ? 'bg-emerald-50 text-emerald-600' : isApp ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'}`}>{s.studentNo}</div>
+                    <div className="overflow-hidden pt-1">
+                      <h4 className="font-bold text-slate-800 text-base group-hover:text-blue-600 transition-colors truncate">{s.studentName}</h4>
+                      <p className="text-sm text-slate-400 font-medium truncate mt-0.5">{s.nickname ? `ชื่อเล่น: ${s.nickname}` : '\u00A0'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100/80 mt-auto">
+                    <div className="text-xs font-semibold">
+                      {isDone ? <span className="text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-lg"><i className="fa-solid fa-check mr-1"></i> เยี่ยมแล้ว</span> : 
+                       isApp ? <span className="text-amber-500 bg-amber-50 px-3 py-1.5 rounded-lg"><i className="fa-solid fa-calendar-alt mr-1"></i> นัดหมายแล้ว</span> :
+                       <span className="text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg">ยังไม่เยี่ยม</span>}
+                    </div>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors"><i className="fa-solid fa-chevron-right text-sm"></i></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    const StatCard = ({ label, count, icon, color, bg }) => (
+      <div className="glass-card p-6 rounded-[2rem] flex items-center justify-between">
+        <div><p className="text-slate-400 font-medium text-sm mb-1">{label}</p><h3 className={`text-4xl font-bold ${color}`}>{count}</h3></div>
+        <div className={`w-14 h-14 rounded-2xl ${bg} ${color} flex items-center justify-center text-2xl`}><i className={`fa-solid ${icon}`}></i></div>
+      </div>
+    );
+
+    function VisitForm({ user, student, globalVisits, onDone, onBack, showToast }) {
+      const [step, setStep] = useState(0);
+      const [saving, setSaving] = useState(false);
+      const [gpsLoading, setGpsLoading] = useState(false);
+      const [isInitialLoad, setIsInitialLoad] = useState(true);
+      const [draftSaved, setDraftSaved] = useState(false);
+      const [form, setForm] = useState({});
+      const [images, setImages] = useState([null, null, null, null]);
+
+      const STEPS = ["ข้อมูลเบื้องต้น", "ที่พัก & GPS", "ครอบครัว", "ความเสี่ยง", "สรุป & รูปถ่าย"];
+
+      useEffect(() => {
+        if (!globalVisits) return;
+        const backendData = findVisitForStudent(globalVisits, student.studentName);
+
+        let initForm = {
+          semester: backendData ? getVal(backendData, 'semester') || "1" : "1",
+          visitStatus: backendData ? getVal(backendData, 'visitstatus', 'visitStatus') || "เยี่ยมแล้ว" : "เยี่ยมแล้ว",
+          visitDate: backendData && getVal(backendData, 'visitdate', 'visitDate') ? new Date(getVal(backendData, 'visitdate', 'visitDate')).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          observations: backendData ? getVal(backendData, 'observations') : "",
+          houseType: backendData ? getVal(backendData, 'housetype', 'houseType') : "",
+          distanceKm: backendData ? getVal(backendData, 'distancekm', 'distanceKm') : "",
+          travelMethod: backendData ? getVal(backendData, 'travelmethod', 'travelMethod') : "",
+          houseCondition: backendData ? getVal(backendData, 'housecondition', 'houseCondition') : "",
+          utilities: backendData ? getVal(backendData, 'utilities') : "",
+          environment: backendData ? getVal(backendData, 'environment') : "",
+          familyMembers: backendData ? getVal(backendData, 'familymembers', 'familyMembers') : "",
+          siblings: backendData ? getVal(backendData, 'siblings') : "",
+          familyRelationship: backendData ? getVal(backendData, 'familyrelationship', 'familyRelationship') : "",
+          familyIncome: backendData ? getVal(backendData, 'familyincome', 'familyIncome') : "",
+          studentDuties: backendData ? getVal(backendData, 'studentduties', 'studentDuties') : "",
+          familyActivities: backendData ? getVal(backendData, 'familyactivities', 'familyActivities') : "",
+          riskHealth: backendData ? getVal(backendData, 'riskhealth', 'riskHealth') : "",
+          riskSafety: backendData ? getVal(backendData, 'risksafety', 'riskSafety') : "",
+          riskTravel: backendData ? getVal(backendData, 'risktravel', 'riskTravel') : "",
+          riskWork: backendData ? getVal(backendData, 'riskwork', 'riskWork') : "",
+          riskSocial: backendData ? getVal(backendData, 'risksocial', 'riskSocial') : "",
+          riskSubstance: backendData ? getVal(backendData, 'risksubstance', 'riskSubstance') : "",
+          parentConcerns: backendData ? getVal(backendData, 'parentconcerns', 'parentConcerns') : "",
+          visitResult: backendData ? getVal(backendData, 'visitresult', 'visitResult') : "",
+          teacherNotes: backendData ? getVal(backendData, 'teachernotes', 'teacherNotes') : "",
+        };
+
+        let initImages = [null, null, null, null];
+        if (backendData) {
+          const imgStr = getVal(backendData, 'images', 'รูปภาพ');
+          if (imgStr) {
+            const imgArr = imgStr.split(',');
+            for (let i = 0; i < 4; i++) { if (imgArr[i] && imgArr[i].trim() !== "") initImages[i] = imgArr[i].trim(); }
+          }
+        }
+
+        const draftStr = localStorage.getItem(`draft_visit_${student.studentNo}`);
+        if (draftStr) {
+           try {
+             const draft = JSON.parse(draftStr);
+             initForm = { ...initForm, ...draft.form };
+             if (draft.images) draft.images.forEach((img, i) => { if (img) initImages[i] = img; });
+           } catch(e) {}
+        }
+        setForm(initForm); setImages(initImages);
+        setTimeout(() => setIsInitialLoad(false), 400);
+      }, [student, globalVisits]);
+
+      useEffect(() => {
+        if (isInitialLoad) return;
+        const timer = setTimeout(() => {
+            localStorage.setItem(`draft_visit_${student.studentNo}`, JSON.stringify({ form, images, timestamp: Date.now() }));
+            setDraftSaved(true); setTimeout(() => setDraftSaved(false), 2000);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }, [form, images, isInitialLoad]);
+
+      const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+
+      const getGPS = () => {
+        setGpsLoading(true);
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const R = 6371; const dLat = (SCHOOL_LAT - pos.coords.latitude) * Math.PI / 180; const dLon = (SCHOOL_LON - pos.coords.longitude) * Math.PI / 180;
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(pos.coords.latitude * Math.PI / 180) * Math.cos(SCHOOL_LAT * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+              const dist = (R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))).toFixed(2);
+              handleChange("distanceKm", dist); setGpsLoading(false); showToast(`ดึงพิกัดสำเร็จ (ห่างรร. ${dist} กม.)`, "success");
+            },
+            (err) => { setGpsLoading(false); showToast("ไม่สามารถดึงตำแหน่ง GPS ได้", "error"); },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        } else { setGpsLoading(false); showToast("เบราว์เซอร์ไม่รองรับ", "error"); }
+      };
+
+      const handleImageUpload = (e, index) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image(); img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const scale = 800 / img.width; canvas.width = 800; canvas.height = img.height * scale;
+            const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const newImgs = [...images]; newImgs[index] = canvas.toDataURL("image/jpeg", 0.7); setImages(newImgs);
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+
+      const handleSave = async () => {
+        setSaving(true);
+        const newBase64Images = images.filter(img => img && img.startsWith('data:image'));
+        const existingUrls = images.filter(img => img && !img.startsWith('data:image'));
+        const data = { ...form, teacherUsername: user.username, teacherName: user.fullName, classLevel: user.classLevel, studentNo: student.studentNo, studentName: student.studentName, nickname: student.nickname, imagesBase64: newBase64Images, existingImageUrls: existingUrls };
+        const res = await api.post({ action: "saveVisit", data });
+        if (!res.success) { showToast(res.message || "เกิดข้อผิดพลาด", "error"); setSaving(false); return; }
+        localStorage.removeItem(`draft_visit_${student.studentNo}`);
+        setSaving(false); onDone();
+      };
+
+      if (isInitialLoad) return <div className="text-center py-32"><div className="w-10 h-10 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin mx-auto mb-4"></div><span className="text-slate-500">เตรียมแบบฟอร์ม...</span></div>;
+
+      return (
+        <div className="slide-up max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <button onClick={onBack} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors shadow-sm"><i className="fa-solid fa-arrow-left"></i></button>
+            <div><h2 className="text-2xl font-bold text-slate-800 tracking-tight">{student.studentName}</h2><p className="text-sm text-slate-500 mt-1 font-medium">เลขที่ {student.studentNo} {student.nickname && `• ชื่อเล่น: ${student.nickname}`}</p></div>
+            <div className="ml-auto text-right"><div className={`text-xs font-semibold px-3 py-1 rounded-full transition-opacity duration-500 ${draftSaved ? 'bg-emerald-50 text-emerald-500 opacity-100' : 'opacity-0'}`}><i className="fa-solid fa-cloud-check mr-1"></i> บันทึกร่างแล้ว</div></div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 mb-6 flex flex-wrap justify-between relative z-10">
+             {STEPS.map((t, i) => (
+                <div key={i} onClick={() => setStep(i)} className={`flex flex-col items-center cursor-pointer transition-all w-1/5 min-w-[70px] ${step === i ? 'text-blue-600' : step > i ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-400'}`}>
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 transition-colors duration-300 border-2 ${step === i ? 'border-blue-600 bg-white text-blue-600' : step > i ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>{step > i ? <i className="fa-solid fa-check"></i> : i+1}</div>
+                   <span className="text-[10px] sm:text-xs font-semibold text-center hidden sm:block">{t}</span>
+                </div>
+             ))}
+             <div className="absolute top-10 left-[10%] right-[10%] h-[2px] bg-slate-100 -z-10 hidden sm:block"><div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}></div></div>
+          </div>
+
+          <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[450px]">
+            <div className="fade-in" key={step}>
+              {step === 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6"><FormSelect label="ภาคเรียน" value={form.semester} onChange={e=>handleChange("semester", e.target.value)} options={["1","2"]}/><FormSelect label="สถานะการเยี่ยม" value={form.visitStatus} onChange={e=>handleChange("visitStatus", e.target.value)} options={VISIT_STAT}/><FormInput label="วันที่เยี่ยมบ้าน" type="date" value={form.visitDate} onChange={e=>handleChange("visitDate", e.target.value)}/><div className="col-span-full"><FormTextarea label="การสังเกตและสอบถามเบื้องต้น" value={form.observations} onChange={e=>handleChange("observations", e.target.value)} rows={4}/></div></div>}
+              {step === 1 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                <FormInput label="ลักษณะที่พัก" value={form.houseType} onChange={e=>handleChange("houseType", e.target.value)}/>
+                <div className="mb-6 relative"><label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">ระยะทางถึง รร. (กม.)</label><div className="flex gap-2"><input type="number" value={form.distanceKm} onChange={e=>handleChange("distanceKm", e.target.value)} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700" placeholder="ตัวเลข (เช่น 2.5)"/><button onClick={getGPS} disabled={gpsLoading} className="bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 w-14 rounded-2xl flex items-center justify-center transition-all disabled:opacity-50" title="ดึงพิกัด GPS">{gpsLoading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-location-dot"></i>}</button></div></div>
+                <FormInput label="วิธีการเดินทาง" value={form.travelMethod} onChange={e=>handleChange("travelMethod", e.target.value)}/>
+                <FormSelect label="สภาพบ้าน" value={form.houseCondition} onChange={e=>handleChange("houseCondition", e.target.value)} options={HOUSE_COND}/>
+                <FormInput label="สาธารณูปโภค (น้ำ/ไฟ)" value={form.utilities} onChange={e=>handleChange("utilities", e.target.value)}/>
+                <div className="col-span-full"><FormTextarea label="สภาพแวดล้อมรอบบ้าน" value={form.environment} onChange={e=>handleChange("environment", e.target.value)} rows={3}/></div>
+              </div>}
+              {step === 2 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6"><FormInput label="จำนวนสมาชิกในบ้าน (คน)" type="number" value={form.familyMembers} onChange={e=>handleChange("familyMembers", e.target.value)}/><FormInput label="จำนวนพี่น้อง (คน)" type="number" value={form.siblings} onChange={e=>handleChange("siblings", e.target.value)}/><FormSelect label="ความสัมพันธ์ในครอบครัว" value={form.familyRelationship} onChange={e=>handleChange("familyRelationship", e.target.value)} options={REL_OPTS}/><FormInput label="รายได้ครอบครัวเฉลี่ย (บาท)" type="number" value={form.familyIncome} onChange={e=>handleChange("familyIncome", e.target.value)}/><div className="col-span-full"><FormInput label="ภาระงานของนักเรียนเมื่ออยู่บ้าน" value={form.studentDuties} onChange={e=>handleChange("studentDuties", e.target.value)}/><FormTextarea label="กิจกรรมที่มักทำร่วมกัน" value={form.familyActivities} onChange={e=>handleChange("familyActivities", e.target.value)} rows={3}/></div></div>}
+              {step === 3 && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6"><FormInput label="ด้านสุขภาพ" value={form.riskHealth} onChange={e=>handleChange("riskHealth", e.target.value)}/><FormInput label="ด้านความปลอดภัย" value={form.riskSafety} onChange={e=>handleChange("riskSafety", e.target.value)}/><FormInput label="ด้านการเดินทาง" value={form.riskTravel} onChange={e=>handleChange("riskTravel", e.target.value)}/><FormInput label="ด้านเศรษฐกิจ/การงาน" value={form.riskWork} onChange={e=>handleChange("riskWork", e.target.value)}/><FormInput label="ด้านการคบเพื่อน/สังคม" value={form.riskSocial} onChange={e=>handleChange("riskSocial", e.target.value)}/><FormInput label="ด้านสารเสพติด" value={form.riskSubstance} onChange={e=>handleChange("riskSubstance", e.target.value)}/><div className="col-span-full mt-2"><FormTextarea label="ข้อห่วงใยของผู้ปกครอง (ถ้ามี)" value={form.parentConcerns} onChange={e=>handleChange("parentConcerns", e.target.value)} rows={3}/></div></div>}
+              {step === 4 && <div>
+                <h4 className="font-bold text-slate-800 mb-4 text-sm bg-slate-50 inline-block px-4 py-2 rounded-lg">อัปโหลดรูปภาพ (สูงสุด 4 รูป)</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  {[0,1,2,3].map(n => (
+                    <div key={n} className="relative aspect-square border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 flex flex-col items-center justify-center overflow-hidden hover:border-blue-300 hover:bg-blue-50/50 transition-all cursor-pointer group">
+                      {images[n] ? ( <><img src={images[n]} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-white text-xs font-semibold bg-black/50 px-3 py-1.5 rounded-full">เปลี่ยนรูป</span></div></> 
+                      ) : ( <><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm mb-2 text-slate-300 group-hover:text-blue-500 transition-colors"><i className="fa-solid fa-image"></i></div><span className="text-xs font-medium text-slate-400">รูปที่ {n+1}</span></> )}
+                      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, n)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                    </div>
+                  ))}
+                </div>
+                <h4 className="font-bold text-slate-800 mb-4 text-sm bg-slate-50 inline-block px-4 py-2 rounded-lg mt-4">สรุปผลการเยี่ยม</h4>
+                <FormSelect label="ความเห็นของครู" value={form.visitResult} onChange={e=>handleChange("visitResult", e.target.value)} options={RESULT_OPTS}/>
+                <FormTextarea label="บันทึกเพิ่มเติมจากครู" value={form.teacherNotes} onChange={e=>handleChange("teacherNotes", e.target.value)} rows={3}/>
+              </div>}
+            </div>
+            <div className="flex justify-between mt-10 pt-6 border-t border-slate-100">
+              <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="px-6 py-3.5 rounded-2xl font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors">ย้อนกลับ</button>
+              {step < STEPS.length - 1 ? ( <button onClick={() => setStep(step + 1)} className="px-8 py-3.5 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all">ถัดไป <i className="fa-solid fa-arrow-right ml-1"></i></button>
+              ) : ( <button onClick={handleSave} disabled={saving} className="px-8 py-3.5 rounded-2xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all flex items-center disabled:opacity-70">{saving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i> กำลังบันทึก...</> : <><i className="fa-solid fa-check mr-2"></i> บันทึกข้อมูล</>}</button> )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function StudentManage({ user, showToast, onRefreshNeeded, students: initialStudents }) {
+      const [students, setStudents] = useState(initialStudents || []);
+      const [loading, setLoading] = useState(!initialStudents.length);
+
+      const loadData = () => { setLoading(true); api.get("getStudents", { classLevel: user.classLevel }).then(r => { if (r.success) setStudents(r.data); setLoading(false); }); };
+      useEffect(() => { if(!initialStudents.length) loadData(); }, []);
+
+      const handleDelete = async (id) => {
+        if(!confirm(`ยืนยันการลบนักเรียนเลขที่ ${id}?`)) return;
+        const res = await api.post({ action: "deleteStudent", studentNo: id, classLevel: user.classLevel });
+        if(res.success) { showToast("ลบสำเร็จ", "success"); loadData(); onRefreshNeeded(); } else showToast("ลบไม่สำเร็จ", "error");
+      };
+
+      const handleImportExcel = (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          showToast("กำลังนำเข้าข้อมูล...", "success");
+          const bstr = evt.target.result; const wb = XLSX.read(bstr, {type:'binary'}); const ws = wb.Sheets[wb.SheetNames[0]];
+          const data = XLSX.utils.sheet_to_json(ws, {header:1}); 
+          const newStudents = data.slice(1).filter(r => r[0] && r[1]).map(r => ({ studentNo: r[0], studentName: r[1], nickname: r[2]||"", classLevel: r[3]||user.classLevel }));
+          const res = await api.post({ action: "importStudents", students: newStudents });
+          if(res.success) { showToast(`นำเข้าสำเร็จ ${newStudents.length} คน`, "success"); loadData(); onRefreshNeeded(); } else showToast("เกิดข้อผิดพลาด", "error");
+        };
+        reader.readAsBinaryString(file); e.target.value = "";
+      };
+
+      if (loading) return <div className="text-center py-32"><div className="w-10 h-10 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto"></div></div>;
+
+      return (
+        <div className="slide-up">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
+            <div><h2 className="text-2xl font-bold text-slate-800 tracking-tight">จัดการรายชื่อนักเรียน</h2></div>
+            <div className="flex gap-3">
+              <label className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-5 py-2.5 rounded-xl font-semibold cursor-pointer transition-colors text-sm flex items-center">
+                <i className="fa-solid fa-file-excel mr-2"></i> นำเข้า Excel
+                <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" />
+              </label>
+            </div>
+          </div>
+          <div className="glass-card rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead><tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider"><th className="py-4 px-6 font-bold w-20 text-center">เลขที่</th><th className="py-4 px-6 font-bold">ชื่อ-นามสกุล</th><th className="py-4 px-6 font-bold text-center w-24">จัดการ</th></tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {students.map((s,i) => (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-6 text-center font-bold text-slate-700">{s.studentNo}</td>
+                      <td className="py-4 px-6"><span className="font-semibold text-slate-800">{s.studentName}</span> {s.nickname && <span className="text-xs text-slate-400 ml-2">( {s.nickname} )</span>}</td>
+                      <td className="py-4 px-6 text-center"><button onClick={() => handleDelete(s.studentNo)} className="w-8 h-8 rounded-full bg-white border border-slate-200 text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center mx-auto"><i className="fa-solid fa-trash-can text-sm"></i></button></td>
+                    </tr>
+                  ))}
+                  {students.length === 0 && <tr><td colSpan="3" className="text-center py-10 text-slate-400">ไม่มีข้อมูล</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ReportExport({ user, showToast, visits, isDataLoaded, forceRefresh }) {
+      const [generating, setGenerating] = useState(null);
+
+      const urlToBase64 = (url) => {
+        return new Promise((resolve) => {
+          if (!url) { resolve(null); return; }
+          if (url.startsWith('data:image')) { resolve(url); return; }
+          let imgUrl = url;
+          const driveMatch = url.match(/[-\w]{25,}/);
+          if (url.includes('drive.google.com') && driveMatch) imgUrl = `https://drive.google.com/thumbnail?id=${driveMatch[0]}&sz=w800`;
+          
+          const img = new Image(); img.crossOrigin = "anonymous";
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+              const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0); resolve(canvas.toDataURL('image/jpeg', 0.85));
+            } catch (e) { resolve(null); }
+          };
+          img.onerror = () => resolve(null); img.src = imgUrl;
+        });
+      };
+
+      const generatePDF = async (studentName) => {
+        const data = findVisitForStudent(visits, studentName);
+        if(!data) { showToast("ไม่พบข้อมูล", "error"); return; }
+        setGenerating(studentName); showToast("กำลังเตรียมไฟล์ PDF...", "success");
+
+        try {
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
+          const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value || '-'; };
+          setText('pdf-name', getVal(data, 'studentname', 'studentName')); setText('pdf-no', getVal(data, 'studentno', 'studentNo')); setText('pdf-class', getVal(data, 'classlevel', 'classLevel')); setText('pdf-nickname', getVal(data, 'nickname')); setText('pdf-semester', getVal(data, 'semester'));
+          const vDate = getVal(data, 'visitdate', 'visitDate'); setText('pdf-date', vDate ? new Date(vDate).toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric'}) : '-');
+          setText('pdf-status', getVal(data, 'visitstatus', 'visitStatus')); setText('pdf-teacher', getVal(data, 'teachername', 'teacherName'));
+          setText('pdf-housetype', getVal(data, 'housetype', 'houseType')); setText('pdf-distance', getVal(data, 'distancekm', 'distanceKm') ? `${getVal(data, 'distancekm', 'distanceKm')} กม.` : '-'); setText('pdf-travel', getVal(data, 'travelmethod', 'travelMethod')); setText('pdf-housecond', getVal(data, 'housecondition', 'houseCondition')); setText('pdf-utilities', getVal(data, 'utilities')); setText('pdf-environment', getVal(data, 'environment'));
+          setText('pdf-members', getVal(data, 'familymembers', 'familyMembers')); setText('pdf-siblings', getVal(data, 'siblings')); setText('pdf-rel', getVal(data, 'familyrelationship', 'familyRelationship')); setText('pdf-income', getVal(data, 'familyincome', 'familyIncome') ? `${Number(getVal(data, 'familyincome', 'familyIncome')).toLocaleString()} บาท` : '-'); setText('pdf-duties', getVal(data, 'studentduties', 'studentDuties')); setText('pdf-activities', getVal(data, 'familyactivities', 'familyActivities'));
+          setText('pdf-risk-health', getVal(data, 'riskhealth', 'riskHealth')); setText('pdf-risk-safety', getVal(data, 'risksafety', 'riskSafety')); setText('pdf-risk-travel', getVal(data, 'risktravel', 'riskTravel')); setText('pdf-risk-work', getVal(data, 'riskwork', 'riskWork')); setText('pdf-risk-social', getVal(data, 'risksocial', 'riskSocial')); setText('pdf-risk-substance', getVal(data, 'risksubstance', 'riskSubstance')); setText('pdf-concerns', getVal(data, 'parentconcerns', 'parentConcerns'));
+          setText('pdf-observations', getVal(data, 'observations')); setText('pdf-result', getVal(data, 'visitresult', 'visitResult')); setText('pdf-notes', getVal(data, 'teachernotes', 'teacherNotes'));
+
+          const imgContainer = document.getElementById('pdf-images');
+          const imagesStr = getVal(data, 'images');
+          if(imagesStr) {
+            const urls = imagesStr.split(',').map(u => u.trim()).filter(u => u);
+            const base64Images = await Promise.all(urls.map(u => urlToBase64(u)));
+            const validImages = base64Images.filter(img => img !== null);
+            if (validImages.length > 0) {
+              imgContainer.innerHTML = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">' + validImages.map(img => `<div style="width:100%; height:240px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;"><img src="${img}" style="width:100%; height:100%; object-fit:cover;" /></div>`).join('') + '</div>';
+            } else imgContainer.innerHTML = '<p style="color:#94a3b8; font-style:italic;">— ไม่มีรูปภาพ —</p>';
+          } else imgContainer.innerHTML = '<p style="color:#94a3b8; font-style:italic;">— ไม่มีรูปภาพ —</p>';
+
+          const element = document.getElementById('pdf-report-container');
+          element.classList.add('pdf-rendering');
+          await new Promise(r => setTimeout(r, 500));
+
+          const studentNameClean = (getVal(data, 'studentname', 'studentName') || 'student').replace(/[^a-zA-Z0-9ก-๙]/g, '_');
+          const opt = { margin: [10, 10, 10, 10], filename: `เยี่ยมบ้าน_${studentNameClean}.pdf`, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, logging: false }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all'] } };
+          await html2pdf().set(opt).from(element).save();
+          element.classList.remove('pdf-rendering'); showToast("ดาวน์โหลดสำเร็จ", "success");
+        } catch (e) { showToast("เกิดข้อผิดพลาด: " + e.message, "error"); document.getElementById('pdf-report-container').classList.remove('pdf-rendering'); } 
+        finally { setGenerating(null); }
+      };
+
+      if (!isDataLoaded) return <div className="text-center py-32"><div className="w-10 h-10 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mx-auto"></div></div>;
+
+      const visitedList = visits.filter(v => getVal(v, 'visitstatus', 'visitStatus', 'สถานะ') === "เยี่ยมแล้ว");
+
+      return (
+        <div className="slide-up">
+          <div className="flex justify-between items-end mb-8">
+            <div><h2 className="text-2xl font-bold text-slate-800 tracking-tight">พิมพ์รายงาน PDF</h2><p className="text-sm text-slate-500 mt-1">พร้อมพิมพ์ {visitedList.length} รายการ</p></div>
+            <button onClick={forceRefresh} className="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"><i className="fa-solid fa-rotate-right mr-1.5"></i>รีเฟรช</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {visitedList.length === 0 && <div className="col-span-full text-center py-16 text-slate-400">ยังไม่มีข้อมูลนักเรียนที่เยี่ยมแล้ว</div>}
+            {visitedList.map((v, i) => {
+              const sName = getVal(v, 'studentname', 'studentName'); const sNo = getVal(v, 'studentno', 'studentNo'); const vDate = getVal(v, 'visitdate', 'visitDate');
+              const isGen = generating === sName;
+              return (
+                <div key={i} className="glass-card p-5 rounded-3xl flex flex-col justify-between group">
+                  <div className="mb-5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">{sNo || '-'}</div>
+                      <h4 className="font-bold text-slate-800 truncate">{sName}</h4>
+                    </div>
+                    <p className="text-xs text-slate-400 ml-13 pl-1"><i className="fa-regular fa-calendar mr-1"></i>เยี่ยมเมื่อ: {vDate ? new Date(vDate).toLocaleDateString('th-TH') : '-'}</p>
+                  </div>
+                  <button onClick={() => generatePDF(sName)} disabled={isGen} className="w-full bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-100 py-3 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                    {isGen ? <><i className="fa-solid fa-spinner fa-spin"></i> สร้างเอกสาร...</> : <><i className="fa-solid fa-print"></i> พิมพ์รายงาน</>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DashboardApp />);
+  </script>
+
+  <!-- PDF TEMPLATE (Hidden) -->
+  <div id="pdf-report-container">
+    <div style="text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 15px; margin-bottom: 20px;">
+      <h2 style="font-size: 20px; font-weight: bold; margin: 0; color: #1e293b;">แบบรายงานผลการเยี่ยมบ้านนักเรียน</h2>
+      <h3 style="font-size: 14px; margin: 5px 0 0 0; color: #64748b;">โรงเรียนป่าก้าง ภาคเรียนที่ <span id="pdf-semester">-</span></h3>
+    </div>
+    <div class="pdf-section-title" style="background:#3b82f6;">1. ข้อมูลพื้นฐานนักเรียน</div>
+    <table class="pdf-table" style="margin-top:0; border-radius:0 0 4px 4px;">
+      <tr><th>ชื่อ-นามสกุล</th><td id="pdf-name">-</td></tr>
+      <tr><th>ชื่อเล่น</th><td id="pdf-nickname">-</td></tr>
+      <tr><th>ชั้นเรียน</th><td id="pdf-class">-</td></tr>
+      <tr><th>เลขที่</th><td id="pdf-no">-</td></tr>
+      <tr><th>วันที่เยี่ยมบ้าน</th><td id="pdf-date">-</td></tr>
+      <tr><th>สถานะการเยี่ยม</th><td id="pdf-status" style="font-weight:bold; color:#059669;">-</td></tr>
+      <tr><th>ครูประจำชั้น</th><td id="pdf-teacher">-</td></tr>
+    </table>
+    <div class="pdf-section-title" style="background:#3b82f6;">2. การสังเกตเบื้องต้น</div>
+    <table class="pdf-table" style="margin-top:0;"><tr><td id="pdf-observations">-</td></tr></table>
+    <div class="pdf-section-title" style="background:#3b82f6;">3. ที่พักและการเดินทาง</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>ลักษณะที่พัก</th><td id="pdf-housetype">-</td></tr>
+      <tr><th>ระยะทางถึง รร.</th><td id="pdf-distance">-</td></tr>
+      <tr><th>การเดินทาง</th><td id="pdf-travel">-</td></tr>
+      <tr><th>สภาพบ้าน</th><td id="pdf-housecond">-</td></tr>
+      <tr><th>สาธารณูปโภค</th><td id="pdf-utilities">-</td></tr>
+      <tr><th>สภาพแวดล้อม</th><td id="pdf-environment">-</td></tr>
+    </table>
+    <div class="pdf-section-title" style="background:#3b82f6;">4. ข้อมูลครอบครัว</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>จำนวนสมาชิก</th><td id="pdf-members">-</td></tr>
+      <tr><th>ความสัมพันธ์</th><td id="pdf-rel">-</td></tr>
+      <tr><th>รายได้เฉลี่ย</th><td id="pdf-income">-</td></tr>
+      <tr><th>ภาระงานนักเรียน</th><td id="pdf-duties">-</td></tr>
+    </table>
+    <div class="pdf-section-title" style="background:#3b82f6;">5. ความเสี่ยงและข้อห่วงใย</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>สุขภาพ</th><td id="pdf-risk-health">-</td></tr>
+      <tr><th>ความปลอดภัย</th><td id="pdf-risk-safety">-</td></tr>
+      <tr><th>ยาเสพติด</th><td id="pdf-risk-substance">-</td></tr>
+      <tr><th>ข้อห่วงใยผู้ปกครอง</th><td id="pdf-concerns">-</td></tr>
+    </table>
+    <div class="pdf-section-title" style="background:#0f172a;">6. สรุปผล</div>
+    <table class="pdf-table" style="margin-top:0;">
+      <tr><th>ความเห็นครู</th><td id="pdf-result" style="font-weight:bold;">-</td></tr>
+      <tr><th>บันทึกเพิ่มเติม</th><td id="pdf-notes">-</td></tr>
+    </table>
+    <div class="pdf-section-title" style="background:#0f172a;">7. ภาพถ่ายประกอบ</div>
+    <div id="pdf-images" style="padding:10px; border:1px solid #cbd5e1; border-top:none; background:white;"></div>
+    <div style="margin-top: 40px; display: flex; justify-content: space-around; padding: 20px 0;">
+      <div style="text-align: center; width: 40%;"><div style="border-bottom: 1px dotted #333; height: 30px;"></div><div style="font-size: 12px; margin-top: 8px;">ครูประจำชั้น</div></div>
+      <div style="text-align: center; width: 40%;"><div style="border-bottom: 1px dotted #333; height: 30px;"></div><div style="font-size: 12px; margin-top: 8px;">ผู้อำนวยการโรงเรียน</div></div>
+    </div>
+  </div>
+</body>
+</html>
