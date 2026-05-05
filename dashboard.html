@@ -831,10 +831,13 @@ return (
 <div className="soft-card p-8 md:p-10">
 <h3 className="text-xl font-black text-blue-600 mb-6 flex items-center"><i className="fa-solid fa-house-chimney mr-3"></i> ข้อมูลที่พักและการเดินทาง</h3>
 <div className="space-y-4">
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ที่อยู่ปัจจุบัน</div><div className="col-span-2 text-sm">{disp(getVal(v,"address"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ลักษณะที่พัก</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseType"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สภาพบ้าน</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseCondition"))}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">วัสดุก่อสร้าง</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseMaterial"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ระยะทาง</div><div className="col-span-2 text-sm">{getVal(v,"distanceKm") ? <span className="font-bold text-slate-800">{getVal(v,"distanceKm")} กม.</span> : disp("")}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">การเดินทาง</div><div className="col-span-2 text-sm">{disp(getVal(v,"travelMethod"))}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ค่าเดินทาง</div><div className="col-span-2 text-sm">{getVal(v,"travelCost") ? <span className="font-bold text-slate-800">{getVal(v,"travelCost")} บาท/เดือน</span> : disp("")}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สาธารณูปโภค</div><div className="col-span-2 text-sm">{disp(getVal(v,"utilities"))}</div></div>
 <div className="grid grid-cols-3 gap-4"><div className="col-span-1 text-sm font-bold text-slate-400">สภาพแวดล้อม</div><div className="col-span-2 text-sm">{disp(getVal(v,"environment"))}</div></div>
 </div>
@@ -859,8 +862,13 @@ return (
 <div className="space-y-4">
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สมาชิกในบ้าน</div><div className="col-span-2 text-sm">{getVal(v,"familyMembers") ? <span className="font-bold text-slate-800">{getVal(v,"familyMembers")} คน</span> : disp("")}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">พี่น้อง</div><div className="col-span-2 text-sm">{getVal(v,"siblings") ? <span className="font-bold text-slate-800">{getVal(v,"siblings")} คน</span> : disp("")}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"guardianName"))} {getVal(v,"guardianRelation") ? <span className="text-slate-400">({getVal(v,"guardianRelation")})</span> : ""}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">เบอร์ผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"guardianPhone"))}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สถานภาพครอบครัว</div><div className="col-span-2 text-sm">{disp(getVal(v,"familyStatus"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ความสัมพันธ์</div><div className="col-span-2 text-sm">{disp(getVal(v,"familyRelationship"))}</div></div>
-<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">รายได้เฉลี่ย</div><div className="col-span-2 text-sm">{getVal(v,"familyIncome") ? <span className="font-bold text-slate-800">{getVal(v,"familyIncome")} บาท/เดือน</span> : disp("")}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">รายได้รวม</div><div className="col-span-2 text-sm">{getVal(v,"familyIncome") ? <span className="font-bold text-slate-800">{getVal(v,"familyIncome")} บาท/เดือน</span> : disp("")}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">รายได้/คน</div><div className="col-span-2 text-sm">{getVal(v,"incomePerPerson") ? <span className="font-bold text-slate-800">{getVal(v,"incomePerPerson")} บาท/เดือน</span> : disp("")}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สวัสดิการ</div><div className="col-span-2 text-sm">{disp(getVal(v,"welfare"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ภาระงานอยู่บ้าน</div><div className="col-span-2 text-sm">{disp(getVal(v,"studentDuties"))}</div></div>
 <div className="grid grid-cols-3 gap-4"><div className="col-span-1 text-sm font-bold text-slate-400">กิจกรรมร่วมกัน</div><div className="col-span-2 text-sm">{disp(getVal(v,"familyActivities"))}</div></div>
 </div>
@@ -1407,15 +1415,74 @@ return (
 function VisitForm({ student, visits, onBack, onSave }) {
 const exist = visits.slice().reverse().find(v => compareId(getVal(v,"studentNo"), student.studentNo) && getVal(v,"classLevel") === getVal(student,"classLevel")) || {};
 
+// ===== ข้อมูลจากแบบ นร.01 (กรอกไว้ล่วงหน้าจาก PDF ที่สแกนมา) =====
+const NR01_DATA = {
+  guardianName: "นาง หม่วย ใหม่เงิน",
+  guardianRelation: "มารดา",
+  guardianPhone: "0840650102",
+  guardianEducation: "ต่ำกว่าประถมศึกษา",
+  guardianOccupation: "รับจ้างรายวัน",
+  familyStatus: "พ่อแม่แยกกันอยู่",
+  livesWith: "พ่อ/แม่",
+  householdsMembers: "3",
+  siblings: "1",
+  totalIncome: "12,500",
+  incomePerPerson: "4,166.67",
+  address: "บ้านเลขที่ 128 หมู่ที่ 2 ต.หนองแหย่ง อ.สันทราย จ.เชียงใหม่ 50210",
+  distanceKm: "9",
+  travelMethod: "จักรยานยนต์ส่วนตัว",
+  travelCostPerMonth: "800",
+  dailyAllowance: "30",
+  travelTime: "15 นาที",
+  waterSource: "น้ำประปา",
+  electricity: "ไฟบ้านหรือมิเตอร์",
+  floorMaterial: "ซีเมนต์เปลือย",
+  wallMaterial: "อิฐ/ก้อนปูน/อิฐบล็อค",
+  roofMaterial: "กระเบื้อง/เซรามิค",
+  hasBathroom: "มี",
+  vehicles: "รถมอเตอร์ไซต์",
+  appliances: "เครื่องซักผ้า, ตู้เย็น",
+  welfare: "ได้สวัสดิการแห่งรัฐ (ทะเบียนคนจน)",
+};
+
 const [form, setForm] = useState({
 studentNo: student.studentNo, studentName: student.studentName, classLevel: getVal(student, "classLevel"),
 semester: getVal(exist,"semester")||"1", visitStatus: getVal(exist,"visitStatus")||"เยี่ยมแล้ว", 
 visitDate: getVal(exist,"visitDate") ? safeDateForInput(getVal(exist,"visitDate")) : safeDateForInput(new Date()), 
 appointmentDate: getVal(exist,"appointmentDate") ? safeDateForInput(getVal(exist,"appointmentDate")) : "",
-observations: getVal(exist,"observations"), houseType: getVal(exist,"houseType"), distanceKm: getVal(exist,"distanceKm"), 
-travelMethod: getVal(exist,"travelMethod"), houseCondition: getVal(exist,"houseCondition"), utilities: getVal(exist,"utilities"), environment: getVal(exist,"environment"),
-familyMembers: getVal(exist,"familyMembers"), siblings: getVal(exist,"siblings"), familyRelationship: getVal(exist,"familyRelationship"), familyIncome: getVal(exist,"familyIncome"), studentDuties: getVal(exist,"studentDuties"), familyActivities: getVal(exist,"familyActivities"),
-riskHealth: getVal(exist,"riskHealth"), riskSafety: getVal(exist,"riskSafety"), riskTravel: getVal(exist,"riskTravel"), riskWork: getVal(exist,"riskWork"), riskSocial: getVal(exist,"riskSocial"), riskSubstance: getVal(exist,"riskSubstance"), parentConcerns: getVal(exist,"parentConcerns"),
+observations: getVal(exist,"observations"),
+// ที่พัก - จาก นร.01
+houseType: getVal(exist,"houseType")||"บ้านเดี่ยว (อยู่กับผู้อื่น/อยู่ฟรี)",
+distanceKm: getVal(exist,"distanceKm")||NR01_DATA.distanceKm, 
+travelMethod: getVal(exist,"travelMethod")||NR01_DATA.travelMethod,
+travelCost: getVal(exist,"travelCost")||NR01_DATA.travelCostPerMonth,
+houseCondition: getVal(exist,"houseCondition")||"ปานกลาง",
+utilities: getVal(exist,"utilities")||(NR01_DATA.waterSource+" / "+NR01_DATA.electricity),
+houseMaterial: getVal(exist,"houseMaterial")||(NR01_DATA.floorMaterial+" | "+NR01_DATA.wallMaterial+" | "+NR01_DATA.roofMaterial),
+environment: getVal(exist,"environment"),
+address: getVal(exist,"address")||NR01_DATA.address,
+// ครอบครัว - จาก นร.01
+familyMembers: getVal(exist,"familyMembers")||NR01_DATA.householdsMembers,
+siblings: getVal(exist,"siblings")||NR01_DATA.siblings,
+familyRelationship: getVal(exist,"familyRelationship")||"ปานกลาง",
+familyIncome: getVal(exist,"familyIncome")||NR01_DATA.totalIncome,
+incomePerPerson: getVal(exist,"incomePerPerson")||NR01_DATA.incomePerPerson,
+guardianName: getVal(exist,"guardianName")||NR01_DATA.guardianName,
+guardianRelation: getVal(exist,"guardianRelation")||NR01_DATA.guardianRelation,
+guardianPhone: getVal(exist,"guardianPhone")||NR01_DATA.guardianPhone,
+guardianOccupation: getVal(exist,"guardianOccupation")||NR01_DATA.guardianOccupation,
+familyStatus: getVal(exist,"familyStatus")||NR01_DATA.familyStatus,
+welfare: getVal(exist,"welfare")||NR01_DATA.welfare,
+studentDuties: getVal(exist,"studentDuties"),
+familyActivities: getVal(exist,"familyActivities"),
+// ความเสี่ยง - เติมข้อมูลจาก นร.01
+riskHealth: getVal(exist,"riskHealth"),
+riskSafety: getVal(exist,"riskSafety"),
+riskTravel: getVal(exist,"riskTravel")||"ใช้จักรยานยนต์ส่วนตัว ระยะทาง 9 กม. ใช้เวลา 15 นาที ค่าใช้จ่าย 800 บาท/เดือน",
+riskWork: getVal(exist,"riskWork")||"รายได้ครัวเรือน 12,500 บาท/เดือน (4,166.67 บาท/คน) มารดารับจ้างรายวัน",
+riskSocial: getVal(exist,"riskSocial"),
+riskSubstance: getVal(exist,"riskSubstance"),
+parentConcerns: getVal(exist,"parentConcerns"),
 visitResult: getVal(exist,"visitResult"), teacherNotes: getVal(exist,"teacherNotes")
 });
 
@@ -1445,7 +1512,11 @@ return (
 
 <div className="flex items-center gap-6 mb-8">
 <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer"><i className="fa-solid fa-arrow-left text-xl"></i></button>
-<div><h2 className="text-3xl font-black text-slate-800 tracking-tight">{student.studentName}</h2><p className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full inline-block mt-2 shadow-sm">เลขที่ {student.studentNo} • ชั้น {getVal(student, "classLevel")}</p></div>
+<div>
+  <h2 className="text-3xl font-black text-slate-800 tracking-tight">{student.studentName}</h2>
+  <p className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full inline-block mt-2 shadow-sm">เลขที่ {student.studentNo} • ชั้น {getVal(student, "classLevel")}</p>
+  <span className="ml-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 inline-block">✓ นำเข้าข้อมูลจาก นร.01 แล้ว</span>
+</div>
 </div>
 
 <div className="bg-white p-3 rounded-full mb-8 shadow-[0_4px_15px_rgba(0,0,0,0.03)] border border-slate-100 flex justify-between relative mx-2">
@@ -1471,10 +1542,24 @@ return (
 ) : (
 <PremiumInput label="วันที่เยี่ยมบ้าน" type="date" icon="fa-calendar-check" value={form.visitDate} onChange={e=>update("visitDate", e.target.value)} />
 )}
+<div className="bg-blue-50 border border-blue-100 rounded-[1.5rem] p-6 mb-4">
+  <p className="text-xs font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i className="fa-solid fa-id-card"></i> ข้อมูลผู้ปกครอง (จากแบบ นร.01)</p>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+    <PremiumInput label="ชื่อผู้ปกครอง" icon="fa-user-tie" value={form.guardianName} onChange={e=>update("guardianName", e.target.value)} />
+    <PremiumInput label="ความสัมพันธ์กับนักเรียน" icon="fa-people-arrows" value={form.guardianRelation} onChange={e=>update("guardianRelation", e.target.value)} />
+    <PremiumInput label="เบอร์โทรผู้ปกครอง" icon="fa-phone" value={form.guardianPhone} onChange={e=>update("guardianPhone", e.target.value)} />
+    <PremiumInput label="อาชีพผู้ปกครอง" icon="fa-briefcase" value={form.guardianOccupation} onChange={e=>update("guardianOccupation", e.target.value)} />
+  </div>
+  <PremiumInput label="สถานภาพครอบครัว" icon="fa-house-chimney-user" value={form.familyStatus} onChange={e=>update("familyStatus", e.target.value)} />
+  <PremiumInput label="สวัสดิการ/ความช่วยเหลือที่ได้รับ" icon="fa-hand-holding-dollar" value={form.welfare} onChange={e=>update("welfare", e.target.value)} />
+</div>
 <PremiumTextarea label="การสังเกตเบื้องต้น" rows={4} value={form.observations} onChange={e=>update("observations", e.target.value)} placeholder="พิมพ์ข้อความสังเกตเบื้องต้น..." />
 </div>}
 
 {step === 1 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
+<div className="col-span-full">
+  <PremiumInput label="ที่อยู่ปัจจุบัน" icon="fa-map-pin" value={form.address} onChange={e=>update("address", e.target.value)} />
+</div>
 <div className="col-span-full md:col-span-1"><PremiumInput label="ลักษณะที่พักอาศัย" icon="fa-house-chimney" value={form.houseType} onChange={e=>update("houseType", e.target.value)} placeholder="เช่น บ้านเดี่ยว, หอพัก" /></div>
 <div className="col-span-full md:col-span-1 relative mb-5 pop-in">
 <label className="block text-sm font-bold text-slate-500 mb-2 pl-4">ระยะทางถึงสถานศึกษา (กม.)</label>
@@ -1483,17 +1568,20 @@ return (
 <button onClick={getGPS} className="bg-slate-900 text-white hover:bg-blue-600 px-6 rounded-[1.25rem] flex items-center justify-center btn-press shadow-md font-bold transition-colors whitespace-nowrap cursor-pointer"><i className="fa-solid fa-location-dot mr-2"></i>ดึง GPS</button>
 </div>
 </div>
-<div><PremiumInput label="วิธีการเดินทาง" icon="fa-car" value={form.travelMethod} onChange={e=>update("travelMethod", e.target.value)} placeholder="เช่น รถส่วนตัว, รถประจำทาง" /></div>
+<div><PremiumInput label="วิธีการเดินทาง" icon="fa-motorcycle" value={form.travelMethod} onChange={e=>update("travelMethod", e.target.value)} placeholder="เช่น รถส่วนตัว, รถประจำทาง" /></div>
+<div><PremiumInput label="ค่าใช้จ่ายเดินทาง (บาท/เดือน)" icon="fa-coins" value={form.travelCost} onChange={e=>update("travelCost", e.target.value)} /></div>
 <div><PremiumSelect label="สภาพบ้าน" icon="fa-house-crack" value={form.houseCondition} onChange={e=>update("houseCondition", e.target.value)} options={HOUSE_COND} /></div>
-<div className="col-span-full"><PremiumInput label="สิ่งอำนวยความสะดวก (น้ำ/ไฟ)" icon="fa-faucet-drip" value={form.utilities} onChange={e=>update("utilities", e.target.value)} /></div>
+<div><PremiumInput label="สิ่งอำนวยความสะดวก (น้ำ/ไฟ)" icon="fa-faucet-drip" value={form.utilities} onChange={e=>update("utilities", e.target.value)} /></div>
+<div className="col-span-full"><PremiumInput label="วัสดุก่อสร้าง (พื้น | ฝา | หลังคา)" icon="fa-building" value={form.houseMaterial} onChange={e=>update("houseMaterial", e.target.value)} /></div>
 <div className="col-span-full"><PremiumTextarea label="สภาพแวดล้อมรอบบ้าน" value={form.environment} onChange={e=>update("environment", e.target.value)} /></div>
 </div>}
 
 {step === 2 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
-<div><PremiumInput label="จำนวนสมาชิกในบ้าน (คน)" type="number" icon="fa-people-roof" value={form.familyMembers} onChange={e=>update("familyMembers", e.target.value)} /></div>
+<div><PremiumInput label="จำนวนสมาชิกในครัวเรือน (คน)" type="number" icon="fa-people-roof" value={form.familyMembers} onChange={e=>update("familyMembers", e.target.value)} /></div>
 <div><PremiumInput label="จำนวนพี่น้อง (คน)" type="number" icon="fa-children" value={form.siblings} onChange={e=>update("siblings", e.target.value)} /></div>
 <div className="col-span-full"><PremiumSelect label="ความสัมพันธ์ในครอบครัว" icon="fa-hand-holding-heart" value={form.familyRelationship} onChange={e=>update("familyRelationship", e.target.value)} options={REL_OPTS} /></div>
-<div className="col-span-full"><PremiumInput label="รายได้ครอบครัวเฉลี่ย" icon="fa-coins" value={form.familyIncome} onChange={e=>update("familyIncome", e.target.value)} placeholder="เช่น 15,000 บาท/เดือน" /></div>
+<div><PremiumInput label="รายได้ครัวเรือนรวม (บาท/เดือน)" icon="fa-coins" value={form.familyIncome} onChange={e=>update("familyIncome", e.target.value)} /></div>
+<div><PremiumInput label="รายได้เฉลี่ยต่อคน (บาท/เดือน)" icon="fa-chart-line" value={form.incomePerPerson} onChange={e=>update("incomePerPerson", e.target.value)} /></div>
 <div className="col-span-full"><PremiumInput label="ภาระงานนักเรียนเมื่ออยู่บ้าน" icon="fa-broom" value={form.studentDuties} onChange={e=>update("studentDuties", e.target.value)} /></div>
 <div className="col-span-full"><PremiumTextarea label="กิจกรรมที่มักทำร่วมกัน" value={form.familyActivities} onChange={e=>update("familyActivities", e.target.value)} /></div>
 </div>}
