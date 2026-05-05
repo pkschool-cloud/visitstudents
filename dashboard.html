@@ -966,14 +966,33 @@
             </div>
           `;
 
-          // สร้าง Container ลับที่อยู่นอกสายตา
+          // 🌟 สร้าง Container ที่ MOUNT ใน DOM จริงๆ (visible) ครอบด้วย overlay
+          // ✅ วิธีนี้ทำงานได้ 100% เพราะ html2canvas เห็น render จริง
+          const overlay = document.createElement("div");
+          overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);";
+          overlay.innerHTML = `
+            <div style="background:white;padding:30px 40px;border-radius:16px;text-align:center;font-family:Prompt,sans-serif;">
+              <div style="width:60px;height:60px;border:5px solid #e2e8f0;border-top:5px solid #3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
+              <p style="font-size:16px;color:#1e293b;font-weight:600;margin:0;">กำลังสร้าง PDF...</p>
+              <p style="font-size:13px;color:#64748b;margin:8px 0 0;">${s.studentName} (${i + 1}/${targetStudents.length})</p>
+            </div>
+            <style>@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
+          `;
+          document.body.appendChild(overlay);
+
           const container = document.createElement("div");
-          container.style.position = "fixed";
-          container.style.left = "-10000px";
-          container.style.top = "0";
-          container.style.width = "800px";
-          container.style.backgroundColor = "#ffffff";
-          container.style.fontFamily = "'Sarabun', sans-serif";
+          // ✅ MOUNT ใน body จริงๆ (อยู่หลัง overlay จึงไม่เห็น แต่ render ได้)
+          container.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 800px;
+            background: #ffffff;
+            z-index: 99998;
+            font-family: 'Sarabun', sans-serif;
+            color: #1e293b;
+            opacity: 1;
+          `;
           container.innerHTML = html;
           document.body.appendChild(container);
 
@@ -982,11 +1001,10 @@
             if (document.fonts && document.fonts.ready) {
               await document.fonts.ready;
             }
-            // ✅ รอให้ browser render ตารางและรูปครบ (เพิ่มจาก 100ms เป็น 800ms)
-            await new Promise(r => setTimeout(r, 800));
             
-            // ✅ Force browser reflow
+            // ✅ Force browser reflow & ให้เวลา render
             container.offsetHeight;
+            await new Promise(r => setTimeout(r, 1000));
 
             // ✅ รอรูปทุกรูป load สำเร็จ
             const imgs = container.querySelectorAll("img");
@@ -999,10 +1017,10 @@
                   setTimeout(resolve, 5000);
                 });
               }));
-              await new Promise(r => setTimeout(r, 200));
+              await new Promise(r => setTimeout(r, 300));
             }
             
-            // สั่งพิมพ์แยกไฟล์ทีละคน
+            // ✅ ตอนนี้ container ถูก mount จริง render เสร็จแล้ว → ค่อยส่งให้ html2pdf
             const safeName = s.studentName.replace(/\s+/g, '_');
             await html2pdf().set({
               margin: 15,
@@ -1011,21 +1029,28 @@
               html2canvas: { 
                 scale: 2, 
                 logging: false,
-                useCORS: true,           // ✅ สำหรับรูปข้าม domain
-                allowTaint: true,        // ✅ allow tainted canvas
-                backgroundColor: "#ffffff", // ✅ พื้นหลังขาว ไม่ใช่ใส
-                letterRendering: true,    // ✅ render ตัวอักษรไทยชัด
-                windowWidth: 800
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: "#ffffff",
+                letterRendering: true,
+                windowWidth: 800,
+                width: 800,
+                height: container.scrollHeight,
+                scrollX: 0,
+                scrollY: 0
               },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             }).from(container).save();
             
-            await new Promise(r => setTimeout(r, 300)); // หน่วงระหว่างไฟล์
+            await new Promise(r => setTimeout(r, 500)); // หน่วงระหว่างไฟล์
             
           } catch (e) {
             console.error("PDF generation failed for", s.studentName, e);
           } finally {
-            document.body.removeChild(container); // ลบทิ้งหลังทำเสร็จ
+            // ลบ container และ overlay
+            if (container.parentNode) document.body.removeChild(container);
+            if (overlay.parentNode) document.body.removeChild(overlay);
           }
         } 
 
