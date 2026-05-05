@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียน (Masterpiece Edition)</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน (The Absolute Masterpiece)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -43,6 +43,8 @@
     .btn-press:active { transform: scale(0.96); box-shadow: 0 2px 5px -2px rgba(0,0,0,0.1); }
     
     .hide-scroll::-webkit-scrollbar { display: none; }
+
+    /* คอนเทนเนอร์ลับสำหรับสร้าง PDF ไม่ให้หน้าจอขาว */
     #pdf-engine-root { position: absolute; left: -9999px; top: -9999px; visibility: hidden; width: 800px; background: #fff; z-index: -100; }
   </style>
 </head>
@@ -53,8 +55,10 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 1. ข้อมูลการเชื่อมต่อที่ถูกต้อง 🔴
+    // 🔴 1. URL ของคุณครู 🔴
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhsSolB88xpEQUdzV6GuYeY_GTI7kGDFQWzk6ApTEz5esM_IQitAqR0g4z--9GxNzT/exec";
+    
+    // 🔴 2. รหัส API ของคุณครู 🔴
     const IMGBB_API_KEY = "aab833b4afe2c9bb60af70f87f60a508";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
@@ -63,7 +67,7 @@
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
-    // 🛡️ Error Boundary กันหน้าจอขาว 100%
+    // 🛡️ Error Boundary กันหน้าจอขาว
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { hasError: false, error: null }; }
       static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -131,7 +135,6 @@
       } catch(e) { return new Date().toISOString().split("T")[0]; }
     };
 
-    // แยกลิงก์รูปภาพ
     const parseImages = (str) => {
       if (!str) return [];
       let arr = String(str).includes("|||") ? String(str).split("|||") : String(str).split(",");
@@ -185,40 +188,6 @@
       );
     };
 
-    const GpsPopup = ({ status, distance }) => {
-      if (!status) return null;
-      return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in">
-          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center bounce-in w-[340px]">
-            {status === "loading" && (
-              <>
-                <div className="relative flex justify-center items-center w-24 h-24 bg-blue-50 rounded-full mb-6">
-                  <div className="absolute inset-0 border-[4px] border-blue-300 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] opacity-70"></div>
-                  <i className="fa-solid fa-location-crosshairs text-4xl text-blue-500"></i>
-                </div>
-                <h3 className="font-black text-slate-800 text-2xl mb-1">คำนวณพิกัด</h3>
-                <p className="font-medium text-slate-500 text-center">ค้นหาระยะทางจากโรงเรียน...</p>
-              </>
-            )}
-            {status === "success" && (
-              <>
-                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i></div>
-                <h3 className="font-black text-slate-800 text-2xl mb-1">สำเร็จ!</h3>
-                <p className="font-medium text-slate-500 text-center">ห่างจากโรงเรียน <span className="font-black text-emerald-600 text-xl">{distance} กม.</span></p>
-              </>
-            )}
-            {status === "error" && (
-              <>
-                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i></div>
-                <h3 className="font-black text-slate-800 text-2xl mb-1">ข้อผิดพลาด</h3>
-                <p className="font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือปิด GPS ไว้</p>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    };
-
     // ============= Main App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
@@ -240,7 +209,7 @@
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v16");
+        const u = localStorage.getItem("hv_user_v17");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -262,12 +231,12 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success && res.data) {
-          localStorage.setItem("hv_user_v16", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_v17", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
 
-      // 🚀 ระบบเซฟผ่าน ImgBB ขั้นสุดยอด (อัปโหลดติด 100%) 🚀
+      // 🚀 ระบบเซฟผ่าน ImgBB ขั้นสุดยอด (ส่งตามคู่มือเป๊ะๆ ไม่มีพังแน่นอน) 🚀
       const saveVisit = async (formData, images) => {
         setIsSaving(true);
         try {
@@ -277,26 +246,37 @@
             if (images[i].startsWith("data:image")) {
               setSavingStatus(`กำลังอัปโหลดรูปที่ ${i + 1}/${images.length} ไปที่คลาวด์...`);
               
-              // 🔴 แปลง Base64 เป็นไฟล์จริง (Blob) เพื่อหลอก ImgBB ให้ยอมรับรูป 🔴
-              const response = await fetch(images[i]);
-              const blob = await response.blob();
-              
-              const fd = new FormData();
-              fd.append("image", blob, `photo_${Date.now()}.jpg`);
-              
-              const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: "POST",
-                body: fd
-              });
-              const uploadResult = await res.json();
-              if (uploadResult.success) {
-                finalImageUrls.push(uploadResult.data.url);
-              } else {
-                console.error("ImgBB Error:", uploadResult);
-                showToast(`อัปโหลดรูปล้มเหลวบางส่วน`, "warning");
+              try {
+                // ดึงเฉพาะรหัสตัวอักษรของภาพออกมา (ทิ้งส่วนหัว data:image/jpeg;base64,)
+                const base64Data = images[i].split(',')[1];
+                
+                // ใช้ URLSearchParams ตามรูปแบบ x-www-form-urlencoded ที่ ImgBB ต้องการ!
+                const urlencoded = new URLSearchParams();
+                urlencoded.append("image", base64Data);
+
+                const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                  method: "POST",
+                  body: urlencoded,
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                  }
+                });
+                
+                const uploadResult = await res.json();
+                
+                // ถ้าอัปโหลดสำเร็จ จะได้ลิงก์ตรงกลับมา
+                if (uploadResult.success) {
+                  finalImageUrls.push(uploadResult.data.url);
+                } else {
+                  console.error("ImgBB Error:", uploadResult);
+                  showToast(`อัปโหลดรูปที่ ${i+1} ไม่สำเร็จ กรุณาลองใหม่`, "warning");
+                }
+              } catch (imgErr) {
+                console.error("Upload Catch Error:", imgErr);
+                showToast(`เน็ตเวิร์กมีปัญหาตอนอัปรูปที่ ${i+1}`, "error");
               }
             } else {
-              // รูปเดิมที่เคยเซฟไว้
+              // รูปลิงก์เดิมที่เคยอัปไปแล้ว
               finalImageUrls.push(images[i]);
             }
           }
@@ -317,7 +297,7 @@
           const res = await api.post({ action: "saveVisit", data });
           
           if (res.success) {
-            showToast("บันทึกข้อมูลและรูปภาพสำเร็จ!", "success");
+            showToast("บันทึกข้อมูลและอัปโหลดรูปภาพสำเร็จ!", "success");
             setGlobalVisits(prev => {
               const arr = Array.isArray(prev) ? [...prev] : [];
               const idx = arr.findIndex(v => compareId(getVal(v, "studentNo"), data.studentNo) && getVal(v,"classLevel") === data.classLevel);
@@ -331,7 +311,7 @@
             showToast(res.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
           }
         } catch (e) {
-          showToast("ล้มเหลว: อินเทอร์เน็ตมีปัญหา", "error");
+          showToast("ล้มเหลว: อินเทอร์เน็ตมีปัญหาหรือเซิร์ฟเวอร์ไม่ตอบสนอง", "error");
         }
         setIsSaving(false);
       };
@@ -461,8 +441,11 @@
                 {view === "students" && <Students students={displayedStudents} visits={displayedVisits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
+                
+                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดใหม่ (ดึงภาพก่อนเสมอ) 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
+                {/* 🌟 หน้าประวัติ 🌟 */}
                 {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} />}
                 {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
               </div>
@@ -900,7 +883,6 @@
       );
     }
 
-    // 🌟 ระบบ PDF Engine (แก้รูปหาย + เปลี่ยนลิงก์ ImgBB ก่อนพิมพ์ 100%) 🌟
     function ReportExport({ user, students, visits, showToast, isLoaded }) {
       const [generating, setGenerating] = useState(false);
       const [pdfProgress, setPdfProgress] = useState("");
@@ -917,14 +899,11 @@
         setSelectedStudents(new Set(allVisisted));
       };
 
-      // ฟังก์ชันดูดรูป Base64 จาก Google Drive หรือ ImgBB เพื่อให้ PDF แสดงผลได้ 100%
-      const getUrlAsBase64 = async (url) => {
+      // 🌟 ดึงรูปลง PDF (แปลงกลับเป็น Base64 จาก ImgBB)
+      const urlToBase64 = async (url) => {
         try {
-          const match = url.match(/id=([-\w]{25,})/);
-          if (match && url.includes('drive')) {
-             const res = await api.get("getBase64Image", { fileId: match[1] });
-             if (res.success) return res.data;
-          }
+          if (!url) return null;
+          if (url.startsWith('data:image')) return url;
           const imgRes = await fetch(url);
           const blob = await imgRes.blob();
           return await new Promise(resolve => {
@@ -933,14 +912,14 @@
             reader.readAsDataURL(blob);
           });
         } catch(e) {
-          return url; // ถ้าระบบเครือข่ายไม่อนุญาต ก็โยน URL ดิบไปลุ้นเอาใน PDF
+          return url; // ถ้าติดบล็อก ก็ส่งลิงก์ดิบไปลุ้น
         }
-      }
+      };
 
       const exportExcel = () => {
         const data = students.map(s => {
           const v = visits.find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
-          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":safeDateForDisplay(getVal(v,"visitDate")), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult") };
+          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":safeDateForDisplay(getVal(v,"visitDate")), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult"), "ลิงก์รูปภาพ":parseImages(getVal(v,"images")).join(" , ") || "-" };
         });
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Report");
@@ -1025,10 +1004,7 @@
             for (let url of imgs) {
               loadedImages++;
               setPdfProgress(`กำลังแปลงภาพลง PDF ${loadedImages}/${totalImages}`);
-              
-              // 🔴 เคล็ดลับกันจอขาว: โหลดเป็น Base64 ก่อนยัดลงเอกสารเสมอ 🔴
-              const finalImgSrc = await getUrlAsBase64(url);
-
+              const finalImgSrc = await urlToBase64(url);
               html += `<div style="width: 220px; height: 160px; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; background: #fff;">
                          <img src="${finalImgSrc}" style="width:100%; height:100%; object-fit:contain;" />
                        </div>`;
@@ -1038,7 +1014,7 @@
           html += `</div>`;
         }
 
-        setPdfProgress("กำลังจัดหน้ากระดาษ PDF...");
+        setPdfProgress("กำลังจัดทำหน้ากระดาษ PDF...");
         container.innerHTML = html;
         container.style.visibility = "visible";
 
@@ -1081,7 +1057,7 @@
            <div className="border-t border-slate-200 pt-8 mb-6 flex justify-between items-end">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">พิมพ์รายงานรายบุคคล (PDF)</h3>
-                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ (เลือกนักเรียนที่ต้องการพิมพ์)</p>
+                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={selectAll} className="text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer">เลือกทั้งหมด</button>
@@ -1148,9 +1124,7 @@
               const ratio = Math.min(1, 800 / img.width); 
               canvas.width = img.width * ratio; canvas.height = img.height * ratio;
               canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-              // 🔴 FIX: ใช้ callback เพื่อให้รูปเซฟเรียงกันครบทุกรูป 🔴
-              const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-              setForm(p => ({ ...p, images: [...(p.images || []), dataUrl] }));
+              update("images", [...(form.images||[]), canvas.toDataURL("image/jpeg", 0.7)]);
             };
           };
           reader.readAsDataURL(file);
