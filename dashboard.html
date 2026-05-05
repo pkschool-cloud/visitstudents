@@ -59,7 +59,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 ใส่ URL ที่ Deploy ใหม่ล่าสุดตรงนี้ 🔴
+    // 🔴 ใส่ URL จาก Google Apps Script (ตัวเดิมที่ใช้งานได้) 🔴
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4EnwViXogMbEVrICohyFS7Z6gb1GYTJZSOjvVIWfn2cNNE8m30nKP7uuEIYHOuXrM/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
@@ -133,10 +133,44 @@
       );
     };
 
+    const GpsPopup = ({ status, distance }) => {
+      if (!status) return null;
+      return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center bounce-in w-[340px]">
+            {status === "loading" && (
+              <>
+                <div className="relative flex justify-center items-center w-24 h-24 bg-blue-50 rounded-full mb-6">
+                  <div className="absolute inset-0 border-[4px] border-blue-300 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] opacity-70"></div>
+                  <i className="fa-solid fa-location-crosshairs text-4xl text-blue-500"></i>
+                </div>
+                <h3 className="font-black text-slate-800 text-2xl mb-1">คำนวณพิกัด</h3>
+                <p className="font-medium text-slate-500 text-center">ค้นหาระยะทางจากโรงเรียน...</p>
+              </>
+            )}
+            {status === "success" && (
+              <>
+                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i></div>
+                <h3 className="font-black text-slate-800 text-2xl mb-1">สำเร็จ!</h3>
+                <p className="font-medium text-slate-500 text-center">ห่างจากโรงเรียน <span className="font-black text-emerald-600 text-xl">{distance} กม.</span></p>
+              </>
+            )}
+            {status === "error" && (
+              <>
+                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i></div>
+                <h3 className="font-black text-slate-800 text-2xl mb-1">ข้อผิดพลาด</h3>
+                <p className="font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือปิด GPS ไว้</p>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    };
+
     // ============= Main Dashboard App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
-      const [view, setView] = useState("dashboard");
+      const [view, setView] = useState("dashboard"); 
       const [selectedStudent, setSelectedStudent] = useState(null);
       const [toast, setToast] = useState(null);
       
@@ -147,7 +181,6 @@
       const [isSaving, setIsSaving] = useState(false);
       const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
-      // 🔴 แอดมินจัดการสิทธิ์
       const [adminClassFilter, setAdminClassFilter] = useState("ทั้งหมด");
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
@@ -187,7 +220,6 @@
 
       const saveVisit = async (formData, images) => {
         setIsSaving(true);
-        // บังคับให้คลาสเรียนตรงกับของเด็ก ไม่ใช่ของครู (เผื่อแอดมินแก้ข้ามห้อง)
         const data = { ...formData, teacherCode: user.code, teacherName: user.fullName, classLevel: formData.classLevel || user.classLevel, imagesBase64: images.filter(i=>i.startsWith("data:")), existingImageUrls: images.filter(i=>!i.startsWith("data:")) };
         
         const res = await api.post({ action: "saveVisit", data });
@@ -205,11 +237,8 @@
       if (!user) return <Login onLogin={handleLogin} />;
 
       const isAdmin = checkIsAdmin(user.classLevel);
-      
-      // ดึงคลาสเรียนทั้งหมดที่มีในระบบสำหรับแอดมิน
       const uniqueClasses = [...new Set(globalStudents.map(s => getVal(s, 'classLevel', 'classlevel')))].filter(Boolean).sort();
       
-      // คัดกรองข้อมูลตามสิทธิ์
       const displayedStudents = isAdmin && adminClassFilter !== "ทั้งหมด" 
           ? globalStudents.filter(s => getVal(s, 'classLevel', 'classlevel') === adminClassFilter) 
           : globalStudents;
@@ -294,6 +323,7 @@
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} uniqueClasses={uniqueClasses} />}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
+                {/* 🔴 แก้ไขชื่อฟังก์ชันในนี้ให้ตรงกัน (VisitForm) ป้องกันหน้าจอขาว */}
                 {view === "form" && selectedStudent && <VisitForm user={user} student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onSave={saveVisit} />}
               </div>
             </div>
@@ -499,11 +529,11 @@
       );
     }
 
-    // 🔴 4. เพิ่มระบบ Modal เพิ่มนักเรียน 🔴
+    // 🔴 โมดอลเพิ่มนักเรียน 🔴
     const AddStudentModal = ({ onClose, onSave, isAdmin, currentFilterClass, userClass }) => {
       const [form, setForm] = useState({
         studentNo: "", studentName: "", nickname: "", 
-        classLevel: (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : (isAdmin ? "" : userClass)
+        classLevel: (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : (!isAdmin ? userClass : "")
       });
       const [saving, setSaving] = useState(false);
 
@@ -527,7 +557,6 @@
               <PremiumInput label="ชื่อ-นามสกุล" value={form.studentName} onChange={e=>setForm({...form, studentName: e.target.value})} icon="fa-id-card" />
               <PremiumInput label="ชื่อเล่น (ไม่บังคับ)" value={form.nickname} onChange={e=>setForm({...form, nickname: e.target.value})} icon="fa-face-smile" />
               
-              {/* ถ้าเป็นแอดมิน และดูกรองทั้งหมด ต้องพิมพ์คลาสเอง แต่ถ้าเจาะจงคลาสแล้วล็อกไว้เลย */}
               <PremiumInput label="ชั้นเรียน" value={form.classLevel} onChange={e=>setForm({...form, classLevel: e.target.value})} icon="fa-chalkboard" disabled={!isAdmin || (isAdmin && currentFilterClass !== "ทั้งหมด")} />
             </div>
 
@@ -551,7 +580,6 @@
           showToast("กำลังนำเข้าข้อมูล...", "success");
           const wb = XLSX.read(evt.target.result, {type:'binary'}); 
           const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
-          // นำเข้าบังคับให้เป็นคลาสของตัวเอง (เว้นแต่แอดมิน จะยึดคลาสตามที่กรอง หรือตามไฟล์ excel ถ้าคอลัมน์ 4 มี)
           const targetClass = (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : user.classLevel;
           
           const newSt = data.slice(1).filter(r=>r[0]&&r[1]).map(r=>({studentNo:r[0], studentName:r[1], nickname:r[2]||"", classLevel: isAdmin ? (r[3]||targetClass) : targetClass}));
@@ -740,7 +768,7 @@
         try {
           await html2pdf().set({
             margin: 10,
-            filename: `รายงานเยี่ยมบ้าน_จำนวน${targetStudents.length}คน.pdf`,
+            filename: `รายงานเยี่ยมบ้าน_${user.classLevel}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -805,6 +833,7 @@
       );
     }
 
+    // 🔴 5. แบบฟอร์มการเยี่ยมบ้าน (VisitForm) กลับมาตรงนี้ 🔴
     function VisitForm({ user, student, visits, onBack, onSave }) {
       const exist = visits.find(v => compareId(getVal(v,"studentNo"), student.studentNo) && getVal(v,"classLevel") === getVal(student,"classLevel")) || {};
       
