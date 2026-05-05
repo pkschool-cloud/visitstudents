@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียน โรงเรียนป่าก้าง</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน (Academic PDF Edition)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -51,7 +51,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 ใส่ URL ของคุณครูตรงนี้ครับ
+    // 🔴 ใส่ URL จาก Google Apps Script ของคุณครูครับ
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwu0Dw9TUcLFhNyQ0wSI_8efgKyeaJrJBXdDV2_WuCUkWY10SZkTI4XtwYdTgR0YHjE/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
@@ -219,7 +219,6 @@
       const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
       const [adminClassFilter, setAdminClassFilter] = useState("ทั้งหมด");
-      const [sidebarSearch, setSidebarSearch] = useState("");
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
@@ -229,7 +228,7 @@
       };
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v20");
+        const u = localStorage.getItem("hv_user_final_v2");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -251,7 +250,7 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success) {
-          localStorage.setItem("hv_user_v20", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_final_v2", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
@@ -309,14 +308,6 @@
           ? globalVisits.filter(v => getVal(v, 'classLevel', 'classlevel') === adminClassFilter)
           : globalVisits;
 
-      const sidebarSearchResults = sidebarSearch 
-        ? displayedStudents.filter(s => 
-            String(s.studentName).includes(sidebarSearch) || 
-            String(s.studentNo).includes(sidebarSearch) || 
-            (s.nickname && String(s.nickname).includes(sidebarSearch))
-          ).slice(0, 5) 
-        : [];
-
       return (
         <div className="flex h-screen bg-[#f4f7fb] fade-in">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -348,34 +339,6 @@
                 )}
              </div>
              
-             {isSidebarOpen && (
-               <div className="px-5 mt-5 mb-2 relative fade-in z-50">
-                 <div className="input-wrapper flex items-center bg-slate-50 border-slate-200 rounded-[1.2rem] px-4 py-3">
-                   <i className="fa-solid fa-search text-slate-400"></i>
-                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัติเด็ก..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
-                 </div>
-                 {sidebarSearch && (
-                   <div className="absolute top-full left-5 right-5 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden pop-in">
-                     {sidebarSearchResults.length === 0 ? (
-                        <div className="p-4 text-center text-slate-400 text-sm font-bold">ไม่พบรายชื่อ</div>
-                     ) : sidebarSearchResults.map((s, i) => (
-                        <button key={i} onClick={() => { 
-                          setSelectedStudent(s); 
-                          setView("profile"); 
-                          setSidebarSearch(""); 
-                          if(window.innerWidth < 768) setIsSidebarOpen(false); 
-                        }} className="w-full text-left px-5 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center gap-3 transition-colors group cursor-pointer">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">{s.studentNo}</div>
-                          <div className="flex-1 overflow-hidden">
-                            <span className="font-black text-slate-800 text-sm group-hover:text-blue-600 truncate block">{s.studentName}</span>
-                          </div>
-                        </button>
-                     ))}
-                   </div>
-                 )}
-               </div>
-             )}
-
              <nav className="flex-1 p-5 space-y-2 overflow-y-auto hide-scroll z-40">
                 <NavBtn icon="fa-chart-pie" label="สรุปภาพรวม" active={view==="dashboard"} open={isSidebarOpen} onClick={()=>{setView("dashboard"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
                 <NavBtn icon="fa-users" label="รายชื่อทั้งหมด" active={view==="students" || view==="form" || view==="profile"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
@@ -385,7 +348,7 @@
                 <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
              </nav>
              <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_v20"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+               <button onClick={()=>{localStorage.removeItem("hv_user_final_v2"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
                  <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
                </button>
              </div>
@@ -414,23 +377,20 @@
                </button>
             </header>
             
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll" onClick={() => setSidebarSearch("")}>
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll">
               <div className="max-w-5xl mx-auto pb-20">
                 {view === "dashboard" && <Dashboard visits={displayedVisits} students={displayedStudents} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} isAdmin={isAdmin} />}
                 {view === "students" && <Students students={displayedStudents} visits={displayedVisits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
                 
-                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดแยกไฟล์บุคคล 🌟 */}
+                {/* 🌟 หน้าส่งออก PDF วิชาการ (แยกไฟล์ 100%) 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
-                {/* 🌟 หน้าประวัติ ส่งปุ่มลบข้อมูลไปด้วย 🌟 */}
                 {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
-                
-                {/* 🌟 หน้าฟอร์มแบบใหม่ ไม่มีช่องแนบรูปภาพ 🌟 */}
                 {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
 
-                {/* 🔴 วางโค้ด Copyright ตรงนี้ 🔴 */}
+                {/* 🔴 Copyright สวยๆ ด้านล่างสุด 🔴 */}
                 <div className="mt-16 pt-6 border-t border-slate-200/60 text-center fade-in">
                   <p className="text-sm font-bold text-slate-400 tracking-wide">
                     © 2026 Developed by Thianrawich. All Rights Reserved.
@@ -495,7 +455,6 @@
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:border-blue-400 hover:text-blue-600 transition-colors cursor-pointer self-start"><i className="fa-solid fa-arrow-left text-xl"></i></button>
             <div className="flex gap-3">
-              {/* 🔴 ปุ่มลบข้อมูล (จะโชว์ก็ต่อเมื่อเคยเยี่ยมแล้ว) 🔴 */}
               {status !== "ยังไม่เยี่ยม" && (
                 <button onClick={() => onDeleteVisit(student.studentNo, getVal(student, "classLevel"))} className="bg-white border-2 border-rose-100 hover:border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white px-6 py-3.5 rounded-full font-bold shadow-sm transition-colors cursor-pointer flex items-center gap-2">
                   <i className="fa-solid fa-trash-can"></i> ล้างข้อมูล
