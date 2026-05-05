@@ -64,7 +64,7 @@
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
-    // 🛡️ Error Boundary (กันหน้าจอขาว 100%)
+    // 🛡️ Error Boundary 
     class ErrorBoundary extends React.Component {
       constructor(props) { super(props); this.state = { hasError: false, error: null }; }
       static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -208,7 +208,7 @@
       );
     };
 
-    // ============= Main App =============
+    // ============= Main Dashboard App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
       const [view, setView] = useState("dashboard"); 
@@ -227,8 +227,13 @@
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
+      const checkIsAdmin = (lvl) => {
+        const c = String(lvl).toLowerCase().trim();
+        return c === "แอดมิน" || c === "admin" || c === "ทั้งหมด" || c === "ผู้บริหาร";
+      };
+
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v19");
+        const u = localStorage.getItem("hv_user_v20");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -242,20 +247,19 @@
           api.get("getStudents", { classLevel: u.classLevel }),
           api.get("getVisitsFull", { classLevel: u.classLevel })
         ]);
-        if (sRes.success && Array.isArray(sRes.data)) setGlobalStudents(sRes.data);
-        if (vRes.success && Array.isArray(vRes.data)) setGlobalVisits(vRes.data);
+        if (sRes.success) setGlobalStudents(sRes.data);
+        if (vRes.success) setGlobalVisits(vRes.data);
         setIsDataLoaded(true);
       };
 
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
-        if (res.success && res.data) {
-          localStorage.setItem("hv_user_v19", JSON.stringify(res.data));
+        if (res.success) {
+          localStorage.setItem("hv_user_v20", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
 
-      // บันทึกข้อมูล (ไม่มีรูปภาพ)
       const saveVisit = async (formData) => {
         setIsSaving(true);
         const data = { ...formData, teacherCode: user.code, teacherName: user.fullName, classLevel: formData.classLevel || user.classLevel };
@@ -280,7 +284,6 @@
         setIsSaving(false);
       };
 
-      // 🔴 ฟังก์ชันลบข้อมูลการเยี่ยมบ้าน กรณีเยี่ยมผิดคน 🔴
       const deleteVisitRecord = async (studentNo, classLevel) => {
         if(!confirm(`⚠️ คำเตือน!\n\nคุณกำลังจะลบข้อมูลการเยี่ยมบ้านของเลขที่ ${studentNo}\nเมื่อลบแล้ว สถานะจะกลับเป็น "ยังไม่เยี่ยม" ทันที\n\nยืนยันการลบข้อมูลหรือไม่?`)) return;
         
@@ -288,7 +291,6 @@
         const res = await api.post({ action: "deleteVisitRecord", studentNo, classLevel });
         if(res.success) {
           showToast("ล้างข้อมูลการเยี่ยมบ้านเรียบร้อย", "success");
-          // อัปเดต state ทันที
           setGlobalVisits(prev => prev.filter(v => !(compareId(getVal(v, "studentNo"), studentNo) && getVal(v, "classLevel") === classLevel)));
           setView("students");
           setSelectedStudent(null);
@@ -301,14 +303,14 @@
       if (!user) return <Login onLogin={handleLogin} />;
 
       const isAdmin = checkIsAdmin(user.classLevel);
-      const uniqueClasses = [...new Set(globalStudents.map(s => getVal(s, 'classLevel')))].filter(Boolean).sort();
+      const uniqueClasses = [...new Set(globalStudents.map(s => getVal(s, 'classLevel', 'classlevel')))].filter(Boolean).sort();
       
       const displayedStudents = isAdmin && adminClassFilter !== "ทั้งหมด" 
-          ? globalStudents.filter(s => getVal(s, 'classLevel') === adminClassFilter) 
+          ? globalStudents.filter(s => getVal(s, 'classLevel', 'classlevel') === adminClassFilter) 
           : globalStudents;
           
       const displayedVisits = isAdmin && adminClassFilter !== "ทั้งหมด"
-          ? globalVisits.filter(v => getVal(v, 'classLevel') === adminClassFilter)
+          ? globalVisits.filter(v => getVal(v, 'classLevel', 'classlevel') === adminClassFilter)
           : globalVisits;
 
       const sidebarSearchResults = sidebarSearch 
@@ -423,7 +425,7 @@
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
                 
-                {/* 🌟 หน้าส่งออก PDF ที่ลบรูปภาพทิ้งทั้งหมดแล้ว 🌟 */}
+                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดแยกไฟล์บุคคล 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
                 {/* 🌟 หน้าประวัติ ส่งปุ่มลบข้อมูลไปด้วย 🌟 */}
@@ -432,13 +434,7 @@
                 {/* 🌟 หน้าฟอร์มแบบใหม่ ไม่มีช่องแนบรูปภาพ 🌟 */}
                 {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
 
-                {/* 🌟 หน้าประวัติ ส่งปุ่มลบข้อมูลไปด้วย 🌟 */}
-                {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
-                
-                {/* 🌟 หน้าฟอร์มแบบใหม่ ไม่มีช่องแนบรูปภาพ 🌟 */}
-                {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
-
-                {/* 🔴 วางโค้ด Copyright ตรงนี้เลยครับ 🔴 */}
+                {/* 🔴 วางโค้ด Copyright ตรงนี้ 🔴 */}
                 <div className="mt-16 pt-6 border-t border-slate-200/60 text-center fade-in">
                   <p className="text-sm font-bold text-slate-400 tracking-wide">
                     © 2026 Developed by Thianrawich. All Rights Reserved.
@@ -866,6 +862,7 @@
       );
     }
 
+    // 🌟 ระบบ PDF ใหม่ล่าสุด แยกไฟล์ 100% และจัดหน้าแบบวิชาการ 🌟
     function ReportExport({ user, students, visits, showToast, isLoaded }) {
       const [generating, setGenerating] = useState(false);
       const [pdfProgress, setPdfProgress] = useState("");
@@ -893,93 +890,105 @@
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
-      // ส่งออก PDF แบบไม่มีรูป
+      // 🔴 ฟังก์ชันส่งออก PDF แบบแยกไฟล์รายบุคคล (ไม่รวมไฟล์) 🔴
       const exportPDF = async () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
         
         setGenerating(true);
-        setPdfProgress("กำลังจัดหน้ากระดาษ PDF...");
-
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
         const dateStr = new Date().toLocaleDateString("th-TH");
-
         const container = document.getElementById("pdf-engine-root");
-        
-        let html = `
-          <div style="text-align: center; margin-bottom: 20px; padding-top: 5px;">
-            <h1 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 8px;">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
-            <div style="height: 3px; background-color: #3b82f6; width: 60%; margin: 0 auto 10px auto;"></div>
-            <p style="color: #64748b; font-size: 13px; margin: 0;">พิมพ์เมื่อ: ${dateStr} | ข้อมูลโดย: ${user.fullName}</p>
-          </div>
-        `;
 
+        // ลูปสร้างและดาวน์โหลด PDF ทีละ 1 คน (แยกไฟล์ 100%)
         for (let i = 0; i < targetStudents.length; i++) {
           const s = targetStudents[i];
-          const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo)) || {};
+          setPdfProgress(`กำลังสร้าง PDF (${i + 1}/${targetStudents.length}): ${s.studentName}...`);
+          
+          const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
           const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
           const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
 
-          html += `
-            <div style="border: 1px solid #94a3b8; border-radius: 6px; overflow: hidden; margin-bottom: 20px; page-break-inside: avoid; background-color: #ffffff;">
-              <div style="background-color: #eff6ff; padding: 8px 12px; border-bottom: 1px solid #94a3b8;">
-                <h2 style="color: #1e40af; font-size: 15px; margin: 0; font-weight: bold;">${i + 1}. เลขที่ ${s.studentNo} - ${s.studentName} (ชั้น ${getVal(s, "classLevel")})</h2>
+          // 🌟 เทมเพลต PDF ดีไซน์วิชาการ ตามรูปตัวอย่าง 🌟
+          let html = `
+            <div style="font-family: 'Sarabun', sans-serif; padding: 20px; color: #1e293b;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #1e3a8a; font-size: 22px; font-weight: bold; margin-bottom: 5px;">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
+                <div style="height: 2px; background-color: #3b82f6; width: 100%; margin: 10px auto;"></div>
+                <p style="color: #475569; font-size: 14px; margin: 0;">โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</p>
               </div>
-              <div style="padding: 0;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              
+              <div style="border: 2px solid #60a5fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                <div style="background-color: #eff6ff; padding: 12px 16px; border-bottom: 2px solid #60a5fa;">
+                  <h2 style="color: #1e3a8a; font-size: 16px; margin: 0; font-weight: bold;">${i + 1}. ${s.studentNo} - ${s.studentName}</h2>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <thead>
+                    <tr>
+                      <th style="background-color: #e0e7ff; color: #1e3a8a; padding: 8px 12px; border-bottom: 1px solid #bfdbfe; border-right: 1px solid #bfdbfe; text-align: left; width: 25%;">ข้อมูล</th>
+                      <th style="background-color: #e0e7ff; color: #1e3a8a; padding: 8px 12px; border-bottom: 1px solid #bfdbfe; text-align: left;">รายละเอียด</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc; width: 20%;">วันที่เยี่ยม</td>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; width: 30%;">${vDate}</td>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc; width: 20%;">ระยะทาง</td>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; width: 30%;">${dist}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc;">ลักษณะที่พัก</td>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseType") || '-'}</td>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc;">สภาพบ้าน</td>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseCondition") || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc;">สรุปผล</td>
-                      <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #1e40af;">${getVal(v, "visitResult") || '-'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 6px 10px; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc; vertical-align: top;">บันทึกครู</td>
-                      <td colspan="3" style="padding: 6px 10px; vertical-align: top;">${getVal(v, "teacherNotes") || '-'}</td>
-                    </tr>
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #334155; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">1. ข้อมูลทั่วไป</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ชื่อเล่น</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.nickname || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">วันที่เยี่ยม</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${vDate}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">สถานะ</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "visitStatus") || '-'}</td></tr>
+                    
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #334155; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">2. ข้อมูลที่พักอาศัยและการเดินทาง</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ระยะทาง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${dist}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ลักษณะที่พัก</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseType") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">สภาพบ้าน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseCondition") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">วิธีการเดินทาง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "travelMethod") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">สภาพแวดล้อม</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "environment") || '-'}</td></tr>
+
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #334155; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">3. ข้อมูลครอบครัว</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">จำนวนสมาชิกในบ้าน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyMembers") ? getVal(v, "familyMembers") + " คน" : '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">รายได้ครอบครัวเฉลี่ย</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ความสัมพันธ์</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyRelationship") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ภาระงานอยู่บ้าน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "studentDuties") || '-'}</td></tr>
+
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #334155; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">4. ข้อมูลด้านความเสี่ยง</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ด้านสุขภาพ</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskHealth") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ด้านความปลอดภัย</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskSafety") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">ด้านยาเสพติด</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskSubstance") || '-'}</td></tr>
+
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #334155; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">5. สรุปผล</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold;">สรุปผลการประเมิน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #1e40af;">${getVal(v, "visitResult") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-right: 1px solid #e2e8f0; font-weight: bold; vertical-align: top;">บันทึกเพิ่มเติม</td><td style="padding: 8px 12px; vertical-align: top;">${getVal(v, "teacherNotes") || '-'}</td></tr>
                   </tbody>
                 </table>
               </div>
             </div>
-          `;
-        }
-
+          </div>
+        `;
+        
         container.innerHTML = html;
         container.style.visibility = "visible";
 
         try {
-          await new Promise(r => setTimeout(r, 500)); 
-          await document.fonts.ready;
-
+          await new Promise(r => setTimeout(r, 300)); // หน่วงเวลาเล็กน้อยให้ DOM วาดตารางเสร็จ
           await html2pdf().set({
-            margin: 12,
-            filename: `รายงานเยี่ยมบ้าน_จำนวน${targetStudents.length}คน.pdf`,
+            margin: 15,
+            filename: `รายงานเยี่ยมบ้าน_เลขที่${s.studentNo}_${s.studentName.replace(/\s+/g, '_')}.pdf`, // ตั้งชื่อไฟล์แยกคน
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, logging: false },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
           }).from(container).save();
-          showToast("สร้างเอกสาร PDF สำเร็จ", "success");
         } catch (e) {
-          showToast("เกิดข้อผิดพลาดในการสร้างเอกสาร", "error");
-        } finally {
-          container.innerHTML = ""; 
-          container.style.visibility = "hidden";
-          setGenerating(false);
-          setPdfProgress("");
-          setSelectedStudents(new Set()); 
+          console.error("PDF generation failed for", s.studentName, e);
         }
-      };
+      } // สิ้นสุด Loop
 
+      // เมื่อโหลดครบทุกไฟล์แล้ว เคลียร์ข้อมูลทิ้ง
+      container.innerHTML = ""; 
+      container.style.visibility = "hidden";
+      setGenerating(false);
+      setPdfProgress("");
+      showToast(`สร้างเอกสาร PDF สำเร็จ ${targetStudents.length} ไฟล์`, "success");
+      setSelectedStudents(new Set()); // ล้างการเลือก
+    };
+
+    // ส่วนที่เหลือของคอมโพเนนต์ ReportExport เหมือนเดิม
       if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mx-auto"></div></div>;
 
       const visitedList = students.filter(s => getVisitStatus(visits, s.studentNo) === "เยี่ยมแล้ว");
@@ -996,7 +1005,7 @@
            <div className="border-t border-slate-200 pt-8 mb-6 flex justify-between items-end">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">พิมพ์รายงานรายบุคคล (PDF)</h3>
-                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ (ระบบแสดงผลเฉพาะข้อมูล Text เท่านั้น)</p>
+                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ (ระบบจะดาวน์โหลดไฟล์แยกตามรายบุคคล)</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={selectAll} className="text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer">เลือกทั้งหมด</button>
@@ -1022,7 +1031,7 @@
            {visitedList.length > 0 && (
              <div className="text-center">
                <button onClick={exportPDF} disabled={generating || selectedStudents.size === 0} className="px-10 py-5 rounded-full font-black text-white bg-slate-900 hover:bg-rose-500 disabled:opacity-50 btn-press shadow-xl transition-colors text-lg flex items-center justify-center mx-auto gap-3 cursor-pointer">
-                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> {pdfProgress}</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} คน)</>}
+                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> {pdfProgress}</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} ไฟล์)</>}
                </button>
              </div>
            )}
