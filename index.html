@@ -1,303 +1,110 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - ระบบเยี่ยมบ้านนักเรียน</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <style>
-    body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; margin: 0; color: #334155; }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    
-    /* Elegant Animations */
-    .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .slide-up { animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .stagger-1 { animation-delay: 0.05s; }
-    .stagger-2 { animation-delay: 0.1s; }
-    .stagger-3 { animation-delay: 0.15s; }
-    
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* Clean Luxury Glass Card */
-    .glass-card { 
-      background: #ffffff; 
-      border: 1px solid rgba(226, 232, 240, 0.8); 
-      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 0 3px rgba(15, 23, 42, 0.02);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .glass-card:hover {
-      box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
-      transform: translateY(-2px);
-      border-color: rgba(148, 163, 184, 0.3);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เข้าสู่ระบบ - เยี่ยมบ้านนักเรียน</title>
 
-    /* Custom Form Elements */
-    .luxury-input {
-      background-color: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      transition: all 0.25s ease;
-    }
-    .luxury-input:focus {
-      background-color: #ffffff;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-    }
-    
-    /* PDF Fix */
-    #pdf-report-container { 
-      position: fixed; left: 0; top: 0; width: 794px; background: white; padding: 40px; 
-      font-family: 'Sarabun', sans-serif; color: #000; z-index: -9999; visibility: hidden; pointer-events: none;
-    }
-    #pdf-report-container.pdf-rendering { visibility: visible; z-index: -1; }
-    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-    .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 8px 10px; text-align: left; vertical-align: top; }
-    .pdf-table th { background-color: #e8f0fe; font-weight: bold; width: 32%; color: #1e3a8a; }
-    .pdf-section-title { 
-      background: #1e40af; color: white; padding: 8px 14px; font-size: 14px; font-weight: bold; 
-      margin-top: 20px; margin-bottom: 0; border-radius: 4px 4px 0 0;
-    }
-  </style>
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+body { font-family: 'Prompt', sans-serif; background-color: #f4f7fe; overflow: hidden; }
+.glass-card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+</style>
 </head>
-<body class="h-screen overflow-hidden text-slate-700 bg-slate-50">
-  <div id="root" class="h-full w-full"></div>
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+<div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+<script type="text/babel">
+const { useState } = React;
 
-    // === UPDATED SCRIPT URL ===
+// 🔴 เปลี่ยน URL ตรงนี้
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCkX59eugtrRic_Y2bqhVVGn2UKHdlbEtVY9JTPLwjD9bcFvFRcfglko-iTONA48le/exec";
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxunxLelcTes_NAvm3sfL5L5wkAG2-i0x5H1JyYdBI676LQ6PiQNg373HTecsLKk-jc/exec";
 
-    const api = {
-      async get(action, params = {}) {
-        const q = new URLSearchParams({ action, t: Date.now(), ...params }).toString();
-        try { const r = await fetch(`${SCRIPT_URL}?${q}`); return await r.json(); } 
-        catch { return { success: false, message: "เชื่อมต่อขัดข้อง" }; }
-      },
-      async post(body) {
-        try { const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "text/plain" } }); return await r.json(); } 
-        catch { return { success: false, message: "เชื่อมต่อขัดข้อง" }; }
-      }
-    };
+function LoginApp() {
+const [username, setUsername] = useState("");
+const [password, setPassword] = useState("");
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState("");
 
-    const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
-    const HOUSE_COND = ["ดีมาก","ดี","ปานกลาง","ทรุดโทรม","ไม่ปลอดภัย"];
-    const REL_OPTS = ["อบอุ่นดีมาก","อบอุ่นดี","ปานกลาง","ไม่ค่อยอบอุ่น","มีปัญหา"];
-    const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
-    const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
+const handleLogin = async (e) => {
+e.preventDefault();
+if (!username || !password) return setError("กรุณากรอกข้อมูลให้ครบถ้วน");
+if (SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL") return setError("กรุณาตั้งค่า SCRIPT_URL ในโค้ดก่อนใช้งาน");
 
-    const getVal = (obj, ...keys) => {
-      if (!obj) return '';
-      const objKeys = Object.keys(obj);
-      for (let key of keys) {
-        const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === String(key).trim().toLowerCase());
-        if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return String(obj[foundKey]).trim();
-      }
-      return '';
-    };
+setLoading(true); setError("");
+try {
+const q = new URLSearchParams({ action: "login", username, password }).toString();
+const r = await fetch(`${SCRIPT_URL}?${q}`);
+const res = await r.json();
 
-    const findVisitForStudent = (visits, studentName) => {
-      if (!visits || !studentName) return null;
-      const target = String(studentName).trim().toLowerCase();
-      return visits.find(v => {
-        const name = (getVal(v, 'studentName', 'studentname', 'ชื่อนักเรียน', 'ชื่อ-นามสกุล', 'name') || '').trim().toLowerCase();
-        return name === target;
-      });
-    };
+if (res.success) {
+// บันทึกข้อมูลลงเครื่องแล้ววาร์ปไปหน้า Dashboard
+localStorage.setItem("hv_user", JSON.stringify(res.data));
+window.location.href = "dashboard.html";
+} else {
+setError(res.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+setLoading(false);
+}
+} catch (err) {
+setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
+setLoading(false);
+}
+};
 
-    const getVisitStatus = (visits, studentName) => {
-      const v = findVisitForStudent(visits, studentName);
-      if (!v) return "ยังไม่เยี่ยม";
-      return getVal(v, 'visitStatus', 'visitstatus', 'สถานะการเยี่ยม', 'สถานะ', 'status') || "ยังไม่เยี่ยม";
-    };
+return (
+<div className="w-full max-w-md p-8 glass-card rounded-[2rem] shadow-2xl border border-white mx-4 animate-[fadeIn_0.5s_ease-out]">
+<div className="text-center mb-8">
+<div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
+<i className="fa-solid fa-house-chimney-user text-3xl text-white"></i>
+</div>
+<h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">ระบบเยี่ยมบ้านนักเรียน</h1>
+<p className="text-sm text-slate-500 mt-2 font-medium">โรงเรียนป่าก้าง · ปีการศึกษา 2568</p>
+</div>
 
-    // --- Modern UI Components ---
-    const FormInput = ({ label, type="text", value, onChange, placeholder="" }) => (
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
-        <input type={type} value={value || ""} onChange={onChange} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700" placeholder={placeholder}/>
-      </div>
-    );
-    const FormSelect = ({ label, value, onChange, options }) => (
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
-        <select value={value || ""} onChange={onChange} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1.2rem_center] bg-[length:0.8rem_auto]">
-          <option value="">-- กรุณาเลือก --</option>{options.map(o=><option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-    );
-    const FormTextarea = ({ label, value, onChange, rows=3 }) => (
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
-        <textarea rows={rows} value={value || ""} onChange={onChange} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700 resize-y"/>
-      </div>
-    );
+<form onSubmit={handleLogin} className="space-y-5">
+<div>
+<label className="block text-sm font-bold text-slate-700 mb-2 ml-1">ชื่อผู้ใช้งาน</label>
+<div className="relative">
+<i className="fa-solid fa-user absolute left-4 top-4 text-slate-400"></i>
+<input type="text" value={username} onChange={e => setUsername(e.target.value)}
+className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 placeholder:font-medium placeholder:text-slate-400"
+placeholder="Username" />
+</div>
+</div>
+<div>
+<label className="block text-sm font-bold text-slate-700 mb-2 ml-1">รหัสผ่าน</label>
+<div className="relative">
+<i className="fa-solid fa-lock absolute left-4 top-4 text-slate-400"></i>
+<input type="password" value={password} onChange={e => setPassword(e.target.value)}
+className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold tracking-wider text-slate-700 placeholder:font-medium placeholder:text-slate-400"
+placeholder="••••••••" />
+</div>
+</div>
 
-    const Toast = ({ msg, type, onClose }) => {
-      useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
-      const isSuccess = type === 'success';
-      return (
-        <div className={`fixed top-6 right-6 z-[100] px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 slide-up bg-white/95 backdrop-blur-xl border ${isSuccess ? 'border-emerald-100' : 'border-rose-100'}`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSuccess ? 'bg-emerald-100 text-emerald-500' : 'bg-rose-100 text-rose-500'}`}>
-            <i className={`fa-solid ${isSuccess ? 'fa-check' : 'fa-xmark'} text-lg`}></i>
-          </div>
-          <span className="font-semibold text-slate-700">{msg}</span>
-        </div>
-      );
-    };
+{error && (
+<div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold text-center border border-rose-100 animate-[shake_0.4s_ease-in-out]">
+<i className="fa-solid fa-circle-exclamation mr-2"></i>{error}
+</div>
+)}
 
-    // --- Main Dashboard ---
-    function DashboardApp() {
-      const [user, setUser] = useState(null);
-      const [view, setView] = useState("list"); 
-      const [selectedStudent, setSelectedStudent] = useState(null);
-      const [toast, setToast] = useState(null);
-      const [refreshKey, setRefreshKey] = useState(0);
-      const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-      const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+<button type="submit" disabled={loading}
+className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-blue-500/30 transform transition-all hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0 mt-4 flex justify-center items-center gap-2">
+{loading ? <i className="fa-solid fa-circle-notch fa-spin"></i> : <><i className="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ</>}
+</button>
+</form>
+</div>
+);
+}
 
-      const [globalStudents, setGlobalStudents] = useState([]);
-      const [globalVisits, setGlobalVisits] = useState([]);
-      const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-      useEffect(() => {
-        const handleResize = () => {
-          const mobile = window.innerWidth < 768;
-          setIsMobile(mobile);
-          setIsSidebarOpen(!mobile);
-        };
-        window.addEventListener('resize', handleResize);
-        handleResize();
-        return () => window.removeEventListener('resize', handleResize);
-      }, []);
-
-      useEffect(() => {
-        const savedUser = localStorage.getItem("hv_user");
-        if (!savedUser) { window.location.href = "login.html"; return; }
-        const u = JSON.parse(savedUser);
-        setUser(u);
-        fetchInitialData(u);
-      }, []);
-
-      const fetchInitialData = async (u) => {
-        setIsDataLoaded(false);
-        try {
-          const [sRes, vRes] = await Promise.all([
-            api.get("getStudents", { classLevel: u.classLevel }),
-            api.get("getVisitsFull", { classLevel: u.classLevel })
-          ]);
-          if (sRes.success) setGlobalStudents(sRes.data);
-          if (vRes.success) setGlobalVisits(vRes.data);
-          setIsDataLoaded(true);
-        } catch (e) {
-          setIsDataLoaded(true);
-          showToast("โหลดข้อมูลล้มเหลว กรุณารีเฟรช", "error");
-        }
-      };
-
-      const logout = () => { localStorage.removeItem("hv_user"); window.location.href = "login.html"; };
-      const showToast = (msg, type="success") => setToast({msg, type});
-      const forceRefreshData = () => { setRefreshKey(k => k + 1); if (user) fetchInitialData(user); };
-
-      if (!user) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
-
-      return (
-        <div className="flex h-full w-full bg-[#f8fafc] text-slate-700 font-sans fade-in selection:bg-blue-100 selection:text-blue-900">
-          {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-          
-          {isMobile && isSidebarOpen && (
-            <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>
-          )}
-
-          {/* Elegant Sidebar */}
-          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-in-out
-            ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
-            
-            <div className="p-6 flex flex-col items-center border-b border-slate-50">
-              <div className={`rounded-full p-1 mb-3 bg-gradient-to-tr from-blue-100 to-indigo-50 transition-all duration-300 ${isSidebarOpen ? 'w-20 h-20' : 'w-12 h-12'}`}>
-                <img src={`https://ui-avatars.com/api/?name=${user.fullName}&background=ffffff&color=2563EB&bold=true`} className="w-full h-full rounded-full object-cover shadow-sm border-2 border-white" />
-              </div>
-              {isSidebarOpen && (
-                <div className="fade-in text-center">
-                  <h2 className="text-base font-bold text-slate-800">{user.fullName}</h2>
-                  <p className="text-xs text-slate-500 font-medium mt-1">ครูประจำชั้น {user.classLevel}</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 flex-1 overflow-y-auto custom-scroll space-y-2">
-              <NavButton icon="fa-house-user" label="บันทึกเยี่ยมบ้าน" isActive={view==='list' || view==='form'} onClick={() => {setView("list"); setSelectedStudent(null); if(isMobile) setIsSidebarOpen(false);}} isOpen={isSidebarOpen} colorClass="text-blue-600 bg-blue-50" />
-              <NavButton icon="fa-users-gear" label="จัดการรายชื่อ" isActive={view==='manage'} onClick={() => {setView("manage"); setSelectedStudent(null); if(isMobile) setIsSidebarOpen(false);}} isOpen={isSidebarOpen} colorClass="text-emerald-600 bg-emerald-50" />
-              <NavButton icon="fa-file-pdf" label="พิมพ์รายงาน" isActive={view==='reports'} onClick={() => {setView("reports"); setSelectedStudent(null); if(isMobile) setIsSidebarOpen(false);}} isOpen={isSidebarOpen} colorClass="text-rose-600 bg-rose-50" />
-            </div>
-            
-            <div className="p-4 border-t border-slate-50">
-              <button onClick={logout} className={`w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-medium transition-all text-slate-500 hover:bg-rose-50 hover:text-rose-600 ${isSidebarOpen ? 'px-4' : 'px-0'}`}>
-                <i className="fa-solid fa-arrow-right-from-bracket"></i>
-                {isSidebarOpen && <span>ออกจากระบบ</span>}
-              </button>
-            </div>
-          </aside>
-
-          {/* Main Content Area */}
-          <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-            <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100/50 px-6 flex items-center justify-between z-20 flex-shrink-0">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
-                  <i className="fa-solid fa-bars text-lg"></i>
-                </button>
-                <div>
-                  <h1 className="text-xl font-bold text-slate-800 tracking-tight">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
-                  <p className="text-xs text-slate-400 font-medium hidden sm:block mt-0.5">โรงเรียนป่าก้าง</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                 <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-full text-xs font-semibold text-slate-500">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> ระบบออนไลน์
-                 </div>
-              </div>
-            </header>
-
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll relative">
-              <div className="max-w-6xl mx-auto pb-20">
-                {view === "list" && <StudentList user={user} students={globalStudents} visits={globalVisits} isDataLoaded={isDataLoaded} onSelect={(s) => {setSelectedStudent(s); setView("form");}} forceRefresh={forceRefreshData} />}
-                {view === "form" && <VisitForm user={user} student={selectedStudent} globalVisits={globalVisits} onDone={() => { setView("list"); setSelectedStudent(null); showToast("บันทึกข้อมูลเรียบร้อย", "success"); forceRefreshData(); }} onBack={() => { setView("list"); setSelectedStudent(null); }} showToast={showToast} />}
-                {view === "manage" && <StudentManage user={user} showToast={showToast} onRefreshNeeded={forceRefreshData} students={globalStudents}/>}
-                {view === "reports" && <ReportExport user={user} showToast={showToast} visits={globalVisits} isDataLoaded={isDataLoaded} forceRefresh={forceRefreshData} />}
-              </div>
-            </div>
-          </main>
-        </div>
-      );
-    }
-
-    const NavButton = ({ icon, label, isActive, onClick, isOpen, colorClass }) => (
-      <button onClick={onClick} title={label}
-        className={`w-full flex items-center rounded-2xl transition-all duration-200 font-medium group
-        ${isActive ? colorClass : 'text-slate-500 hover:bg-slate-50'}
-        ${isOpen ? 'justify-start px-4 py-3.5' : 'justify-center py-4'}`}>
-        <i className={`fa-solid ${icon} ${isOpen ? 'mr-3 text-lg' : 'text-xl'} ${isActive ? '' : 'group-hover:text-slate-700'}`}></i>
-        {isOpen && <span>{label}</span>}
-      </button>
-    );
-
-    // --- 1. หน้าแสดงรายชื่อ (ปรับปรุงให้คลีน มี Filter) ---
-    function StudentList({ user, students, visits, isDataLoaded, onSelect, forceRefresh }) {
-      const [search, setSearch] = useState("");
-      const [statusFilter, setStatusFilter] = useState('all'); // all, visited, not_visited, appointed
-
-      const filtered = students.filter(s => {
-        const matchSearch = !search || s.studentName.includes(search) || s.nickname?.includes(search) || String(s.studentNo).includes(
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<LoginApp />);
+</script>
+</body>
+</html>
