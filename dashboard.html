@@ -431,6 +431,19 @@
                 
                 {/* 🌟 หน้าฟอร์มแบบใหม่ ไม่มีช่องแนบรูปภาพ 🌟 */}
                 {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
+
+                {/* 🌟 หน้าประวัติ ส่งปุ่มลบข้อมูลไปด้วย 🌟 */}
+                {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
+                
+                {/* 🌟 หน้าฟอร์มแบบใหม่ ไม่มีช่องแนบรูปภาพ 🌟 */}
+                {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
+
+                {/* 🔴 วางโค้ด Copyright ตรงนี้เลยครับ 🔴 */}
+                <div className="mt-16 pt-6 border-t border-slate-200/60 text-center fade-in">
+                  <p className="text-sm font-bold text-slate-400 tracking-wide">
+                    © 2026 Developed by Thianrawich. All Rights Reserved.
+                  </p>
+                </div>
               </div>
             </div>
           </main>
