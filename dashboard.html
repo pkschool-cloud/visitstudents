@@ -834,9 +834,9 @@ return (
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ลักษณะที่พัก</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseType"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">การถือครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseOwnership"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สภาพบ้าน</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseCondition"))}</div></div>
-<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">พื้น / ฝา / หลังคา</div><div className="col-span-2 text-sm">{[getVal(v,"floorMaterial"),getVal(v,"wallMaterial"),getVal(v,"roofMaterial")].filter(Boolean).join(" / ")||"-"}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">พื้น/ฝา/หลังคา</div><div className="col-span-2 text-sm">{[getVal(v,"floorMaterial"),getVal(v,"wallMaterial"),getVal(v,"roofMaterial")].filter(Boolean).join(" / ")||"-"}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ห้องส้วม</div><div className="col-span-2 text-sm">{disp(getVal(v,"hasBathroom"))}</div></div>
-<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">แหล่งน้ำ / ไฟฟ้า</div><div className="col-span-2 text-sm">{[getVal(v,"waterSource"),getVal(v,"electricitySource")].filter(Boolean).join(" / ")||"-"}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">น้ำ/ไฟฟ้า</div><div className="col-span-2 text-sm">{[getVal(v,"waterSource"),getVal(v,"electricitySource")].filter(Boolean).join(" / ")||"-"}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ยานพาหนะ</div><div className="col-span-2 text-sm">{disp(getVal(v,"vehicles"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ของใช้ในบ้าน</div><div className="col-span-2 text-sm">{disp(getVal(v,"appliances"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ระยะทาง</div><div className="col-span-2 text-sm">{getVal(v,"distanceKm") ? <span className="font-bold text-slate-800">{getVal(v,"distanceKm")} กม.</span> : disp("")}</div></div>
@@ -863,7 +863,7 @@ return (
 <div className="soft-card p-8 md:p-10">
 <h3 className="text-xl font-black text-emerald-500 mb-6 flex items-center"><i className="fa-solid fa-people-roof mr-3"></i> ข้อมูลครอบครัว</h3>
 <div className="space-y-4">
-<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"guardianName"))} {getVal(v,"guardianRelation") ? <span className="text-slate-400 text-xs">({getVal(v,"guardianRelation")})</span> : ""}</div></div>
+<div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"guardianName"))}{getVal(v,"guardianRelation") ? <span className="text-slate-400 text-xs"> ({getVal(v,"guardianRelation")})</span> : ""}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">เบอร์ผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"guardianPhone"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">อาชีพผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"guardianOccupation"))}</div></div>
 <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สถานภาพครอบครัว</div><div className="col-span-2 text-sm">{disp(getVal(v,"familyStatus"))}</div></div>
@@ -1352,26 +1352,26 @@ const exportExcel = () => {
 const data = students.map(s => {
 const v = visits.find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
 return {
-  "เลขที่": s.studentNo, "ชื่อ-นามสกุล": s.studentName, "ชั้นเรียน": getVal(s,"classLevel"),
-  "สถานะการเยี่ยม": getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยมบ้าน": safeDateForDisplay(getVal(v,"visitDate")),
-  "ชื่อผู้ปกครอง": getVal(v,"guardianName"), "ความสัมพันธ์": getVal(v,"guardianRelation"),
-  "เบอร์โทรผู้ปกครอง": getVal(v,"guardianPhone"), "อาชีพผู้ปกครอง": getVal(v,"guardianOccupation"),
-  "สถานภาพครอบครัว": getVal(v,"familyStatus"), "สวัสดิการที่ได้รับ": getVal(v,"welfare"),
-  "ที่อยู่ปัจจุบัน": getVal(v,"address"), "ลักษณะที่พักอาศัย": getVal(v,"houseType"),
-  "การถือครองที่อยู่": getVal(v,"houseOwnership"), "สภาพบ้าน": getVal(v,"houseCondition"),
-  "วัสดุพื้นบ้าน": getVal(v,"floorMaterial"), "วัสดุฝาบ้าน": getVal(v,"wallMaterial"),
-  "วัสดุหลังคา": getVal(v,"roofMaterial"), "ห้องส้วม": getVal(v,"hasBathroom"),
-  "แหล่งน้ำดื่ม": getVal(v,"waterSource"), "แหล่งไฟฟ้า": getVal(v,"electricitySource"),
-  "ยานพาหนะ": getVal(v,"vehicles"), "ของใช้ในครัวเรือน": getVal(v,"appliances"),
-  "ระยะทาง (กม.)": getVal(v,"distanceKm"), "วิธีการเดินทาง": getVal(v,"travelMethod"),
-  "ค่าเดินทาง (บาท/เดือน)": getVal(v,"travelCost"),
-  "จำนวนสมาชิก (คน)": getVal(v,"familyMembers"), "จำนวนพี่น้อง (คน)": getVal(v,"siblings"),
-  "รายได้รวม (บาท/เดือน)": getVal(v,"familyIncome"), "รายได้เฉลี่ยต่อคน": getVal(v,"incomePerPerson"),
-  "ความสัมพันธ์ในครอบครัว": getVal(v,"familyRelationship"),
-  "ความเสี่ยงด้านสุขภาพ": getVal(v,"riskHealth"), "ความเสี่ยงด้านความปลอดภัย": getVal(v,"riskSafety"),
-  "ความเสี่ยงด้านการเดินทาง": getVal(v,"riskTravel"), "ความเสี่ยงด้านเศรษฐกิจ": getVal(v,"riskWork"),
-  "ความเสี่ยงด้านสังคม": getVal(v,"riskSocial"), "ความเสี่ยงด้านยาเสพติด": getVal(v,"riskSubstance"),
-  "สรุปผลการเยี่ยม": getVal(v,"visitResult"), "บันทึกเพิ่มเติม": getVal(v,"teacherNotes"),
+"เลขที่":s.studentNo,"ชื่อ-นามสกุล":s.studentName,"ชั้นเรียน":getVal(s,"classLevel"),
+"สถานะการเยี่ยม":getVal(v,"visitStatus")||"ยังไม่เยี่ยม","วันที่เยี่ยมบ้าน":safeDateForDisplay(getVal(v,"visitDate")),
+"ชื่อผู้ปกครอง":getVal(v,"guardianName"),"ความสัมพันธ์":getVal(v,"guardianRelation"),
+"เบอร์โทรผู้ปกครอง":getVal(v,"guardianPhone"),"อาชีพผู้ปกครอง":getVal(v,"guardianOccupation"),
+"สถานภาพครอบครัว":getVal(v,"familyStatus"),"สวัสดิการที่ได้รับ":getVal(v,"welfare"),
+"ที่อยู่ปัจจุบัน":getVal(v,"address"),"ลักษณะที่พักอาศัย":getVal(v,"houseType"),
+"การถือครองที่อยู่":getVal(v,"houseOwnership"),"สภาพบ้าน":getVal(v,"houseCondition"),
+"วัสดุพื้นบ้าน":getVal(v,"floorMaterial"),"วัสดุฝาบ้าน":getVal(v,"wallMaterial"),
+"วัสดุหลังคา":getVal(v,"roofMaterial"),"ห้องส้วม":getVal(v,"hasBathroom"),
+"แหล่งน้ำดื่ม":getVal(v,"waterSource"),"แหล่งไฟฟ้า":getVal(v,"electricitySource"),
+"ยานพาหนะ":getVal(v,"vehicles"),"ของใช้ในครัวเรือน":getVal(v,"appliances"),
+"ระยะทาง(กม.)":getVal(v,"distanceKm"),"วิธีการเดินทาง":getVal(v,"travelMethod"),
+"ค่าเดินทาง(บาท/เดือน)":getVal(v,"travelCost"),
+"จำนวนสมาชิก(คน)":getVal(v,"familyMembers"),"จำนวนพี่น้อง(คน)":getVal(v,"siblings"),
+"รายได้รวม(บาท/เดือน)":getVal(v,"familyIncome"),"รายได้เฉลี่ยต่อคน":getVal(v,"incomePerPerson"),
+"ความสัมพันธ์ในครอบครัว":getVal(v,"familyRelationship"),
+"ความเสี่ยงสุขภาพ":getVal(v,"riskHealth"),"ความเสี่ยงความปลอดภัย":getVal(v,"riskSafety"),
+"ความเสี่ยงการเดินทาง":getVal(v,"riskTravel"),"ความเสี่ยงเศรษฐกิจ":getVal(v,"riskWork"),
+"ความเสี่ยงสังคม":getVal(v,"riskSocial"),"ความเสี่ยงยาเสพติด":getVal(v,"riskSubstance"),
+"สรุปผลการเยี่ยม":getVal(v,"visitResult"),"บันทึกเพิ่มเติม":getVal(v,"teacherNotes"),
 };
 });
 const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
@@ -1441,54 +1441,31 @@ function VisitForm({ student, visits, onBack, onSave }) {
 const exist = visits.slice().reverse().find(v => compareId(getVal(v,"studentNo"), student.studentNo) && getVal(v,"classLevel") === getVal(student,"classLevel")) || {};
 
 const [form, setForm] = useState({
-studentNo: student.studentNo, studentName: student.studentName, classLevel: getVal(student,"classLevel"),
-semester: getVal(exist,"semester")||"1",
-visitStatus: getVal(exist,"visitStatus")||"เยี่ยมแล้ว",
+studentNo: student.studentNo, studentName: student.studentName, classLevel: getVal(student, "classLevel"),
+semester: getVal(exist,"semester")||"1", visitStatus: getVal(exist,"visitStatus")||"เยี่ยมแล้ว",
 visitDate: getVal(exist,"visitDate") ? safeDateForInput(getVal(exist,"visitDate")) : safeDateForInput(new Date()),
 appointmentDate: getVal(exist,"appointmentDate") ? safeDateForInput(getVal(exist,"appointmentDate")) : "",
 observations: getVal(exist,"observations"),
-// ผู้ปกครอง
-guardianName: getVal(exist,"guardianName"),
-guardianRelation: getVal(exist,"guardianRelation"),
-guardianPhone: getVal(exist,"guardianPhone"),
-guardianOccupation: getVal(exist,"guardianOccupation"),
-familyStatus: getVal(exist,"familyStatus"),
-welfare: getVal(exist,"welfare"),
-// ที่พักอาศัย
-address: getVal(exist,"address"),
-houseType: getVal(exist,"houseType"),
-houseOwnership: getVal(exist,"houseOwnership"),
-houseCondition: getVal(exist,"houseCondition"),
-floorMaterial: getVal(exist,"floorMaterial"),
-wallMaterial: getVal(exist,"wallMaterial"),
-roofMaterial: getVal(exist,"roofMaterial"),
-hasBathroom: getVal(exist,"hasBathroom"),
-waterSource: getVal(exist,"waterSource"),
-electricitySource: getVal(exist,"electricitySource"),
-vehicles: getVal(exist,"vehicles"),
-appliances: getVal(exist,"appliances"),
-distanceKm: getVal(exist,"distanceKm"),
-travelMethod: getVal(exist,"travelMethod"),
-travelCost: getVal(exist,"travelCost"),
-environment: getVal(exist,"environment"),
-// ครอบครัว
-familyMembers: getVal(exist,"familyMembers"),
-siblings: getVal(exist,"siblings"),
-familyRelationship: getVal(exist,"familyRelationship"),
-familyIncome: getVal(exist,"familyIncome"),
+guardianName: getVal(exist,"guardianName"), guardianRelation: getVal(exist,"guardianRelation"),
+guardianPhone: getVal(exist,"guardianPhone"), guardianOccupation: getVal(exist,"guardianOccupation"),
+familyStatus: getVal(exist,"familyStatus"), welfare: getVal(exist,"welfare"),
+address: getVal(exist,"address"), houseType: getVal(exist,"houseType"),
+houseOwnership: getVal(exist,"houseOwnership"), houseCondition: getVal(exist,"houseCondition"),
+floorMaterial: getVal(exist,"floorMaterial"), wallMaterial: getVal(exist,"wallMaterial"),
+roofMaterial: getVal(exist,"roofMaterial"), hasBathroom: getVal(exist,"hasBathroom"),
+waterSource: getVal(exist,"waterSource"), electricitySource: getVal(exist,"electricitySource"),
+vehicles: getVal(exist,"vehicles"), appliances: getVal(exist,"appliances"),
+distanceKm: getVal(exist,"distanceKm"), travelMethod: getVal(exist,"travelMethod"),
+travelCost: getVal(exist,"travelCost"), environment: getVal(exist,"environment"),
+familyMembers: getVal(exist,"familyMembers"), siblings: getVal(exist,"siblings"),
+familyRelationship: getVal(exist,"familyRelationship"), familyIncome: getVal(exist,"familyIncome"),
 incomePerPerson: getVal(exist,"incomePerPerson"),
-studentDuties: getVal(exist,"studentDuties"),
-familyActivities: getVal(exist,"familyActivities"),
-// ความเสี่ยง
-riskHealth: getVal(exist,"riskHealth"),
-riskSafety: getVal(exist,"riskSafety"),
-riskTravel: getVal(exist,"riskTravel"),
-riskWork: getVal(exist,"riskWork"),
-riskSocial: getVal(exist,"riskSocial"),
-riskSubstance: getVal(exist,"riskSubstance"),
+studentDuties: getVal(exist,"studentDuties"), familyActivities: getVal(exist,"familyActivities"),
+riskHealth: getVal(exist,"riskHealth"), riskSafety: getVal(exist,"riskSafety"),
+riskTravel: getVal(exist,"riskTravel"), riskWork: getVal(exist,"riskWork"),
+riskSocial: getVal(exist,"riskSocial"), riskSubstance: getVal(exist,"riskSubstance"),
 parentConcerns: getVal(exist,"parentConcerns"),
-visitResult: getVal(exist,"visitResult"),
-teacherNotes: getVal(exist,"teacherNotes")
+visitResult: getVal(exist,"visitResult"), teacherNotes: getVal(exist,"teacherNotes")
 });
 
 const [step, setStep] = useState(0);
@@ -1533,8 +1510,6 @@ return (
 </div>
 
 <div className="soft-card p-8 md:p-12 mb-6 min-h-[500px]">
-
-{/* ===== STEP 0: เบื้องต้น ===== */}
 {step === 0 && <div className="space-y-2 fade-in">
 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
 <PremiumSelect label="ภาคเรียน" icon="fa-calendar-days" value={form.semester} onChange={e=>update("semester", e.target.value)} options={["1","2"]} />
@@ -1559,28 +1534,23 @@ return (
 <PremiumTextarea label="การสังเกตเบื้องต้น" rows={4} value={form.observations} onChange={e=>update("observations", e.target.value)} placeholder="พิมพ์ข้อความสังเกตเบื้องต้น..." />
 </div>}
 
-{/* ===== STEP 1: ที่พัก ===== */}
 {step === 1 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
 <div className="col-span-full"><PremiumInput label="ที่อยู่ปัจจุบัน" icon="fa-map-pin" value={form.address} onChange={e=>update("address", e.target.value)} placeholder="บ้านเลขที่ / หมู่ / ตำบล / อำเภอ / จังหวัด" /></div>
 <div><PremiumSelect label="ลักษณะที่พักอาศัย" icon="fa-house-chimney" value={form.houseType} onChange={e=>update("houseType", e.target.value)} options={["บ้านเดี่ยว","ทาวน์เฮ้าส์/บ้านแถว","หอพัก/อพาร์ทเมนต์","บ้านไม้ยกพื้น","อื่นๆ"]} /></div>
 <div><PremiumSelect label="การถือครองที่อยู่อาศัย" icon="fa-file-contract" value={form.houseOwnership} onChange={e=>update("houseOwnership", e.target.value)} options={["บ้านตนเอง/เจ้าของบ้าน","อยู่กับผู้อื่น/อยู่ฟรี","บ้านเช่า","หอพัก"]} /></div>
 <div><PremiumSelect label="สภาพบ้าน" icon="fa-house-crack" value={form.houseCondition} onChange={e=>update("houseCondition", e.target.value)} options={HOUSE_COND} /></div>
-
-<div className="col-span-full mt-1"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-1 flex items-center gap-2"><i className="fa-solid fa-building"></i> วัสดุก่อสร้าง (นร.01 ข้อ 3.3)</p></div>
+<div className="col-span-full"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-0 flex items-center gap-2"><i className="fa-solid fa-building"></i> วัสดุก่อสร้าง (นร.01 ข้อ 3.3)</p></div>
 <div><PremiumSelect label="วัสดุพื้นบ้าน" icon="fa-layer-group" value={form.floorMaterial} onChange={e=>update("floorMaterial", e.target.value)} options={["กระเบื้อง/เซรามิค","ปาเก้/ไม้ขัดเงา","ซีเมนต์เปลือย","ไม้กระดาน","ไวนิล/กระเบื้องยาง","ไม้ไผ่","ดิน/ทราย","อื่นๆ"]} /></div>
 <div><PremiumSelect label="วัสดุฝาบ้าน" icon="fa-border-all" value={form.wallMaterial} onChange={e=>update("wallMaterial", e.target.value)} options={["ฉาบซีเมนต์","อิฐ/ก้อนปูน/อิฐบล็อค","สังกะสี","ไม้กระดาน","ไม้อัด","สมาร์ทบอร์ด/ไฟเบอร์","ไม้ไผ่/ท่อนไม้","ดิน","อื่นๆ"]} /></div>
 <div><PremiumSelect label="วัสดุหลังคา" icon="fa-house" value={form.roofMaterial} onChange={e=>update("roofMaterial", e.target.value)} options={["กระเบื้อง/เซรามิค","โลหะ (สังกะสี/เหล็ก)","ไม้กระดาน","ใบไม้/วัสดุธรรมชาติ","ไวนิล/พลาสติก","อื่นๆ"]} /></div>
 <div><PremiumSelect label="ห้องส้วม" icon="fa-toilet" value={form.hasBathroom} onChange={e=>update("hasBathroom", e.target.value)} options={["มี","ไม่มี"]} /></div>
-
-<div className="col-span-full mt-1"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-1 flex items-center gap-2"><i className="fa-solid fa-faucet-drip"></i> สาธารณูปโภค (นร.01 ข้อ 3.5–3.6)</p></div>
+<div className="col-span-full"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-0 flex items-center gap-2"><i className="fa-solid fa-faucet-drip"></i> สาธารณูปโภค (นร.01 ข้อ 3.5–3.6)</p></div>
 <div><PremiumSelect label="แหล่งน้ำดื่ม" icon="fa-droplet" value={form.waterSource} onChange={e=>update("waterSource", e.target.value)} options={["น้ำดื่มบรรจุขวด/ตู้หยอดน้ำ","น้ำประปา","น้ำบ่อ/น้ำบาดาล","น้ำฝน/น้ำประปาภูเขา/ลำธาร"]} /></div>
 <div><PremiumSelect label="แหล่งไฟฟ้า" icon="fa-bolt" value={form.electricitySource} onChange={e=>update("electricitySource", e.target.value)} options={["ไฟบ้านหรือมิเตอร์","เครื่องปั่นไฟ/โซลาเซลล์","ไฟต่อพ่วง/แบตเตอรี่","ไม่มีไฟฟ้า"]} /></div>
-
-<div className="col-span-full mt-1"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-1 flex items-center gap-2"><i className="fa-solid fa-car"></i> ยานพาหนะและของใช้ (นร.01 ข้อ 3.7–3.8)</p></div>
+<div className="col-span-full"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-0 flex items-center gap-2"><i className="fa-solid fa-car"></i> ยานพาหนะและของใช้ (นร.01 ข้อ 3.7–3.8)</p></div>
 <div><PremiumInput label="ยานพาหนะในครัวเรือน" icon="fa-motorcycle" value={form.vehicles} onChange={e=>update("vehicles", e.target.value)} placeholder="เช่น รถมอเตอร์ไซต์, รถยนต์" /></div>
 <div><PremiumInput label="ของใช้ในครัวเรือน" icon="fa-tv" value={form.appliances} onChange={e=>update("appliances", e.target.value)} placeholder="เช่น ทีวี, ตู้เย็น, เครื่องซักผ้า" /></div>
-
-<div className="col-span-full mt-1"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-1 flex items-center gap-2"><i className="fa-solid fa-route"></i> การเดินทาง</p></div>
+<div className="col-span-full"><p className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 mb-0 flex items-center gap-2"><i className="fa-solid fa-route"></i> การเดินทาง</p></div>
 <div className="col-span-full relative mb-5 pop-in">
 <label className="block text-sm font-bold text-slate-500 mb-2 pl-4">ระยะทางถึงสถานศึกษา (กม.)</label>
 <div className="flex gap-3">
@@ -1593,9 +1563,8 @@ return (
 <div className="col-span-full"><PremiumTextarea label="สภาพแวดล้อมรอบบ้าน" value={form.environment} onChange={e=>update("environment", e.target.value)} /></div>
 </div>}
 
-{/* ===== STEP 2: ครอบครัว ===== */}
 {step === 2 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
-<div><PremiumInput label="จำนวนสมาชิกในครัวเรือน (คน)" type="number" icon="fa-people-roof" value={form.familyMembers} onChange={e=>update("familyMembers", e.target.value)} /></div>
+<div><PremiumInput label="จำนวนสมาชิกในบ้าน (คน)" type="number" icon="fa-people-roof" value={form.familyMembers} onChange={e=>update("familyMembers", e.target.value)} /></div>
 <div><PremiumInput label="จำนวนพี่น้อง (คน)" type="number" icon="fa-children" value={form.siblings} onChange={e=>update("siblings", e.target.value)} /></div>
 <div className="col-span-full"><PremiumSelect label="ความสัมพันธ์ในครอบครัว" icon="fa-hand-holding-heart" value={form.familyRelationship} onChange={e=>update("familyRelationship", e.target.value)} options={REL_OPTS} /></div>
 <div><PremiumInput label="รายได้ครัวเรือนรวม (บาท/เดือน)" icon="fa-coins" value={form.familyIncome} onChange={e=>update("familyIncome", e.target.value)} /></div>
@@ -1604,7 +1573,6 @@ return (
 <div className="col-span-full"><PremiumTextarea label="กิจกรรมที่มักทำร่วมกัน" value={form.familyActivities} onChange={e=>update("familyActivities", e.target.value)} /></div>
 </div>}
 
-{/* ===== STEP 3: ความเสี่ยง ===== */}
 {step === 3 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
 <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านสุขภาพ" icon="fa-heart-pulse" value={form.riskHealth} onChange={e=>update("riskHealth", e.target.value)} /></div>
 <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านความปลอดภัย" icon="fa-shield-halved" value={form.riskSafety} onChange={e=>update("riskSafety", e.target.value)} /></div>
@@ -1613,6 +1581,7 @@ return (
 <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านสังคม/เพื่อน" icon="fa-users-slash" value={form.riskSocial} onChange={e=>update("riskSocial", e.target.value)} /></div>
 <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านยาเสพติด" icon="fa-smoking" value={form.riskSubstance} onChange={e=>update("riskSubstance", e.target.value)} /></div>
 <div className="col-span-full"><PremiumTextarea label="ข้อห่วงใยของผู้ปกครอง" value={form.parentConcerns} onChange={e=>update("parentConcerns", e.target.value)} /></div>
+
 <div className="col-span-full mt-4 border-t border-slate-100 pt-6">
 <PremiumSelect label="สรุปความเห็นของครู" icon="fa-clipboard-user" value={form.visitResult} onChange={e=>update("visitResult", e.target.value)} options={RESULT_OPTS} />
 <PremiumTextarea label="บันทึกเพิ่มเติมจากครู" value={form.teacherNotes} onChange={e=>update("teacherNotes", e.target.value)} rows={3} />
