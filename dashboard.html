@@ -66,6 +66,10 @@
       background: #1e40af; color: white; padding: 8px 14px; font-size: 14px; font-weight: bold; 
       margin-top: 20px; margin-bottom: 0; border-radius: 4px 4px 0 0;
     }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .hide-scroll { scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+    .hide-scroll::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body class="h-screen overflow-hidden text-slate-700 bg-slate-50">
@@ -176,11 +180,10 @@
         return () => window.removeEventListener('resize', handleResize);
       }, []);
 
-      // จุดสำคัญ: ระบบเช็คการล็อกอิน โดยใช้ LocalStorage จากหน้า login.html
       useEffect(() => {
         const savedUser = localStorage.getItem("hv_user");
         if (!savedUser) { 
-          window.location.href = "login.html"; // เด้งกลับไปหน้า login.html ใน Branch นี้
+          window.location.href = "login.html";
           return; 
         }
         const u = JSON.parse(savedUser);
@@ -208,7 +211,7 @@
       const showToast = (msg, type="success") => setToast({msg, type});
       const forceRefreshData = () => { setRefreshKey(k => k + 1); if (user) fetchInitialData(user); };
 
-      if (!user) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
+      if (!user) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div></div>;
 
       return (
         <div className="flex h-full w-full bg-[#f8fafc] text-slate-700 font-sans fade-in selection:bg-blue-100 selection:text-blue-900">
@@ -581,18 +584,30 @@
           <div className="glass-card rounded-3xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
-                <thead><tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider"><th className="py-4 px-6 font-bold w-20 text-center">เลขที่</th><th className="py-4 px-6 font-bold">ชื่อ-นามสกุล</th><th className="py-4 px-6 font-bold text-center w-24">จัดการ</th></tr></thead>
-                <tbody className="divide-y divide-slate-100">
-                  {students.map((s,i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 px-6 text-center font-bold text-slate-700">{s.studentNo}</td>
-                      <td className="py-4 px-6"><span className="font-semibold text-slate-800">{s.studentName}</span> {s.nickname && <span className="text-xs text-slate-400 ml-2">( {s.nickname} )</span>}</td>
-                      <td className="py-4 px-6 text-center"><button onClick={() => handleDelete(s.studentNo)} className="w-8 h-8 rounded-full bg-white border border-slate-200 text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center mx-auto"><i className="fa-solid fa-trash-can text-sm"></i></button></td>
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 font-bold text-sm text-slate-600">เลขที่</th>
+                    <th className="px-6 py-4 font-bold text-sm text-slate-600">ชื่อ-นามสกุล</th>
+                    <th className="px-6 py-4 font-bold text-sm text-slate-600">ชื่อเล่น</th>
+                    <th className="px-6 py-4 font-bold text-sm text-slate-600">การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s, i) => (
+                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-slate-700">{s.studentNo}</td>
+                      <td className="px-6 py-4 text-slate-700">{s.studentName}</td>
+                      <td className="px-6 py-4 text-slate-600 text-sm">{s.nickname || '-'}</td>
+                      <td className="px-6 py-4">
+                        <button onClick={() => handleDelete(s.studentNo)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded-lg transition-colors text-sm font-medium">
+                          <i className="fa-solid fa-trash mr-1"></i> ลบ
+                        </button>
+                      </td>
                     </tr>
                   ))}
-                  {students.length === 0 && <tr><td colSpan="3" className="text-center py-10 text-slate-400">ไม่มีข้อมูล</td></tr>}
                 </tbody>
               </table>
+              {students.length === 0 && <div className="text-center py-12 text-slate-400">ไม่มีข้อมูลนักเรียน</div>}
             </div>
           </div>
         </div>
@@ -602,40 +617,22 @@
     function ReportExport({ user, showToast, visits, isDataLoaded, forceRefresh }) {
       const [generating, setGenerating] = useState(null);
 
-      const urlToBase64 = (url) => {
-        return new Promise((resolve) => {
-          if (!url) { resolve(null); return; }
-          if (url.startsWith('data:image')) { resolve(url); return; }
-          let imgUrl = url;
-          const driveMatch = url.match(/[-\w]{25,}/);
-          if (url.includes('drive.google.com') && driveMatch) imgUrl = `https://drive.google.com/thumbnail?id=${driveMatch[0]}&sz=w800`;
-          
-          const img = new Image(); img.crossOrigin = "anonymous";
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-              const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0); resolve(canvas.toDataURL('image/jpeg', 0.85));
-            } catch (e) { resolve(null); }
-          };
-          img.onerror = () => resolve(null); img.src = imgUrl;
-        });
+      const urlToBase64 = async (url) => {
+        try { const r = await fetch(url); const blob = await r.blob(); return new Promise(res => { const reader = new FileReader(); reader.onload = () => res(reader.result); reader.readAsDataURL(blob); }); } catch { return null; }
       };
 
       const generatePDF = async (studentName) => {
-        const data = findVisitForStudent(visits, studentName);
-        if(!data) { showToast("ไม่พบข้อมูล", "error"); return; }
-        setGenerating(studentName); showToast("กำลังเตรียมไฟล์ PDF...", "success");
-
+        setGenerating(studentName);
         try {
-          if (document.fonts && document.fonts.ready) await document.fonts.ready;
-          const setText = (id, value) => { const el = document.getElementById(id); if (el) el.innerText = value || '-'; };
-          setText('pdf-name', getVal(data, 'studentname', 'studentName')); setText('pdf-no', getVal(data, 'studentno', 'studentNo')); setText('pdf-class', getVal(data, 'classlevel', 'classLevel')); setText('pdf-nickname', getVal(data, 'nickname')); setText('pdf-semester', getVal(data, 'semester'));
-          const vDate = getVal(data, 'visitdate', 'visitDate'); setText('pdf-date', vDate ? new Date(vDate).toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric'}) : '-');
-          setText('pdf-status', getVal(data, 'visitstatus', 'visitStatus')); setText('pdf-teacher', getVal(data, 'teachername', 'teacherName'));
+          const data = findVisitForStudent(visits, studentName);
+          if (!data) { showToast("ไม่พบข้อมูล", "error"); setGenerating(null); return; }
+
+          document.getElementById('pdf-semester').textContent = getVal(data, 'semester') || '-';
+          const setText = (id, text) => document.getElementById(id).textContent = text || '-';
+          setText('pdf-name', getVal(data, 'studentname', 'studentName')); setText('pdf-nickname', getVal(data, 'nickname')); setText('pdf-class', getVal(data, 'classlevel', 'classLevel')); setText('pdf-no', getVal(data, 'studentno', 'studentNo')); setText('pdf-date', getVal(data, 'visitdate', 'visitDate') ? new Date(getVal(data, 'visitdate', 'visitDate')).toLocaleDateString('th-TH') : '-'); setText('pdf-status', getVal(data, 'visitstatus', 'visitStatus')); setText('pdf-teacher', getVal(data, 'teachername', 'teacherName'));
           setText('pdf-housetype', getVal(data, 'housetype', 'houseType')); setText('pdf-distance', getVal(data, 'distancekm', 'distanceKm') ? `${getVal(data, 'distancekm', 'distanceKm')} กม.` : '-'); setText('pdf-travel', getVal(data, 'travelmethod', 'travelMethod')); setText('pdf-housecond', getVal(data, 'housecondition', 'houseCondition')); setText('pdf-utilities', getVal(data, 'utilities')); setText('pdf-environment', getVal(data, 'environment'));
           setText('pdf-members', getVal(data, 'familymembers', 'familyMembers')); setText('pdf-siblings', getVal(data, 'siblings')); setText('pdf-rel', getVal(data, 'familyrelationship', 'familyRelationship')); setText('pdf-income', getVal(data, 'familyincome', 'familyIncome') ? `${Number(getVal(data, 'familyincome', 'familyIncome')).toLocaleString()} บาท` : '-'); setText('pdf-duties', getVal(data, 'studentduties', 'studentDuties')); setText('pdf-activities', getVal(data, 'familyactivities', 'familyActivities'));
-          setText('pdf-risk-health', getVal(data, 'riskhealth', 'riskHealth')); setText('pdf-risk-safety', getVal(data, 'risksafety', 'riskSafety')); setText('pdf-risk-travel', getVal(data, 'risktravel', 'riskTravel')); setText('pdf-risk-work', getVal(data, 'riskwork', 'riskWork')); setText('pdf-risk-social', getVal(data, 'risksocial', 'riskSocial')); setText('pdf-risk-substance', getVal(data, 'risksubstance', 'riskSubstance')); setText('pdf-concerns', getVal(data, 'parentconcerns', 'parentConcerns'));
-          setText('pdf-observations', getVal(data, 'observations')); setText('pdf-result', getVal(data, 'visitresult', 'visitResult')); setText('pdf-notes', getVal(data, 'teachernotes', 'teacherNotes'));
+          setText('pdf-risk-health', getVal(data, 'riskhealth', 'riskHealth')); setText('pdf-risk-safety', getVal(data, 'risksafety', 'riskSafety')); setText('pdf-risk-substance', getVal(data, 'risksubstance', 'riskSubstance')); setText('pdf-concerns', getVal(data, 'parentconcerns', 'parentConcerns')); setText('pdf-observations', getVal(data, 'observations')); setText('pdf-result', getVal(data, 'visitresult', 'visitResult')); setText('pdf-notes', getVal(data, 'teachernotes', 'teacherNotes'));
 
           const imgContainer = document.getElementById('pdf-images');
           const imagesStr = getVal(data, 'images');
