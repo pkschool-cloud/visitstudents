@@ -3,73 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียนอัจฉริยะ (Soft UI)</title>
+  <title>ระบบเยี่ยมบ้านนักเรียนอัจฉริยะ (Premium Edition)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
-    body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; margin: 0; color: #475569; }
+    body { font-family: 'Prompt', sans-serif; background-color: #f4f7fb; margin: 0; color: #334155; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     
-    /* Animations */
+    /* Smooth Animations */
     .fade-in { animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     .bounce-in { animation: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
     
-    /* 🌟 Soft UI Design (นวลตา ไม่กระด้าง) 🌟 */
-    .soft-card { 
+    /* Premium Glass Card */
+    .glass-card { 
       background: rgba(255, 255, 255, 0.95); 
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(241, 245, 249, 1); 
-      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.04);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 1); 
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
       border-radius: 2rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    .soft-input {
-      background-color: #f8fafc;
-      border: 1.5px solid #f1f5f9;
-      border-radius: 1.2rem;
-      padding: 1rem 1.25rem;
-      color: #475569;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-      transition: all 0.3s ease;
-      font-weight: 500;
+    /* 🌟 Premium Inputs (ช่องกรอกข้อมูลแบบใหม่) 🌟 */
+    .input-wrapper {
+      position: relative;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 1.25rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .soft-input:focus {
-      background-color: #ffffff;
-      border-color: #bfdbfe;
-      box-shadow: 0 0 0 4px rgba(191, 219, 254, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.01);
+    .input-wrapper:focus-within {
+      background: #ffffff;
+      border-color: #60a5fa;
+      box-shadow: 0 10px 25px -5px rgba(96, 165, 250, 0.2), 0 0 0 4px rgba(96, 165, 250, 0.1);
+      transform: translateY(-2px);
+    }
+    .premium-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 1rem 1.25rem;
+      font-family: 'Prompt', sans-serif;
+      font-weight: 500;
+      color: #1e293b;
       outline: none;
     }
-
-    .btn-soft {
-      border-radius: 1.2rem;
-      transition: all 0.2s ease;
-    }
-    .btn-soft:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(0,0,0,0.1); }
-    .btn-soft:active { transform: scale(0.97); box-shadow: 0 2px 5px -2px rgba(0,0,0,0.1); }
     
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    /* Button Effects */
+    .btn-press { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 9999px; }
+    .btn-press:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(0,0,0,0.15); }
+    .btn-press:active { transform: scale(0.96); box-shadow: 0 2px 5px -2px rgba(0,0,0,0.1); }
+    
+    .code-input { letter-spacing: 0.8rem; text-align: center; font-size: 1.8rem; font-weight: 700; }
     .hide-scroll::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body class="h-screen overflow-hidden bg-slate-50">
+<body class="h-screen overflow-hidden bg-[#f4f7fb]">
   <div id="root" class="h-full w-full"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 ใส่ URL จากการทำ New Deployment ตัวล่าสุดตรงนี้ 🔴
+    // 🔴 SCRIPT URL (เชื่อมหลังบ้าน V6 เรียบร้อย)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzC_KX9FHvCa_H5Fe7i0F5U3befMSOTl8aG7X5L18gZpbVQDn0CqDQCBf0bQg81QuYi/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
@@ -78,6 +91,7 @@
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
+    // ============= API =============
     const api = {
       async get(action, params = {}) {
         const q = new URLSearchParams({ action, t: Date.now(), ...params }).toString();
@@ -90,37 +104,62 @@
 
     const getVal = (obj, key) => {
       const k = Object.keys(obj).find(x => String(x).toLowerCase().trim() === String(key).toLowerCase().trim());
-      return k ? String(obj[k]).trim() : "";
+      return k && obj[k] !== undefined ? String(obj[k]).trim() : "";
     };
 
-    // --- Components ---
-    const SoftInputField = ({ label, value, onChange, type="text", placeholder="" }) => (
-      <div className="mb-5">
-        <label className="block text-sm font-bold text-slate-500 mb-2 pl-2">{label}</label>
-        <input type={type} value={value} onChange={onChange} placeholder={placeholder} className="w-full soft-input" />
+    const getVisitStatus = (visits, studentNo) => {
+      if (!visits || !studentNo) return "ยังไม่เยี่ยม";
+      const v = visits.find(v => String(getVal(v, 'studentNo')).trim() === String(studentNo).trim());
+      return v ? (getVal(v, 'visitStatus') || "ยังไม่เยี่ยม") : "ยังไม่เยี่ยม";
+    };
+
+    // ============= Premium Components =============
+    
+    // 🌟 1. ช่องกรอกข้อความแบบ Premium
+    const PremiumInput = ({ label, value, onChange, type="text", placeholder="", icon }) => (
+      <div className="mb-5 pop-in">
+        <label className="block text-sm font-bold text-slate-500 mb-2 pl-3">{label}</label>
+        <div className="input-wrapper flex items-center overflow-hidden">
+          {icon && <div className="pl-4 text-slate-400"><i className={`fa-solid ${icon}`}></i></div>}
+          <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`premium-input ${icon ? 'pl-3' : ''}`} />
+        </div>
       </div>
     );
 
-    const SoftSelectField = ({ label, value, onChange, options }) => (
-      <div className="mb-5">
-        <label className="block text-sm font-bold text-slate-500 mb-2 pl-2">{label}</label>
-        <select value={value} onChange={onChange} className="w-full soft-input appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1.2rem_center] bg-[length:0.8rem_auto]">
-          <option value="">- เลือก -</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+    // 🌟 2. ช่องเลือกข้อมูล (Dropdown) แบบ Premium
+    const PremiumSelect = ({ label, value, onChange, options, icon }) => (
+      <div className="mb-5 pop-in">
+        <label className="block text-sm font-bold text-slate-500 mb-2 pl-3">{label}</label>
+        <div className="input-wrapper flex items-center overflow-hidden relative">
+          {icon && <div className="pl-4 text-slate-400"><i className={`fa-solid ${icon}`}></i></div>}
+          <select value={value} onChange={onChange} className={`premium-input appearance-none cursor-pointer ${icon ? 'pl-3' : ''} bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1.25rem_center] bg-[length:0.8rem_auto]`}>
+            <option value="">- กรุณาเลือก -</option>
+            {options.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
       </div>
     );
 
+    // 🌟 3. ช่องกรอกยาว (Textarea) แบบ Premium
+    const PremiumTextarea = ({ label, value, onChange, rows=3, placeholder="" }) => (
+      <div className="mb-5 pop-in">
+        <label className="block text-sm font-bold text-slate-500 mb-2 pl-3">{label}</label>
+        <div className="input-wrapper">
+          <textarea rows={rows} value={value} onChange={onChange} placeholder={placeholder} className="premium-input resize-none rounded-[1.25rem]"></textarea>
+        </div>
+      </div>
+    );
+
+    // ============= Modals & Overlays =============
     const Toast = ({ msg, type, onClose }) => {
-      useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
+      useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
       return (
-        <div className={`fixed top-6 right-6 z-[9999] px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 slide-up ${type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-          <i className={`fa-solid ${type === 'success' ? 'fa-check' : 'fa-xmark'} text-xl`}></i><span className="font-bold text-sm">{msg}</span>
+        <div className={`fixed top-6 right-6 z-[9999] px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 slide-up ${type === 'success' ? 'bg-emerald-500 text-white shadow-emerald-500/40' : 'bg-rose-500 text-white shadow-rose-500/40'}`}>
+          <i className={`fa-solid ${type === 'success' ? 'fa-check' : 'fa-xmark'} text-xl`}></i><span className="font-bold text-sm tracking-wide">{msg}</span>
         </div>
       );
     };
 
-    // 📍 POPUP GPS อนิเมชันสวยงาม
     const GpsPopup = ({ status, distance }) => {
       if (!status) return null;
       return (
@@ -138,18 +177,14 @@
             )}
             {status === "success" && (
               <>
-                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6">
-                  <i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i>
-                </div>
+                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i></div>
                 <h3 className="font-black text-slate-800 text-xl mb-1">ปักหมุดสำเร็จ!</h3>
                 <p className="text-sm font-medium text-slate-500 text-center">ห่างจากโรงเรียน <span className="font-black text-emerald-600 text-lg">{distance} กม.</span></p>
               </>
             )}
             {status === "error" && (
               <>
-                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6">
-                  <i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i>
-                </div>
+                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i></div>
                 <h3 className="font-black text-slate-800 text-xl mb-1">ข้อผิดพลาด</h3>
                 <p className="text-sm font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือปิด GPS ไว้</p>
               </>
@@ -159,20 +194,24 @@
       );
     };
 
-    // ============= Main App =============
+    // ============= Main Dashboard App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
-      const [view, setView] = useState("students"); 
+      const [view, setView] = useState("students"); // หน้าหลัก
       const [selectedStudent, setSelectedStudent] = useState(null);
       const [toast, setToast] = useState(null);
+      
       const [students, setStudents] = useState([]);
       const [visits, setVisits] = useState([]);
-      const [stats, setStats] = useState({ percent: 0, visited: 0, total: 0 });
+      const [stats, setStats] = useState({ percent: 0, visited: 0, total: 0, appointed: 0, notVisited: 0 });
       const [isDataLoaded, setIsDataLoaded] = useState(false);
       const [isSaving, setIsSaving] = useState(false);
+      const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+
+      const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v7");
+        const u = localStorage.getItem("hv_user_v8");
         if (u) { setUser(JSON.parse(u)); loadAllData(JSON.parse(u)); }
       }, []);
 
@@ -192,36 +231,34 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success) {
-          localStorage.setItem("hv_user_v7", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_v8", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
-        } else setToast({msg: "รหัสไม่ถูกต้อง", type: "error"});
+        } else showToast("รหัสไม่ถูกต้อง", "error");
       };
 
-      // 🔴 แก้ปัญหาการซิงค์: Optimistic Update + หน่วงเวลาดึงข้อมูลใหม่
+      // 🔴 การเซฟแบบลิงก์ข้อมูล
       const saveVisit = async (formData, images) => {
         setIsSaving(true);
-        const data = { ...formData, teacherCode: user.code, classLevel: user.classLevel, imagesBase64: images.filter(i=>i.startsWith("data:")), existingImageUrls: images.filter(i=>!i.startsWith("data:")) };
+        const data = { ...formData, teacherCode: user.code, teacherName: user.fullName, classLevel: user.classLevel, imagesBase64: images.filter(i=>i.startsWith("data:")), existingImageUrls: images.filter(i=>!i.startsWith("data:")) };
         
         const res = await api.post({ action: "saveVisit", data });
         if (res.success) {
-          setToast({msg: "บันทึกและลิงก์ข้อมูลสำเร็จ!", type: "success"});
+          showToast("บันทึกและลิงก์ข้อมูลสำเร็จ!", "success");
           
-          // เปลี่ยน UI ทันทีให้เห็นคาตา
+          // อัปเดตหน้าจอทันที
           setVisits(prev => {
             const arr = [...prev];
             const idx = arr.findIndex(v => getVal(v, "studentNo") === data.studentNo);
-            if(idx > -1) arr[idx] = {...data, visitStatus: data.visitStatus};
-            else arr.push({...data, visitStatus: data.visitStatus});
+            const newData = {...data, timestamp: new Date().toISOString()};
+            if(idx > -1) arr[idx] = newData; else arr.push(newData);
             return arr;
           });
 
-          // หน่วงเวลา 2 วินาทีให้ Google ประมวลผลเสร็จ แล้วดึงข้อมูลใหม่
-          setTimeout(() => loadAllData(user), 2000); 
-
+          setTimeout(() => loadAllData(user), 2000); // ดึงชัวร์ๆ อีกรอบ
           setView("dashboard");
           setSelectedStudent(null);
         } else {
-          setToast({msg: "เกิดข้อผิดพลาดในการบันทึก", type: "error"});
+          showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
         }
         setIsSaving(false);
       };
@@ -229,40 +266,75 @@
       if (!user) return <Login onLogin={handleLogin} />;
 
       return (
-        <div className="flex h-screen bg-slate-50 fade-in">
+        <div className="flex h-screen bg-[#f4f7fb] fade-in">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+          
+          {/* Loading Overlay ตอนเซฟ */}
           {isSaving && (
-            <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center">
-               <div className="bg-white px-8 py-6 rounded-[2rem] shadow-2xl flex flex-col items-center">
-                  <i className="fa-solid fa-cloud-arrow-up text-4xl text-blue-500 animate-bounce mb-3"></i>
-                  <p className="font-bold text-slate-800">กำลังซิงค์ข้อมูลลงฐานระบบ...</p>
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in">
+               <div className="bg-white px-10 py-8 rounded-[2rem] shadow-2xl flex flex-col items-center bounce-in">
+                  <div className="relative w-20 h-20 mb-4 flex items-center justify-center">
+                    <div className="absolute inset-0 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
+                    <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500"></i>
+                  </div>
+                  <p className="font-black text-slate-800 text-lg">กำลังซิงค์ข้อมูล...</p>
+                  <p className="text-sm text-slate-500 mt-1">โปรดรอสักครู่ ระบบกำลังส่งรูปภาพ</p>
                </div>
             </div>
           )}
+
+          {/* Mobile Overlay */}
+          {window.innerWidth < 768 && isSidebarOpen && <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
           
-          <aside className="w-[280px] bg-white border-r border-slate-100 flex flex-col shadow-sm hidden md:flex">
+          {/* Sidebar */}
+          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full transition-transform duration-300 shadow-[10px_0_30px_rgba(0,0,0,0.02)] ${isSidebarOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full md:translate-x-0 md:w-[90px]'}`}>
              <div className="p-8 border-b border-slate-50 flex flex-col items-center">
-                <div className="w-20 h-20 bg-gradient-to-tr from-blue-100 to-indigo-50 rounded-[1.5rem] mb-4 flex items-center justify-center"><i className="fa-solid fa-chalkboard-user text-3xl text-blue-600"></i></div>
-                <h2 className="font-black text-slate-800">{user.fullName}</h2>
-                <p className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full mt-2">ชั้น {user.classLevel}</p>
+                <div className={`bg-gradient-to-tr from-blue-50 to-indigo-50 rounded-[1.5rem] mb-4 flex items-center justify-center shadow-inner transition-all ${isSidebarOpen ? 'w-20 h-20' : 'w-12 h-12'}`}>
+                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=ffffff&color=2563EB&bold=true`} className="w-full h-full rounded-[1.5rem] object-cover" />
+                </div>
+                {isSidebarOpen && (
+                  <div className="text-center fade-in">
+                    <h2 className="font-black text-slate-800 tracking-tight">{user.fullName}</h2>
+                    <p className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full mt-2 inline-block">ชั้น {user.classLevel}</p>
+                  </div>
+                )}
              </div>
-             <nav className="flex-1 p-4 space-y-3">
-                <button onClick={()=>setView("dashboard")} className={`w-full flex items-center px-6 py-4 rounded-[1.2rem] font-bold btn-soft ${view==="dashboard" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30" : "text-slate-500 hover:bg-slate-50"}`}><i className="fa-solid fa-chart-pie mr-4"></i>สรุปภาพรวม</button>
-                <button onClick={()=>setView("students")} className={`w-full flex items-center px-6 py-4 rounded-[1.2rem] font-bold btn-soft ${view==="students" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30" : "text-slate-500 hover:bg-slate-50"}`}><i className="fa-solid fa-users mr-4"></i>บันทึกเยี่ยมบ้าน</button>
+             <nav className="flex-1 p-4 space-y-2 overflow-y-auto hide-scroll">
+                <NavBtn icon="fa-chart-pie" label="สรุปภาพรวม" active={view==="dashboard"} open={isSidebarOpen} onClick={()=>{setView("dashboard"); if(window.innerWidth<768) setIsSidebarOpen(false);}} />
+                <NavBtn icon="fa-users" label="บันทึกเยี่ยมบ้าน" active={view==="students" || view==="form"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} />
+                <NavBtn icon="fa-calendar-check" label="ตารางนัดหมาย" active={view==="appointments"} open={isSidebarOpen} onClick={()=>{setView("appointments"); if(window.innerWidth<768) setIsSidebarOpen(false);}} />
+                <div className="my-2 border-t border-slate-100"></div>
+                {/* 🔴 นำเมนูที่หายไปกลับมา */}
+                <NavBtn icon="fa-user-gear" label="จัดการรายชื่อ" active={view==="manage"} open={isSidebarOpen} onClick={()=>{setView("manage"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="emerald" />
+                <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
              </nav>
-             <div className="p-6"><button onClick={()=>{localStorage.removeItem("hv_user_v7"); window.location.reload();}} className="w-full py-4 rounded-[1.2rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-100 btn-soft"><i className="fa-solid fa-power-off mr-2"></i> ออกจากระบบ</button></div>
+             <div className="p-5 border-t border-slate-50">
+               <button onClick={()=>{localStorage.removeItem("hv_user_v8"); window.location.reload();}} className={`w-full py-4 rounded-full font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+                 <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
+               </button>
+             </div>
           </aside>
 
+          {/* Main Content */}
           <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-            <header className="h-20 bg-white/60 backdrop-blur-xl px-8 flex items-center justify-between border-b border-slate-100 z-10">
-               <h1 className="font-black text-xl text-slate-800">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
-               <button onClick={()=>loadAllData(user)} className="bg-white border border-slate-200 hover:border-blue-300 text-slate-600 hover:text-blue-600 px-5 py-2.5 rounded-[1rem] font-bold text-sm btn-soft flex items-center gap-2"><i className={`fa-solid fa-rotate-right ${!isDataLoaded ? 'fa-spin' : ''}`}></i>ซิงค์ข้อมูล</button>
+            <header className="h-24 bg-[#f4f7fb]/80 backdrop-blur-xl px-6 md:px-10 flex items-center justify-between z-10 border-b border-white/50">
+               <div className="flex items-center gap-5">
+                 <button onClick={()=>setIsSidebarOpen(!isSidebarOpen)} className="w-12 h-12 bg-white rounded-full shadow-sm hover:shadow-md flex items-center justify-center text-slate-600 btn-press transition-all"><i className="fa-solid fa-bars"></i></button>
+                 <h1 className="font-black text-xl text-slate-800 tracking-tight hidden sm:block">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
+               </div>
+               <button onClick={()=>loadAllData(user)} className="bg-white border border-white hover:border-blue-200 text-slate-600 hover:text-blue-600 px-6 py-3 rounded-full font-bold text-sm btn-press flex items-center gap-2 shadow-sm transition-all">
+                 <i className={`fa-solid fa-rotate-right ${!isDataLoaded ? 'fa-spin text-blue-500' : ''}`}></i><span className="hidden sm:inline">ซิงค์ข้อมูลล่าสุด</span>
+               </button>
             </header>
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll">
-              <div className="max-w-4xl mx-auto pb-20">
-                {view === "dashboard" && <Dashboard stats={stats} visits={visits} students={students} isLoaded={isDataLoaded} />}
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
+              <div className="max-w-5xl mx-auto pb-20">
+                {view === "dashboard" && <Dashboard stats={stats} visits={visits} students={students} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("form");}} />}
                 {view === "students" && <Students students={students} visits={visits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("form");}} />}
-                {view === "form" && selectedStudent && <Form student={selectedStudent} visits={visits} onBack={()=>{setSelectedStudent(null); setView("students");}} onSave={saveVisit} />}
+                {view === "appointments" && <Appointments students={students} visits={visits} onSelect={s=>{setSelectedStudent(s); setView("form");}} />}
+                {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={students} isLoaded={isDataLoaded} />}
+                {view === "report" && <ReportExport user={user} students={students} visits={visits} showToast={showToast} isLoaded={isDataLoaded} />}
+                
+                {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={visits} onBack={()=>{setSelectedStudent(null); setView("students");}} onSave={saveVisit} showToast={showToast} />}
               </div>
             </div>
           </main>
@@ -270,56 +342,150 @@
       );
     }
 
+    const NavBtn = ({ icon, label, active, open, onClick, color="blue" }) => {
+      const colors = {
+        blue: "bg-blue-600 text-white shadow-lg shadow-blue-500/30",
+        emerald: "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30",
+        rose: "bg-rose-500 text-white shadow-lg shadow-rose-500/30"
+      };
+      return (
+        <button onClick={onClick} className={`w-full flex items-center btn-press font-bold transition-all ${active ? colors[color] : 'text-slate-500 hover:bg-white hover:shadow-sm hover:text-slate-800'} ${open ? 'px-6 py-4 rounded-[1.25rem]' : 'justify-center py-4 rounded-[1.25rem]'}`}>
+          <i className={`fa-solid ${icon} ${open ? 'mr-4' : 'text-xl'}`}></i> {open && label}
+        </button>
+      );
+    };
+
     const Login = ({ onLogin }) => {
       const [code, setCode] = useState("");
+      const [loading, setLoading] = useState(false);
       return (
-        <div className="h-screen flex items-center justify-center bg-slate-50 p-4">
-          <div className="soft-card p-10 w-full max-w-sm text-center bounce-in">
-             <div className="w-20 h-20 bg-blue-600 rounded-[1.5rem] mx-auto flex items-center justify-center mb-6 shadow-lg shadow-blue-500/40"><i className="fa-solid fa-house-chimney-user text-3xl text-white"></i></div>
-             <h2 className="text-2xl font-black text-slate-800 mb-8">เข้าสู่ระบบ</h2>
-             <input type="password" value={code} onChange={e=>setCode(e.target.value)} className="w-full bg-slate-100 border border-slate-200 rounded-[1.2rem] px-6 py-4 text-center text-xl font-black tracking-[0.5em] mb-6 focus:border-blue-400 focus:bg-white outline-none transition-colors" placeholder="รหัสครู" />
-             <button onClick={()=>onLogin(code)} className="w-full bg-slate-900 text-white font-bold py-4 rounded-[1.2rem] btn-soft shadow-lg hover:bg-blue-600 transition-colors">เข้าใช้งาน</button>
+        <div className="h-screen flex items-center justify-center bg-[#f4f7fb] p-4 relative overflow-hidden">
+          {/* Decorative Background */}
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 blur-[100px] rounded-full"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-400/20 blur-[100px] rounded-full"></div>
+
+          <div className="glass-card p-10 md:p-14 w-full max-w-md text-center bounce-in z-10 border border-white">
+             <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-[1.5rem] mx-auto flex items-center justify-center mb-8 shadow-xl shadow-blue-500/40 transform rotate-3">
+               <i className="fa-solid fa-school text-4xl text-white -rotate-3"></i>
+             </div>
+             <h2 className="text-3xl font-black text-slate-800 tracking-tight">ระบบเยี่ยมบ้าน</h2>
+             <p className="text-sm font-bold text-slate-400 mt-2 mb-8 tracking-widest uppercase">โรงเรียนป่าก้าง</p>
+             
+             <div className="input-wrapper mb-8">
+               <input type="password" value={code} onChange={e=>setCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))} className="premium-input text-center text-2xl font-black tracking-[0.5em] py-5" placeholder="รหัสครู" onKeyPress={e=>e.key==="Enter" && onLogin(code)} />
+             </div>
+             
+             <button onClick={()=>{setLoading(true); onLogin(code);}} disabled={!code || loading} className="w-full bg-slate-900 text-white font-bold py-5 rounded-full btn-press shadow-xl hover:bg-blue-600 hover:shadow-blue-500/30 transition-all text-lg flex items-center justify-center gap-3 disabled:opacity-50">
+               {loading ? <><i className="fa-solid fa-spinner fa-spin"></i> เข้าสู่ระบบ...</> : <><i className="fa-solid fa-arrow-right-to-bracket"></i> เริ่มใช้งาน</>}
+             </button>
           </div>
         </div>
       );
     };
 
-    function Dashboard({ stats, visits, students, isLoaded }) {
-      if(!isLoaded) return <div className="text-center mt-20"><i className="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i></div>;
+    // ============= Views =============
+    function Dashboard({ stats, visits, students, isLoaded, onSelect }) {
+      if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div></div>;
+      
       const actVisited = visits.filter(v => getVal(v, "visitStatus") === "เยี่ยมแล้ว").length;
+      const actApp = visits.filter(v => getVal(v, "visitStatus") === "นัดหมายแล้ว").length;
       const pct = students.length > 0 ? Math.round((actVisited/students.length)*100) : 0;
+      const recent = visits.filter(v => v.timestamp).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+
       return (
         <div className="slide-up">
-          <h2 className="text-3xl font-black text-slate-800 mb-8">สรุปภาพรวม</h2>
-          <div className="soft-card p-8 md:p-10 mb-8 flex flex-col md:flex-row items-center justify-between">
+          <div className="mb-10">
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight">สรุปภาพรวม</h2>
+            <p className="text-slate-500 font-medium mt-2">ติดตามสถานะแบบเรียลไทม์</p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
+            <StatBox icon="fa-users" label="นักเรียน" count={students.length} color="text-blue-600" bg="bg-blue-50" />
+            <StatBox icon="fa-check-circle" label="เยี่ยมแล้ว" count={actVisited} color="text-emerald-600" bg="bg-emerald-50" />
+            <StatBox icon="fa-calendar" label="นัดหมาย" count={actApp} color="text-amber-600" bg="bg-amber-50" />
+            <StatBox icon="fa-clock" label="ค้างเยี่ยม" count={students.length - actVisited - actApp} color="text-rose-600" bg="bg-rose-50" />
+          </div>
+          
+          <div className="glass-card p-8 md:p-10 mb-10 flex flex-col md:flex-row items-center justify-between">
              <div className="mb-6 md:mb-0 text-center md:text-left">
-                <h3 className="text-lg font-bold text-slate-600">ความคืบหน้าของชั้นเรียน</h3>
-                <p className="text-sm font-medium text-slate-400 mt-1">ทำเสร็จไปแล้ว {actVisited} จาก {students.length} คน</p>
+                <h3 className="text-xl font-black text-slate-800">ความคืบหน้าการเยี่ยมบ้าน</h3>
+                <p className="text-sm font-medium text-slate-500 mt-2">เยี่ยมเสร็จสมบูรณ์ {actVisited} จาก {students.length} คน</p>
              </div>
              <div className="w-full md:w-1/2">
-                <div className="flex justify-between items-end mb-2"><span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</span><span className="text-4xl font-black text-blue-600">{pct}%</span></div>
-                <div className="h-4 bg-slate-100 rounded-full p-1"><div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{width:`${pct}%`}}></div></div>
+                <div className="flex justify-between items-end mb-3"><span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</span><span className="text-4xl font-black text-blue-600">{pct}%</span></div>
+                <div className="h-4 bg-slate-100 rounded-full p-0.5 overflow-hidden"><div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000 shadow-sm" style={{width:`${pct}%`}}></div></div>
              </div>
+          </div>
+
+          <h3 className="font-bold text-slate-800 text-xl mb-5">บันทึกล่าสุด</h3>
+          <div className="space-y-4">
+             {recent.length===0 ? <p className="text-center py-10 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-medium">ยังไม่มีข้อมูล</p> : recent.map((v,i) => (
+               <div key={i} onClick={()=>onSelect(students.find(s=>String(s.studentNo)===String(v.studentNo)))} className="glass-card p-5 flex items-center justify-between cursor-pointer hover:border-blue-300 btn-press group">
+                 <div className="flex items-center gap-5">
+                   <div className="w-14 h-14 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center font-bold text-xl shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-colors">{v.studentNo}</div>
+                   <div><p className="font-bold text-slate-800 text-lg">{v.studentName}</p><p className="text-xs font-bold text-slate-400 mt-1"><i className="fa-regular fa-clock mr-1"></i>{new Date(v.timestamp).toLocaleDateString('th-TH')}</p></div>
+                 </div>
+                 <span className={`text-xs font-bold px-4 py-2 rounded-full shadow-sm ${v.visitStatus==="เยี่ยมแล้ว" ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>{v.visitStatus}</span>
+               </div>
+             ))}
           </div>
         </div>
       );
     }
+    const StatBox = ({ icon, label, count, color, bg }) => (
+      <div className="glass-card p-6 flex flex-col items-center justify-center text-center">
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${bg} ${color} mb-4 shadow-sm`}><i className={`fa-solid ${icon} text-2xl`}></i></div>
+        <p className="text-4xl font-black text-slate-800 leading-none tracking-tighter">{count}</p>
+        <p className="text-xs font-bold text-slate-400 mt-3 uppercase tracking-wider">{label}</p>
+      </div>
+    );
 
     function Students({ students, visits, isLoaded, onSelect }) {
-      if(!isLoaded) return <div className="text-center mt-20"><i className="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i></div>;
+      const [filter, setFilter] = useState("all");
+      const [search, setSearch] = useState("");
+
+      const filtered = students.filter(s => {
+        const matchStr = !search || String(s.studentName).includes(search) || String(s.studentNo).includes(search);
+        const st = getVisitStatus(visits, s.studentNo);
+        if (filter === "visited") return matchStr && st === "เยี่ยมแล้ว";
+        if (filter === "appointed") return matchStr && st === "นัดหมายแล้ว";
+        if (filter === "not_visited") return matchStr && st === "ยังไม่เยี่ยม";
+        return matchStr;
+      });
+
+      if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div></div>;
+
       return (
         <div className="slide-up">
-          <h2 className="text-3xl font-black text-slate-800 mb-8">รายชื่อนักเรียน</h2>
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight">บันทึกการเยี่ยมบ้าน</h2>
+            <p className="text-slate-500 font-medium mt-2">เลือกนักเรียนเพื่อบันทึกข้อมูล</p>
+          </div>
+
+          <div className="glass-card p-4 mb-8 flex flex-col md:flex-row gap-4">
+             <div className="flex bg-slate-100/50 p-1.5 rounded-full overflow-x-auto hide-scroll w-full md:w-auto border border-slate-100">
+               {[{id:"all", l:"ทั้งหมด"}, {id:"not_visited", l:"ยังไม่เยี่ยม"}, {id:"appointed", l:"นัดหมาย"}, {id:"visited", l:"เยี่ยมแล้ว"}].map(f => (
+                 <button key={f.id} onClick={()=>setFilter(f.id)} className={`flex-1 px-5 py-3 rounded-full text-xs font-bold transition-all whitespace-nowrap btn-press ${filter===f.id ? "bg-white shadow-md text-blue-600" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"}`}>{f.l}</button>
+               ))}
+             </div>
+             <div className="input-wrapper flex-1 flex items-center px-4 rounded-full">
+               <i className="fa-solid fa-search text-slate-400"></i>
+               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} className="premium-input rounded-full py-3" placeholder="ค้นหาชื่อ, เลขที่..." />
+             </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {students.map((s, i) => {
+            {filtered.length===0 ? <p className="col-span-full text-center py-16 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-medium">ไม่พบข้อมูลนักเรียน</p> : filtered.map((s,i) => {
               const st = getVisitStatus(visits, s.studentNo);
               return (
-                <div key={i} onClick={()=>onSelect(s)} className="soft-card p-6 flex items-center justify-between cursor-pointer hover:border-blue-300 btn-soft group">
+                <div key={i} onClick={()=>onSelect(s)} className="glass-card p-6 flex items-center justify-between cursor-pointer hover:border-blue-400 btn-press group">
                   <div className="flex items-center gap-5">
-                     <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${st==="เยี่ยมแล้ว"?'bg-emerald-50 text-emerald-600':st==="นัดหมายแล้ว"?'bg-amber-50 text-amber-600':'bg-slate-50 text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600'}`}>{s.studentNo}</div>
-                     <div><h4 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-blue-600">{s.studentName}</h4><p className="text-xs font-bold text-slate-400 mt-1">{st}</p></div>
+                     <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl shadow-inner transition-colors ${st==="เยี่ยมแล้ว"?'bg-emerald-50 text-emerald-600':st==="นัดหมายแล้ว"?'bg-amber-50 text-amber-600':'bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white'}`}>{s.studentNo}</div>
+                     <div><h4 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-blue-600 transition-colors">{s.studentName}</h4><p className="text-xs font-bold text-slate-400 mt-1">{st}</p></div>
                   </div>
-                  <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
+                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                     <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
+                  </div>
                 </div>
               );
             })}
@@ -328,17 +494,154 @@
       );
     }
 
-    function Form({ student, visits, onBack, onSave }) {
-      const exist = visits.find(v => getVal(v, "studentNo") === String(student.studentNo)) || {};
+    function Appointments({ students, visits, onSelect }) {
+      const apps = visits.filter(v => getVal(v,"visitStatus")==="นัดหมายแล้ว" && getVal(v,"appointmentDate")).map(v => ({...v, student: students.find(s=>String(s.studentNo)===String(getVal(v,"studentNo")))} )).filter(v=>v.student).sort((a,b)=>new Date(getVal(a,"appointmentDate"))-new Date(getVal(b,"appointmentDate")));
+      
+      return (
+        <div className="slide-up">
+           <h2 className="text-3xl font-black text-slate-800 mb-8 tracking-tight">ตารางนัดหมาย</h2>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+             {apps.length===0 ? <p className="col-span-full text-center py-16 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-medium">ไม่มีคิวนัดหมาย</p> : apps.map((a,i) => (
+               <div key={i} onClick={()=>onSelect(a.student)} className="glass-card p-6 cursor-pointer btn-press border-l-[6px] border-l-amber-400 flex justify-between items-center group hover:shadow-amber-500/10">
+                 <div><h4 className="font-bold text-slate-800 text-lg group-hover:text-amber-600 transition-colors">{a.student.studentName}</h4><p className="text-sm font-bold text-slate-400 mt-1">เลขที่ {a.student.studentNo}</p></div>
+                 <div className="bg-amber-50 text-amber-600 px-5 py-3 rounded-full text-sm font-bold border border-amber-100 shadow-sm"><i className="fa-solid fa-calendar mr-2"></i>{new Date(getVal(a,"appointmentDate")).toLocaleDateString("th-TH",{month:'short',day:'numeric'})}</div>
+               </div>
+             ))}
+           </div>
+        </div>
+      );
+    }
+
+    // 🔴 1. กลับมาแล้ว! ฟังก์ชันจัดการนักเรียน (เพิ่ม/นำเข้า)
+    function StudentManage({ user, showToast, refresh, students, isLoaded }) {
+      const handleImport = async (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          showToast("กำลังนำเข้าข้อมูล...", "success");
+          const wb = XLSX.read(evt.target.result, {type:'binary'}); 
+          const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+          const newSt = data.slice(1).filter(r=>r[0]&&r[1]).map(r=>({studentNo:r[0], studentName:r[1], nickname:r[2]||"", classLevel:r[3]||user.classLevel}));
+          const res = await api.post({action:"importStudents", students:newSt});
+          if(res.success){ showToast(`นำเข้าสำเร็จ ${newSt.length} คน`, "success"); refresh(user); } else showToast("เกิดข้อผิดพลาด", "error");
+        };
+        reader.readAsBinaryString(file); e.target.value="";
+      };
+      
+      const handleDelete = async (no) => {
+        if(!confirm(`ลบเลขที่ ${no} ใช่หรือไม่?`)) return;
+        const res = await api.post({action:"deleteStudent", studentNo:no, classLevel:user.classLevel});
+        if(res.success){ showToast("ลบสำเร็จ", "success"); refresh(user); } else showToast("ลบไม่สำเร็จ", "error");
+      };
+
+      if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto"></div></div>;
+
+      return (
+        <div className="slide-up">
+           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+             <div><h2 className="text-3xl font-black text-slate-800 tracking-tight">จัดการรายชื่อนักเรียน</h2></div>
+             <label className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-full font-bold shadow-lg shadow-emerald-500/30 cursor-pointer btn-press transition-colors flex items-center">
+               <i className="fa-solid fa-file-excel mr-2 text-lg"></i> นำเข้าจาก Excel
+               <input type="file" accept=".xlsx, .xls" onChange={handleImport} className="hidden" />
+             </label>
+           </div>
+           
+           <div className="glass-card overflow-hidden">
+             <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                 <thead><tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-widest"><th className="py-5 px-6 font-bold w-24 text-center">เลขที่</th><th className="py-5 px-6 font-bold">ชื่อ-นามสกุล</th><th className="py-5 px-6 font-bold text-center w-28">ลบ</th></tr></thead>
+                 <tbody className="divide-y divide-slate-100">
+                   {students.length===0 ? <tr><td colSpan="3" className="text-center py-12 text-slate-400 font-medium">ไม่มีข้อมูลนักเรียน</td></tr> : students.map((s,i) => (
+                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                       <td className="py-5 px-6 text-center font-black text-slate-700 text-lg">{s.studentNo}</td>
+                       <td className="py-5 px-6"><span className="font-bold text-slate-800 text-lg">{s.studentName}</span> {s.nickname && <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md ml-3">{s.nickname}</span>}</td>
+                       <td className="py-5 px-6 text-center"><button onClick={()=>handleDelete(s.studentNo)} className="w-10 h-10 rounded-full bg-white border border-slate-200 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all shadow-sm flex items-center justify-center mx-auto btn-press"><i className="fa-solid fa-trash-can"></i></button></td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           </div>
+        </div>
+      );
+    }
+
+    // 🔴 2. กลับมาแล้ว! ฟังก์ชันส่งออกรายงาน PDF / Excel
+    function ReportExport({ user, students, visits, showToast, isLoaded }) {
+      const exportExcel = () => {
+        const data = students.map(s => {
+          const v = visits.find(x => String(getVal(x,"studentNo")) === String(s.studentNo)) || {};
+          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":getVal(v,"visitDate"), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult") };
+        });
+        const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Report");
+        XLSX.writeFile(wb, `รายงานเยี่ยมบ้าน_${user.classLevel}.xlsx`);
+        showToast("ส่งออก Excel สำเร็จ", "success");
+      };
+
+      if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mx-auto"></div></div>;
+
+      return (
+        <div className="slide-up">
+           <h2 className="text-3xl font-black text-slate-800 mb-8 tracking-tight">ส่งออกรายงาน</h2>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+             <button onClick={exportExcel} className="glass-card p-8 text-left hover:border-emerald-300 btn-press group">
+               <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[1.2rem] flex items-center justify-center text-3xl mb-5 group-hover:scale-110 transition-transform"><i className="fa-solid fa-file-excel"></i></div>
+               <h3 className="text-xl font-black text-slate-800 mb-1">ส่งออก Excel</h3>
+               <p className="text-sm font-medium text-slate-500">สรุปข้อมูลนักเรียนทั้งหมดเป็นตาราง</p>
+             </button>
+             <div className="glass-card p-8 border-l-4 border-l-rose-400">
+                <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-[1.2rem] flex items-center justify-center text-3xl mb-5"><i className="fa-solid fa-file-pdf"></i></div>
+                <h3 className="text-xl font-black text-slate-800 mb-1">ส่งออก PDF (กำลังปรับปรุง)</h3>
+                <p className="text-sm font-medium text-slate-500">ฟังก์ชันพิมพ์รายบุคคลกำลังพัฒนาให้รองรับรูปภาพความละเอียดสูง</p>
+             </div>
+           </div>
+        </div>
+      );
+    }
+
+    // ============= THE FORM (Premium Floating Inputs + ครบทุกฟิลด์) =============
+    function VisitForm({ student, visits, onBack, onSave }) {
+      const exist = visits.find(v => String(getVal(v,"studentNo")) === String(student.studentNo)) || {};
+      
+      // 🔴 เอาตัวแปรกลับมาให้ครบทุกตัว!
       const [form, setForm] = useState({
         studentNo: student.studentNo, studentName: student.studentName,
-        semester: getVal(exist,"semester")||"1", visitStatus: getVal(exist,"visitStatus")||"เยี่ยมแล้ว", visitDate: getVal(exist,"visitDate")?new Date(getVal(exist,"visitDate")).toISOString().split("T")[0]:new Date().toISOString().split("T")[0], appointmentDate: getVal(exist,"appointmentDate")?new Date(getVal(exist,"appointmentDate")).toISOString().split("T")[0]:"",
-        houseType: getVal(exist,"houseType"), distanceKm: getVal(exist,"distanceKm"), visitResult: getVal(exist,"visitResult"), teacherNotes: getVal(exist,"teacherNotes"), images: getVal(exist,"images")?getVal(exist,"images").split(",").filter(Boolean):[]
+        semester: getVal(exist,"semester")||"1", visitStatus: getVal(exist,"visitStatus")||"เยี่ยมแล้ว", 
+        visitDate: getVal(exist,"visitDate")?new Date(getVal(exist,"visitDate")).toISOString().split("T")[0]:new Date().toISOString().split("T")[0], 
+        appointmentDate: getVal(exist,"appointmentDate")?new Date(getVal(exist,"appointmentDate")).toISOString().split("T")[0]:"",
+        observations: getVal(exist,"observations"), houseType: getVal(exist,"houseType"), distanceKm: getVal(exist,"distanceKm"), 
+        travelMethod: getVal(exist,"travelMethod"), houseCondition: getVal(exist,"houseCondition"), utilities: getVal(exist,"utilities"), environment: getVal(exist,"environment"),
+        familyMembers: getVal(exist,"familyMembers"), siblings: getVal(exist,"siblings"), familyRelationship: getVal(exist,"familyRelationship"), familyIncome: getVal(exist,"familyIncome"), studentDuties: getVal(exist,"studentDuties"), familyActivities: getVal(exist,"familyActivities"),
+        riskHealth: getVal(exist,"riskHealth"), riskSafety: getVal(exist,"riskSafety"), riskTravel: getVal(exist,"riskTravel"), riskWork: getVal(exist,"riskWork"), riskSocial: getVal(exist,"riskSocial"), riskSubstance: getVal(exist,"riskSubstance"), parentConcerns: getVal(exist,"parentConcerns"),
+        visitResult: getVal(exist,"visitResult"), teacherNotes: getVal(exist,"teacherNotes"), 
+        images: getVal(exist,"images")?getVal(exist,"images").split(",").filter(Boolean):[]
       });
+      
+      const [step, setStep] = useState(0);
       const [gpsStatus, setGpsStatus] = useState(null);
       const [gpsDist, setGpsDist] = useState("");
-
+      
+      const STEPS = ["ข้อมูล", "ที่พัก", "ครอบครัว", "ความเสี่ยง", "รูปภาพ"];
       const update = (k, v) => setForm(p => ({...p, [k]:v}));
+
+      const handleImage = (e) => {
+        Array.from(e.target.files).forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = new Image(); img.src = ev.target.result;
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const ratio = Math.min(1, 800 / img.width); 
+              canvas.width = img.width * ratio; canvas.height = img.height * ratio;
+              canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+              update("images", [...(form.images||[]), canvas.toDataURL("image/jpeg", 0.7)]);
+            };
+          };
+          reader.readAsDataURL(file);
+        });
+        e.target.value = "";
+      };
 
       const getGPS = () => {
         setGpsStatus("loading");
@@ -348,39 +651,111 @@
             const a = Math.sin(dLat/2)**2 + Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(SCHOOL_LAT*Math.PI/180)*Math.sin(dLon/2)**2;
             const dist = (R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
             update("distanceKm", dist); setGpsDist(dist); setGpsStatus("success");
-            setTimeout(() => setGpsStatus(null), 3000);
-          }, () => { setGpsStatus("error"); setTimeout(() => setGpsStatus(null), 3000); }, {enableHighAccuracy:true, timeout:10000});
-        }
+            setTimeout(() => setGpsStatus(null), 2500);
+          }, () => { setGpsStatus("error"); setTimeout(() => setGpsStatus(null), 2500); }, {enableHighAccuracy:true, timeout:10000});
+        } else { setGpsStatus("error"); setTimeout(() => setGpsStatus(null), 2500); }
       };
 
       return (
-        <div className="slide-up">
+        <div className="slide-up max-w-4xl mx-auto">
           <GpsPopup status={gpsStatus} distance={gpsDist} />
-          <div className="flex items-center gap-5 mb-8">
-            <button onClick={onBack} className="w-12 h-12 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-soft hover:text-blue-600"><i className="fa-solid fa-arrow-left"></i></button>
-            <div><h2 className="text-2xl font-black text-slate-800">{student.studentName}</h2><p className="text-sm font-bold text-blue-600 mt-1">เลขที่ {student.studentNo}</p></div>
+
+          {/* Header */}
+          <div className="flex items-center gap-6 mb-8">
+            <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:border-blue-400 hover:text-blue-600 transition-colors"><i className="fa-solid fa-arrow-left text-xl"></i></button>
+            <div><h2 className="text-3xl font-black text-slate-800 tracking-tight">{student.studentName}</h2><p className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full inline-block mt-2 shadow-sm">เลขที่ {student.studentNo}</p></div>
           </div>
 
-          <div className="soft-card p-8 md:p-12 mb-8">
-            <h3 className="font-black text-xl text-slate-800 mb-6 border-b border-slate-100 pb-4">แบบฟอร์มการเยี่ยมบ้าน</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-               <SoftSelectField label="สถานะการเยี่ยม" value={form.visitStatus} onChange={e=>update("visitStatus", e.target.value)} options={["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"]} />
-               <SoftInputField type="date" label="วันที่บันทึก" value={form.visitStatus === "นัดหมายแล้ว" ? form.appointmentDate : form.visitDate} onChange={e=>update(form.visitStatus === "นัดหมายแล้ว" ? "appointmentDate" : "visitDate", e.target.value)} />
-               <SoftInputField label="ลักษณะที่พัก" value={form.houseType} onChange={e=>update("houseType", e.target.value)} placeholder="เช่น บ้านไม้, หอพัก" />
-               
-               <div className="mb-5 relative">
-                  <label className="block text-sm font-bold text-slate-500 mb-2 pl-2">ระยะทาง (กม.)</label>
-                  <div className="flex gap-3">
-                     <input type="number" value={form.distanceKm} onChange={e=>update("distanceKm", e.target.value)} className="w-full soft-input" placeholder="0.00" />
-                     <button onClick={getGPS} className="bg-slate-900 text-white px-6 rounded-[1.2rem] font-bold btn-soft flex items-center whitespace-nowrap hover:bg-blue-600"><i className="fa-solid fa-location-dot mr-2"></i>ดึง GPS</button>
-                  </div>
-               </div>
-               
-               <div className="col-span-full mt-4"><SoftSelectField label="สรุปผลการเยี่ยม" value={form.visitResult} onChange={e=>update("visitResult", e.target.value)} options={RESULT_OPTS} /></div>
-            </div>
+          {/* Stepper Premium */}
+          <div className="bg-white p-3 rounded-full mb-8 shadow-[0_4px_15px_rgba(0,0,0,0.03)] border border-slate-100 flex justify-between relative mx-2">
+            <div className="absolute top-1/2 left-[10%] right-[10%] h-2 bg-slate-100 -translate-y-1/2 -z-10 rounded-full"><div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700 ease-out rounded-full shadow-sm" style={{ width: `${(step/(STEPS.length-1))*100}%` }}></div></div>
+            {STEPS.map((s, i) => (
+              <div key={i} onClick={() => setStep(i)} className="flex flex-col items-center cursor-pointer group btn-press w-1/5">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-black mb-2 transition-all border-[4px] ${step === i ? "bg-white border-blue-600 text-blue-600 scale-110 shadow-lg" : step > i ? "bg-blue-500 border-blue-500 text-white" : "bg-slate-50 border-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:border-slate-100"}`}>
+                  {step > i ? <i className="fa-solid fa-check text-lg"></i> : i+1}
+                </div>
+                <span className={`text-[10px] sm:text-sm font-bold text-center hidden sm:block ${step===i ? "text-blue-600" : "text-slate-400"}`}>{s}</span>
+              </div>
+            ))}
+          </div>
 
-            <div className="mt-10 pt-8 border-t border-slate-100 text-right">
-              <button onClick={()=>onSave(form, form.images)} className="px-12 py-5 rounded-full font-black text-white bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/30 btn-soft text-lg"><i className="fa-solid fa-cloud-arrow-up mr-2"></i> บันทึกเข้าระบบจริง</button>
+          {/* 🔴 นำฟิลด์ทั้งหมดกลับมาครบ 100% 🔴 */}
+          <div className="glass-card p-8 md:p-12 mb-6 min-h-[500px]">
+            {step === 0 && <div className="space-y-2 fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                 <PremiumSelect label="ภาคเรียน" icon="fa-calendar-days" value={form.semester} onChange={e=>update("semester", e.target.value)} options={["1","2"]} />
+                 <PremiumSelect label="สถานะการเยี่ยม *" icon="fa-clipboard-check" value={form.visitStatus} onChange={e=>update("visitStatus", e.target.value)} options={["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"]} />
+              </div>
+              {form.visitStatus === "นัดหมายแล้ว" ? (
+                 <PremiumInput label="วันที่นัดหมาย" type="date" icon="fa-calendar-plus" value={form.appointmentDate} onChange={e=>update("appointmentDate", e.target.value)} />
+              ) : (
+                 <PremiumInput label="วันที่เยี่ยมบ้าน" type="date" icon="fa-calendar-check" value={form.visitDate} onChange={e=>update("visitDate", e.target.value)} />
+              )}
+              <PremiumTextarea label="การสังเกตเบื้องต้น" rows={4} value={form.observations} onChange={e=>update("observations", e.target.value)} placeholder="พิมพ์ข้อความสังเกตเบื้องต้น..." />
+            </div>}
+            
+            {step === 1 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ลักษณะที่พักอาศัย" icon="fa-house-chimney" value={form.houseType} onChange={e=>update("houseType", e.target.value)} placeholder="เช่น บ้านเดี่ยว, หอพัก" /></div>
+              <div className="col-span-full md:col-span-1 relative mb-5 pop-in">
+                <label className="block text-sm font-bold text-slate-500 mb-2 pl-3">ระยะทางถึงโรงเรียน (กม.)</label>
+                <div className="flex gap-3">
+                    <div className="input-wrapper flex-1 flex items-center overflow-hidden"><div className="pl-4 text-slate-400"><i className="fa-solid fa-route"></i></div><input type="number" value={form.distanceKm} onChange={e=>update("distanceKm", e.target.value)} className="premium-input pl-3" placeholder="0.00" /></div>
+                    <button onClick={getGPS} className="bg-slate-900 text-white hover:bg-blue-600 px-6 rounded-[1.25rem] flex items-center justify-center btn-press shadow-md font-bold transition-colors whitespace-nowrap"><i className="fa-solid fa-location-dot mr-2"></i>ดึง GPS</button>
+                </div>
+              </div>
+              <div><PremiumInput label="วิธีการเดินทาง" icon="fa-car" value={form.travelMethod} onChange={e=>update("travelMethod", e.target.value)} placeholder="เช่น รถส่วนตัว, รถประจำทาง" /></div>
+              <div><PremiumSelect label="สภาพบ้าน" icon="fa-house-crack" value={form.houseCondition} onChange={e=>update("houseCondition", e.target.value)} options={HOUSE_COND} /></div>
+              <div className="col-span-full"><PremiumInput label="สิ่งอำนวยความสะดวก (น้ำ/ไฟ)" icon="fa-faucet-drip" value={form.utilities} onChange={e=>update("utilities", e.target.value)} /></div>
+              <div className="col-span-full"><PremiumTextarea label="สภาพแวดล้อมรอบบ้าน" value={form.environment} onChange={e=>update("environment", e.target.value)} /></div>
+            </div>}
+
+            {step === 2 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              <div><PremiumInput label="จำนวนสมาชิกในบ้าน (คน)" type="number" icon="fa-people-roof" value={form.familyMembers} onChange={e=>update("familyMembers", e.target.value)} /></div>
+              <div><PremiumInput label="จำนวนพี่น้อง (คน)" type="number" icon="fa-children" value={form.siblings} onChange={e=>update("siblings", e.target.value)} /></div>
+              <div className="col-span-full"><PremiumSelect label="ความสัมพันธ์ในครอบครัว" icon="fa-hand-holding-heart" value={form.familyRelationship} onChange={e=>update("familyRelationship", e.target.value)} options={REL_OPTS} /></div>
+              <div className="col-span-full"><PremiumInput label="รายได้ครอบครัวเฉลี่ย" icon="fa-coins" value={form.familyIncome} onChange={e=>update("familyIncome", e.target.value)} placeholder="เช่น 15,000 บาท/เดือน" /></div>
+              <div className="col-span-full"><PremiumInput label="ภาระงานนักเรียนเมื่ออยู่บ้าน" icon="fa-broom" value={form.studentDuties} onChange={e=>update("studentDuties", e.target.value)} /></div>
+              <div className="col-span-full"><PremiumTextarea label="กิจกรรมที่มักทำร่วมกัน" value={form.familyActivities} onChange={e=>update("familyActivities", e.target.value)} /></div>
+            </div>}
+
+            {step === 3 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านสุขภาพ" icon="fa-heart-pulse" value={form.riskHealth} onChange={e=>update("riskHealth", e.target.value)} /></div>
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านความปลอดภัย" icon="fa-shield-halved" value={form.riskSafety} onChange={e=>update("riskSafety", e.target.value)} /></div>
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านการเดินทาง" icon="fa-route" value={form.riskTravel} onChange={e=>update("riskTravel", e.target.value)} /></div>
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านเศรษฐกิจ" icon="fa-sack-dollar" value={form.riskWork} onChange={e=>update("riskWork", e.target.value)} /></div>
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านสังคม/เพื่อน" icon="fa-users-slash" value={form.riskSocial} onChange={e=>update("riskSocial", e.target.value)} /></div>
+              <div className="col-span-full md:col-span-1"><PremiumInput label="ด้านยาเสพติด" icon="fa-smoking" value={form.riskSubstance} onChange={e=>update("riskSubstance", e.target.value)} /></div>
+              <div className="col-span-full"><PremiumTextarea label="ข้อห่วงใยของผู้ปกครอง" value={form.parentConcerns} onChange={e=>update("parentConcerns", e.target.value)} /></div>
+            </div>}
+
+            {step === 4 && <div className="space-y-2 fade-in">
+              <PremiumSelect label="สรุปความเห็นของครู" icon="fa-clipboard-user" value={form.visitResult} onChange={e=>update("visitResult", e.target.value)} options={RESULT_OPTS} />
+              <PremiumTextarea label="บันทึกเพิ่มเติมจากครู" value={form.teacherNotes} onChange={e=>update("teacherNotes", e.target.value)} rows={4} />
+              <div className="mb-5 pop-in">
+                <label className="block text-sm font-bold text-slate-500 mb-4 pl-3">รูปภาพประกอบ ({form.images.length} รูป)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {form.images.map((img, i) => (
+                    <div key={i} className="relative aspect-square rounded-[1.5rem] overflow-hidden group border-4 border-slate-50 shadow-sm">
+                      <img src={img} className="w-full h-full object-cover" />
+                      <button onClick={()=>update("images", form.images.filter((_,idx)=>idx!==i))} className="absolute inset-0 bg-rose-500/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm btn-press"><i className="fa-solid fa-trash text-white text-3xl drop-shadow-md"></i></button>
+                    </div>
+                  ))}
+                  <label className="border-4 border-dashed border-blue-200 bg-blue-50/50 rounded-[1.5rem] flex flex-col items-center justify-center aspect-square cursor-pointer hover:bg-blue-100 hover:border-blue-400 transition-colors btn-press shadow-sm">
+                    <i className="fa-solid fa-camera text-4xl text-blue-400 mb-3 drop-shadow-sm"></i><span className="text-sm font-bold text-blue-600">เพิ่มรูปภาพ</span>
+                    <input type="file" accept="image/*" multiple onChange={handleImage} className="hidden"/>
+                  </label>
+                </div>
+              </div>
+            </div>}
+
+            {/* Premium Navigation Buttons */}
+            <div className="flex justify-between mt-12 pt-8 border-t border-slate-100">
+              <button onClick={() => setStep(step-1)} disabled={step===0} className="px-8 py-4 rounded-full font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 disabled:opacity-0 btn-press transition-all"><i className="fa-solid fa-arrow-left mr-3"></i>ย้อนกลับ</button>
+              {step < STEPS.length-1 ? (
+                <button onClick={() => setStep(step+1)} className="px-12 py-4 rounded-full font-black text-white bg-slate-900 hover:bg-blue-600 shadow-xl shadow-slate-300 btn-press transition-all text-lg">ถัดไป <i className="fa-solid fa-arrow-right ml-3"></i></button>
+              ) : (
+                <button onClick={() => onSave(form, form.images)} className="px-12 py-4 rounded-full font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-xl shadow-blue-500/40 btn-press transition-all text-lg"><i className="fa-solid fa-cloud-arrow-up mr-3"></i> บันทึกเข้าระบบจริง</button>
+              )}
             </div>
           </div>
         </div>
