@@ -886,8 +886,7 @@
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
-      // 🔴 ฟังก์ชันส่งออก PDF แบบแยกไฟล์รายบุคคล (ไม่รวมไฟล์) 🔴
-      // ✅ ใช้ iframe approach — ทำงานได้ 100% ไม่ติด CSS หลัก
+      // 🔴 ฟังก์ชันส่งออก PDF — ใช้ window.print() ของ browser (ทำงาน 100%)
       const exportPDF = async () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
         
@@ -895,211 +894,174 @@
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
         const dateStr = new Date().toLocaleDateString("th-TH");
 
-        // ✅ สร้าง overlay loading ครั้งเดียว
-        const overlay = document.createElement("div");
-        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);";
-        overlay.innerHTML = `
-          <div style="background:white;padding:30px 40px;border-radius:16px;text-align:center;font-family:Prompt,sans-serif;min-width:300px;">
-            <div id="pdf-spinner" style="width:60px;height:60px;border:5px solid #e2e8f0;border-top:5px solid #3b82f6;border-radius:50%;animation:pdfspin 1s linear infinite;margin:0 auto 15px;"></div>
-            <p style="font-size:16px;color:#1e293b;font-weight:600;margin:0;">กำลังสร้าง PDF...</p>
-            <p id="pdf-progress-text" style="font-size:13px;color:#64748b;margin:8px 0 0;">เตรียมข้อมูล...</p>
-          </div>
-          <style>@keyframes pdfspin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
-        `;
-        document.body.appendChild(overlay);
-
+        // ✅ สร้าง HTML สำหรับนักเรียนทุกคน (รวมในไฟล์เดียว, แยกหน้าด้วย page-break)
+        let allReportsHTML = "";
+        
         for (let i = 0; i < targetStudents.length; i++) {
           const s = targetStudents[i];
-          const progressText = document.getElementById("pdf-progress-text");
-          if (progressText) progressText.textContent = `${s.studentName} (${i + 1}/${targetStudents.length})`;
-          setPdfProgress(`กำลังดาวน์โหลด (${i + 1}/${targetStudents.length}): ${s.studentName}...`);
           
-          // ✅ หา visit แบบ flexible - ลอง 3 วิธี
+          // หา visit แบบ flexible
           let v = visits.slice().reverse().find(x => 
             compareId(getVal(x,"studentNo"), s.studentNo) && 
             getVal(x,"classLevel") === getVal(s,"classLevel")
           );
-          if (!v) {
-            v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo));
-          }
-          if (!v) {
-            v = visits.slice().reverse().find(x => 
-              String(getVal(x,"studentName")||"").trim() === String(s.studentName||"").trim()
-            );
-          }
+          if (!v) v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo));
+          if (!v) v = visits.slice().reverse().find(x => 
+            String(getVal(x,"studentName")||"").trim() === String(s.studentName||"").trim()
+          );
           if (!v) v = {};
           
-          console.log(`[PDF] ${s.studentName}:`, Object.keys(v).length > 0 ? "✅ มีข้อมูล" : "❌ ไม่มีข้อมูลเยี่ยม");
+          console.log(`[PDF] ${s.studentName}:`, Object.keys(v).length > 0 ? "✅ มีข้อมูล" : "❌ ไม่มีข้อมูล");
           
           const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
           const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
           const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
 
-          // ✅ HTML สมบูรณ์ (มี DOCTYPE + font + style ของตัวเอง)
-          const fullHTML = `<!DOCTYPE html>
+          allReportsHTML += `
+          <div class="report-page" ${i > 0 ? 'style="page-break-before: always;"' : ''}>
+            <div class="header">
+              <h1>รายงานผลการเยี่ยมบ้านนักเรียน</h1>
+              <div class="line"></div>
+              <p>โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</p>
+            </div>
+            
+            <div class="student-box">
+              <div class="student-header">
+                <h2>${i + 1}. เลขที่ ${s.studentNo} — ${s.studentName}</h2>
+              </div>
+              <table>
+                <thead>
+                  <tr><th class="label-col">ข้อมูล</th><th>รายละเอียด</th></tr>
+                </thead>
+                <tbody>
+                  <tr class="section"><td colspan="2">1. ข้อมูลทั่วไป</td></tr>
+                  <tr><td class="label">ชื่อเล่น</td><td>${s.nickname || '-'}</td></tr>
+                  <tr><td class="label">วันที่เยี่ยม</td><td>${vDate}</td></tr>
+                  <tr><td class="label">สถานะ</td><td><strong>${visitStatus}</strong></td></tr>
+                  
+                  <tr class="section"><td colspan="2">2. ที่พักอาศัยและการเดินทาง</td></tr>
+                  <tr><td class="label">ระยะทาง</td><td>${dist}</td></tr>
+                  <tr><td class="label">ลักษณะที่พัก</td><td>${getVal(v, "houseType") || '-'}</td></tr>
+                  <tr><td class="label">สภาพบ้าน</td><td>${getVal(v, "houseCondition") || '-'}</td></tr>
+                  <tr><td class="label">วิธีการเดินทาง</td><td>${getVal(v, "travelMethod") || '-'}</td></tr>
+                  <tr><td class="label">สาธารณูปโภค</td><td>${getVal(v, "utilities") || '-'}</td></tr>
+                  <tr><td class="label">สภาพแวดล้อม</td><td>${getVal(v, "environment") || '-'}</td></tr>
+                  
+                  <tr class="section"><td colspan="2">3. ข้อมูลครอบครัว</td></tr>
+                  <tr><td class="label">จำนวนสมาชิกในบ้าน</td><td>${getVal(v, "familyMembers") ? getVal(v, "familyMembers") + " คน" : '-'}</td></tr>
+                  <tr><td class="label">จำนวนพี่น้อง</td><td>${getVal(v, "siblings") ? getVal(v, "siblings") + " คน" : '-'}</td></tr>
+                  <tr><td class="label">รายได้ครอบครัวเฉลี่ย</td><td>${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
+                  <tr><td class="label">ความสัมพันธ์</td><td>${getVal(v, "familyRelationship") || '-'}</td></tr>
+                  <tr><td class="label">ภาระงานอยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
+                  <tr><td class="label">กิจกรรมที่มักทำร่วมกัน</td><td>${getVal(v, "familyActivities") || '-'}</td></tr>
+                  
+                  <tr class="section"><td colspan="2">4. ข้อมูลด้านความเสี่ยง</td></tr>
+                  <tr><td class="label">ด้านสุขภาพ</td><td>${getVal(v, "riskHealth") || '-'}</td></tr>
+                  <tr><td class="label">ด้านความปลอดภัย</td><td>${getVal(v, "riskSafety") || '-'}</td></tr>
+                  <tr><td class="label">ด้านการเดินทาง</td><td>${getVal(v, "riskTravel") || '-'}</td></tr>
+                  <tr><td class="label">ด้านเศรษฐกิจ/การงาน</td><td>${getVal(v, "riskWork") || '-'}</td></tr>
+                  <tr><td class="label">ด้านการคบเพื่อน/สังคม</td><td>${getVal(v, "riskSocial") || '-'}</td></tr>
+                  <tr><td class="label">ด้านสารเสพติด</td><td>${getVal(v, "riskSubstance") || '-'}</td></tr>
+                  <tr><td class="label">ข้อห่วงใยของผู้ปกครอง</td><td>${getVal(v, "parentConcerns") || '-'}</td></tr>
+                  
+                  <tr class="section"><td colspan="2">5. สรุปผล</td></tr>
+                  <tr><td class="label">สรุปความเห็นของครู</td><td class="result-cell">${getVal(v, "visitResult") || '-'}</td></tr>
+                  <tr><td class="label">บันทึกเพิ่มเติม</td><td>${getVal(v, "teacherNotes") || '-'}</td></tr>
+                  <tr><td class="label">การสังเกตเบื้องต้น</td><td>${getVal(v, "observations") || '-'}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="signature">
+              <div class="sig-box">
+                <div class="line-sig"></div>
+                <p>ลงชื่อ ............................................</p>
+                <p><strong>(${user.fullName})</strong></p>
+                <p>ครูประจำชั้น</p>
+              </div>
+              <div class="sig-box">
+                <div class="line-sig"></div>
+                <p>ลงชื่อ ............................................</p>
+                <p><strong>(........................................)</strong></p>
+                <p>ผู้อำนวยการสถานศึกษา</p>
+              </div>
+            </div>
+          </div>`;
+        }
+
+        // ✅ HTML สมบูรณ์ พร้อม script ที่สั่ง print() อัตโนมัติ
+        const fullHTML = `<!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>รายงานเยี่ยมบ้าน</title>
+<title>รายงานเยี่ยมบ้านนักเรียน</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Sarabun', sans-serif; padding: 0; color: #1e293b; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .report { padding: 25px 30px; }
-  .header { text-align: center; margin-bottom: 20px; }
-  .header h1 { color: #1e3a8a; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-  .header .line { height: 2px; background: #3b82f6; margin: 10px 0; }
+  body { font-family: 'Sarabun', sans-serif; color: #1e293b; background: #fff; }
+  .report-page { padding: 20px 25px; max-width: 800px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 18px; }
+  .header h1 { color: #1e3a8a; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .header .line { height: 2px; background: #3b82f6; margin: 8px 0; }
   .header p { color: #475569; font-size: 13px; }
-  .student-box { border: 2px solid #60a5fa; border-radius: 8px; overflow: hidden; }
-  .student-header { background: #eff6ff; padding: 10px 15px; border-bottom: 2px solid #60a5fa; }
-  .student-header h2 { color: #1e3a8a; font-size: 16px; font-weight: 700; }
+  .student-box { border: 2px solid #60a5fa; border-radius: 6px; overflow: hidden; }
+  .student-header { background: #eff6ff; padding: 10px 14px; border-bottom: 2px solid #60a5fa; }
+  .student-header h2 { color: #1e3a8a; font-size: 15px; font-weight: 700; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #e0e7ff; color: #1e3a8a; padding: 8px 12px; border-bottom: 1px solid #bfdbfe; text-align: left; font-weight: 700; }
-  th.label { width: 35%; border-right: 1px solid #bfdbfe; }
-  td { padding: 6px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-  td.label { font-weight: 600; color: #475569; border-right: 1px solid #e2e8f0; background: #fafbfc; }
-  tr.section td { background: #f1f5f9; padding: 7px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1; }
-  .result-cell { font-weight: 700; color: #1e40af; }
-  .signature { margin-top: 40px; display: flex; justify-content: space-around; }
-  .sig-box { text-align: center; width: 45%; font-size: 13px; }
-  .sig-box .line-sig { border-bottom: 1px dotted #475569; height: 35px; margin-bottom: 6px; }
+  th { background: #e0e7ff; color: #1e3a8a; padding: 7px 12px; border-bottom: 1px solid #bfdbfe; text-align: left; font-weight: 700; }
+  th.label-col { width: 35%; border-right: 1px solid #bfdbfe; }
+  td { padding: 5px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  td.label { font-weight: 600; color: #475569; border-right: 1px solid #e2e8f0; background: #fafbfc; width: 35%; }
+  tr.section td { background: #f1f5f9; padding: 6px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1; }
+  td.result-cell { font-weight: 700; color: #1e40af; }
+  .signature { margin-top: 35px; display: flex; justify-content: space-around; page-break-inside: avoid; }
+  .sig-box { text-align: center; width: 45%; font-size: 12px; }
+  .sig-box .line-sig { border-bottom: 1px dotted #475569; height: 40px; margin-bottom: 6px; }
   .sig-box p { margin: 3px 0; color: #475569; }
   .sig-box strong { color: #1e293b; }
+  
+  /* Print Settings */
+  @page { size: A4 portrait; margin: 12mm 10mm; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-page { padding: 0; }
+  }
 </style>
 </head>
 <body>
-<div class="report">
-  <div class="header">
-    <h1>รายงานผลการเยี่ยมบ้านนักเรียน</h1>
-    <div class="line"></div>
-    <p>โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</p>
-  </div>
-  
-  <div class="student-box">
-    <div class="student-header">
-      <h2>${i + 1}. เลขที่ ${s.studentNo} — ${s.studentName}</h2>
-    </div>
-    <table>
-      <thead>
-        <tr><th class="label">ข้อมูล</th><th>รายละเอียด</th></tr>
-      </thead>
-      <tbody>
-        <tr class="section"><td colspan="2">1. ข้อมูลทั่วไป</td></tr>
-        <tr><td class="label">ชื่อเล่น</td><td>${s.nickname || '-'}</td></tr>
-        <tr><td class="label">วันที่เยี่ยม</td><td>${vDate}</td></tr>
-        <tr><td class="label">สถานะ</td><td><strong>${visitStatus}</strong></td></tr>
-        
-        <tr class="section"><td colspan="2">2. ที่พักอาศัยและการเดินทาง</td></tr>
-        <tr><td class="label">ระยะทาง</td><td>${dist}</td></tr>
-        <tr><td class="label">ลักษณะที่พัก</td><td>${getVal(v, "houseType") || '-'}</td></tr>
-        <tr><td class="label">สภาพบ้าน</td><td>${getVal(v, "houseCondition") || '-'}</td></tr>
-        <tr><td class="label">วิธีการเดินทาง</td><td>${getVal(v, "travelMethod") || '-'}</td></tr>
-        <tr><td class="label">สาธารณูปโภค</td><td>${getVal(v, "utilities") || '-'}</td></tr>
-        <tr><td class="label">สภาพแวดล้อม</td><td>${getVal(v, "environment") || '-'}</td></tr>
-        
-        <tr class="section"><td colspan="2">3. ข้อมูลครอบครัว</td></tr>
-        <tr><td class="label">จำนวนสมาชิกในบ้าน</td><td>${getVal(v, "familyMembers") ? getVal(v, "familyMembers") + " คน" : '-'}</td></tr>
-        <tr><td class="label">จำนวนพี่น้อง</td><td>${getVal(v, "siblings") ? getVal(v, "siblings") + " คน" : '-'}</td></tr>
-        <tr><td class="label">รายได้ครอบครัวเฉลี่ย</td><td>${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
-        <tr><td class="label">ความสัมพันธ์</td><td>${getVal(v, "familyRelationship") || '-'}</td></tr>
-        <tr><td class="label">ภาระงานอยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
-        <tr><td class="label">กิจกรรมที่มักทำร่วมกัน</td><td>${getVal(v, "familyActivities") || '-'}</td></tr>
-        
-        <tr class="section"><td colspan="2">4. ข้อมูลด้านความเสี่ยง</td></tr>
-        <tr><td class="label">ด้านสุขภาพ</td><td>${getVal(v, "riskHealth") || '-'}</td></tr>
-        <tr><td class="label">ด้านความปลอดภัย</td><td>${getVal(v, "riskSafety") || '-'}</td></tr>
-        <tr><td class="label">ด้านการเดินทาง</td><td>${getVal(v, "riskTravel") || '-'}</td></tr>
-        <tr><td class="label">ด้านเศรษฐกิจ/การงาน</td><td>${getVal(v, "riskWork") || '-'}</td></tr>
-        <tr><td class="label">ด้านการคบเพื่อน/สังคม</td><td>${getVal(v, "riskSocial") || '-'}</td></tr>
-        <tr><td class="label">ด้านสารเสพติด</td><td>${getVal(v, "riskSubstance") || '-'}</td></tr>
-        <tr><td class="label">ข้อห่วงใยของผู้ปกครอง</td><td>${getVal(v, "parentConcerns") || '-'}</td></tr>
-        
-        <tr class="section"><td colspan="2">5. สรุปผล</td></tr>
-        <tr><td class="label">สรุปความเห็นของครู</td><td class="result-cell">${getVal(v, "visitResult") || '-'}</td></tr>
-        <tr><td class="label">บันทึกเพิ่มเติม</td><td>${getVal(v, "teacherNotes") || '-'}</td></tr>
-        <tr><td class="label">การสังเกตเบื้องต้น</td><td>${getVal(v, "observations") || '-'}</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="signature">
-    <div class="sig-box">
-      <div class="line-sig"></div>
-      <p>ลงชื่อ ............................................</p>
-      <p><strong>(${user.fullName})</strong></p>
-      <p>ครูประจำชั้น</p>
-    </div>
-    <div class="sig-box">
-      <div class="line-sig"></div>
-      <p>ลงชื่อ ............................................</p>
-      <p><strong>(........................................)</strong></p>
-      <p>ผู้อำนวยการสถานศึกษา</p>
-    </div>
-  </div>
-</div>
+${allReportsHTML}
+<script>
+  // รอ font load แล้วค่อย print
+  window.addEventListener('load', function() {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function() {
+        setTimeout(function() {
+          window.print();
+        }, 800);
+      });
+    } else {
+      setTimeout(function() { window.print(); }, 1500);
+    }
+  });
+</script>
 </body>
 </html>`;
 
-          // ✅ สร้าง iframe โดดเดี่ยว — CSS หลักไม่ทับ
-          const iframe = document.createElement("iframe");
-          iframe.style.cssText = "position:fixed;top:0;left:0;width:794px;height:1123px;border:0;visibility:hidden;z-index:-1;";
-          document.body.appendChild(iframe);
-
-          try {
-            // ✅ เขียน HTML เข้า iframe
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(fullHTML);
-            iframeDoc.close();
-
-            // ✅ รอ font + DOM render เสร็จ
-            await new Promise(r => setTimeout(r, 1500));
-            
-            // ✅ รอ font ใน iframe
-            if (iframe.contentDocument.fonts && iframe.contentDocument.fonts.ready) {
-              await iframe.contentDocument.fonts.ready;
-            }
-            await new Promise(r => setTimeout(r, 500));
-
-            // ✅ ดึง element body จาก iframe
-            const reportElement = iframeDoc.body;
-            
-            // สั่งพิมพ์ — ใช้ html2pdf จากหน้าหลัก แต่ render element ใน iframe
-            const safeName = s.studentName.replace(/\s+/g, '_');
-            await html2pdf().set({
-              margin: [10, 10, 10, 10],
-              filename: `รายงานเยี่ยมบ้าน_เลขที่${s.studentNo}_${safeName}.pdf`,
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: "#ffffff",
-                letterRendering: true,
-                logging: false,
-                width: 794,
-                windowWidth: 794
-              },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            }).from(reportElement).save();
-            
-            await new Promise(r => setTimeout(r, 500));
-            
-          } catch (e) {
-            console.error("PDF generation failed for", s.studentName, e);
-          } finally {
-            if (iframe.parentNode) document.body.removeChild(iframe);
-          }
-        } 
-
-        // ลบ overlay หลังจากเสร็จทั้งหมด
-        if (overlay.parentNode) document.body.removeChild(overlay);
+        // ✅ เปิดหน้าต่างใหม่ — เขียน HTML — เรียก print() อัตโนมัติ
+        const printWindow = window.open("", "_blank", "width=900,height=1000");
+        if (!printWindow) {
+          showToast("⚠️ กรุณาอนุญาตให้เปิด pop-up", "warning");
+          setGenerating(false);
+          return;
+        }
+        printWindow.document.open();
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
 
         setGenerating(false);
         setPdfProgress("");
-        showToast(`ดาวน์โหลดเอกสารสำเร็จ จำนวน ${targetStudents.length} ไฟล์`, "success");
-        setSelectedStudents(new Set()); // ล้างการเลือก
+        showToast(`เปิดหน้าพิมพ์แล้ว — กด "Save as PDF"`, "success");
+        setSelectedStudents(new Set());
       };
 
       if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mx-auto"></div></div>;
