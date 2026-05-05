@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียน (Ultimate Profile & Search)</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน (Ultimate PDF & Profile)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -42,25 +42,19 @@
     .btn-press:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(0,0,0,0.15); }
     .btn-press:active { transform: scale(0.96); box-shadow: 0 2px 5px -2px rgba(0,0,0,0.1); }
     
-    .code-input { letter-spacing: 0.8rem; text-align: center; font-size: 1.8rem; font-weight: 700; }
     .hide-scroll::-webkit-scrollbar { display: none; }
-
-    #pdf-report-container { position: fixed; left: 0; top: 0; width: 794px; background: white; padding: 40px; font-family: 'Sarabun', sans-serif; color: #000; z-index: -9999; visibility: hidden; pointer-events: none; }
-    #pdf-report-container.pdf-rendering { visibility: visible; z-index: -1; }
-    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-    .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 8px 10px; text-align: left; vertical-align: top; }
-    .pdf-table th { background-color: #e8f0fe; font-weight: bold; width: 32%; color: #1e3a8a; }
-    .pdf-section-title { background: #1e40af; color: white; padding: 8px 14px; font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 0; border-radius: 4px 4px 0 0; }
   </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50">
   <div id="root" class="h-full w-full"></div>
+  
+  <div id="pdf-engine-root" style="position: absolute; left: -9999px; top: -9999px; visibility: hidden; width: 800px; background: #fff; z-index: -100;"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 SCRIPT URL ตัวเดิมที่ทำงานได้เสถียร
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw4EnwViXogMbEVrICohyFS7Z6gb1GYTJZSOjvVIWfn2cNNE8m30nKP7uuEIYHOuXrM/exec";
+    // 🔴 ใส่ URL ที่ Deploy ล่าสุดตรงนี้ 🔴
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhsSolB88xpEQUdzV6GuYeY_GTI7kGDFQWzk6ApTEz5esM_IQitAqR0g4z--9GxNzT/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
     const HOUSE_COND = ["ดีมาก","ดี","ปานกลาง","ทรุดโทรม","ไม่ปลอดภัย"];
@@ -89,6 +83,11 @@
       if (!visits || !studentNo) return "ยังไม่เยี่ยม";
       const v = visits.find(v => compareId(getVal(v, 'studentNo'), studentNo));
       return v ? (getVal(v, 'visitStatus') || "ยังไม่เยี่ยม") : "ยังไม่เยี่ยม";
+    };
+
+    const checkIsAdmin = (lvl) => {
+      const c = String(lvl).toLowerCase().trim();
+      return c === "แอดมิน" || c === "admin" || c === "ทั้งหมด" || c === "ผู้บริหาร";
     };
 
     // ============= UI Components =============
@@ -133,41 +132,7 @@
       );
     };
 
-    const GpsPopup = ({ status, distance }) => {
-      if (!status) return null;
-      return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center fade-in">
-          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl flex flex-col items-center bounce-in w-[340px]">
-            {status === "loading" && (
-              <>
-                <div className="relative flex justify-center items-center w-24 h-24 bg-blue-50 rounded-full mb-6">
-                  <div className="absolute inset-0 border-[4px] border-blue-300 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] opacity-70"></div>
-                  <i className="fa-solid fa-location-crosshairs text-4xl text-blue-500"></i>
-                </div>
-                <h3 className="font-black text-slate-800 text-2xl mb-1">คำนวณพิกัด</h3>
-                <p className="font-medium text-slate-500 text-center">ค้นหาระยะทางจากโรงเรียน...</p>
-              </>
-            )}
-            {status === "success" && (
-              <>
-                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i></div>
-                <h3 className="font-black text-slate-800 text-2xl mb-1">สำเร็จ!</h3>
-                <p className="font-medium text-slate-500 text-center">ห่างจากโรงเรียน <span className="font-black text-emerald-600 text-xl">{distance} กม.</span></p>
-              </>
-            )}
-            {status === "error" && (
-              <>
-                <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i></div>
-                <h3 className="font-black text-slate-800 text-2xl mb-1">ข้อผิดพลาด</h3>
-                <p className="font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือปิด GPS ไว้</p>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    };
-
-    // ============= Main Dashboard App =============
+    // ============= Main App =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
       const [view, setView] = useState("dashboard"); 
@@ -182,19 +147,12 @@
       const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
       const [adminClassFilter, setAdminClassFilter] = useState("ทั้งหมด");
-      
-      // 🌟 State สำหรับ Live Search ใน Sidebar 🌟
       const [sidebarSearch, setSidebarSearch] = useState("");
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
-      const checkIsAdmin = (lvl) => {
-        const c = String(lvl).toLowerCase().trim();
-        return c === "แอดมิน" || c === "admin" || c === "ทั้งหมด" || c === "ผู้บริหาร";
-      };
-
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_v11");
+        const u = localStorage.getItem("hv_user_v12");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -216,7 +174,7 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success) {
-          localStorage.setItem("hv_user_v11", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_v12", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
@@ -227,15 +185,11 @@
         
         const res = await api.post({ action: "saveVisit", data });
         if (res.success) {
-          showToast("บันทึกและลิงก์ข้อมูลสำเร็จ!", "success");
-          
-          // โหลดข้อมูลล่าสุด
+          showToast("บันทึกข้อมูลเรียบร้อย!", "success");
           await loadAllData(user); 
-          
-          // พาไปหน้า Profile สรุปรวม (ไม่ใช่หน้าลิสต์แล้ว)
-          setView("profile");
+          setView("profile"); 
         } else {
-          showToast("เกิดข้อผิดพลาดในการบันทึก", "error");
+          showToast(res.message || "เกิดข้อผิดพลาด", "error");
         }
         setIsSaving(false);
       };
@@ -253,13 +207,12 @@
           ? globalVisits.filter(v => getVal(v, 'classLevel', 'classlevel') === adminClassFilter)
           : globalVisits;
 
-      // 🌟 คำนวณผลลัพธ์การค้นหาใน Sidebar 🌟
       const sidebarSearchResults = sidebarSearch 
         ? displayedStudents.filter(s => 
             String(s.studentName).includes(sidebarSearch) || 
             String(s.studentNo).includes(sidebarSearch) || 
             (s.nickname && String(s.nickname).includes(sidebarSearch))
-          ).slice(0, 6) // แสดงแค่ 6 คนแรกกันล้น
+          ).slice(0, 5) 
         : [];
 
       return (
@@ -293,14 +246,12 @@
                 )}
              </div>
              
-             {/* 🌟 ช่องค้นหาประวัติใน Sidebar 🌟 */}
              {isSidebarOpen && (
                <div className="px-5 mt-5 mb-2 relative fade-in z-50">
                  <div className="input-wrapper flex items-center bg-slate-50 border-slate-200 rounded-[1.2rem] px-4 py-3">
                    <i className="fa-solid fa-search text-slate-400"></i>
-                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัติ..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
+                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัติเด็ก..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
                  </div>
-                 {/* Live Search Results Dropdown */}
                  {sidebarSearch && (
                    <div className="absolute top-full left-5 right-5 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden pop-in">
                      {sidebarSearchResults.length === 0 ? (
@@ -311,9 +262,11 @@
                           setView("profile"); 
                           setSidebarSearch(""); 
                           if(window.innerWidth < 768) setIsSidebarOpen(false); 
-                        }} className="w-full text-left px-5 py-3.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex flex-col transition-colors group">
-                          <span className="font-black text-slate-800 text-sm group-hover:text-blue-600">{s.studentName}</span>
-                          <span className="text-xs text-slate-400 font-bold mt-0.5">เลขที่ {s.studentNo} {isAdmin && `• ชั้น ${getVal(s, "classLevel")}`}</span>
+                        }} className="w-full text-left px-5 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center gap-3 transition-colors group">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">{s.studentNo}</div>
+                          <div className="flex-1 overflow-hidden">
+                            <span className="font-black text-slate-800 text-sm group-hover:text-blue-600 truncate block">{s.studentName}</span>
+                          </div>
                         </button>
                      ))}
                    </div>
@@ -323,14 +276,14 @@
 
              <nav className="flex-1 p-5 space-y-2 overflow-y-auto hide-scroll z-40">
                 <NavBtn icon="fa-chart-pie" label="สรุปภาพรวม" active={view==="dashboard"} open={isSidebarOpen} onClick={()=>{setView("dashboard"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
-                <NavBtn icon="fa-users" label="บันทึกเยี่ยมบ้าน" active={view==="students" || view==="form" || view==="profile"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
+                <NavBtn icon="fa-users" label="รายชื่อทั้งหมด" active={view==="students" || view==="form" || view==="profile"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
                 <NavBtn icon="fa-calendar-check" label="ตารางนัดหมาย" active={view==="appointments"} open={isSidebarOpen} onClick={()=>{setView("appointments"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
                 <div className="my-3 border-t border-slate-100"></div>
                 <NavBtn icon="fa-user-gear" label="จัดการรายชื่อ" active={view==="manage"} open={isSidebarOpen} onClick={()=>{setView("manage"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="emerald" />
                 <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
              </nav>
              <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_v11"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+               <button onClick={()=>{localStorage.removeItem("hv_user_v12"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
                  <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
                </button>
              </div>
@@ -359,19 +312,21 @@
                </button>
             </header>
             
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll" onClick={() => setSidebarSearch("")}> {/* คลิกพื้นที่ว่างเพื่อปิด pop-up ค้นหา */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll" onClick={() => setSidebarSearch("")}>
               <div className="max-w-5xl mx-auto pb-20">
                 {view === "dashboard" && <Dashboard visits={displayedVisits} students={displayedStudents} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} isAdmin={isAdmin} />}
                 {view === "students" && <Students students={displayedStudents} visits={displayedVisits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
-                {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} uniqueClasses={uniqueClasses} />}
+                {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
+                
+                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดใหม่ 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
-                {/* 🌟 มุมมองประวัติรายบุคคล (อ่านง่าย สบายตา) */}
+                {/* 🌟 หน้าประวัติ 🌟 */}
                 {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} />}
 
-                {/* มุมมองฟอร์มแก้ไข/กรอกข้อมูล */}
-                {view === "form" && selectedStudent && <VisitForm user={user} student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
+                {/* 🌟 หน้าฟอร์มแก้ไข 🌟 */}
+                {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
               </div>
             </div>
           </main>
@@ -398,7 +353,7 @@
       const [code, setCode] = useState("");
       const [loading, setLoading] = useState(false);
       return (
-        <div className="h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
+        <div className="h-screen flex items-center justify-center bg-[#f4f7fb] p-4 relative overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 blur-[100px] rounded-full"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-400/20 blur-[100px] rounded-full"></div>
 
@@ -421,15 +376,12 @@
       );
     };
 
-    // ============= 🌟 Student Profile View (อ่านง่าย ข้อมูลครบ) 🌟 =============
     function StudentProfileView({ student, visits, onBack, onEdit }) {
       const v = visits.find(x => compareId(getVal(x,"studentNo"), student.studentNo) && getVal(x,"classLevel") === getVal(student,"classLevel")) || {};
       const status = getVisitStatus(visits, student.studentNo);
       
       const imagesStr = getVal(v, "images");
       const images = imagesStr ? imagesStr.split(",").filter(Boolean) : [];
-      
-      // ตัวช่วยแสดงผล (ถ้าว่าง ให้แสดงเป็นขีด)
       const disp = (val) => val ? <span className="font-bold text-slate-800">{val}</span> : <span className="text-slate-300 font-medium">-</span>;
 
       return (
@@ -437,24 +389,22 @@
           <div className="flex items-center justify-between mb-8">
             <button onClick={onBack} className="w-14 h-14 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:border-blue-400 hover:text-blue-600 transition-colors"><i className="fa-solid fa-arrow-left text-xl"></i></button>
             <button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-full font-bold shadow-lg shadow-blue-500/30 btn-press flex items-center gap-3">
-              <i className="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูล
+              <i className="fa-solid fa-pen-to-square"></i> บันทึก / แก้ไขข้อมูล
             </button>
           </div>
 
-          {/* Profile Header */}
           <div className="soft-card p-8 md:p-12 mb-8 relative overflow-hidden">
              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl transform translate-x-20 -translate-y-20 pointer-events-none"></div>
-             
              <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-               <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-black text-5xl shadow-xl shadow-blue-500/30 flex-shrink-0">
+               <div className="w-32 h-32 rounded-[2rem] bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-black text-5xl shadow-xl shadow-blue-500/30 flex-shrink-0">
                   {student.studentNo}
                </div>
                <div className="text-center md:text-left flex-1">
-                 <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight mb-3">{student.studentName}</h2>
+                 <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight mb-4">{student.studentName}</h2>
                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                    <span className="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-sm font-bold border border-slate-200">ชั้น {getVal(student, "classLevel")}</span>
                    {student.nickname && <span className="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-sm font-bold border border-slate-200">ชื่อเล่น: {student.nickname}</span>}
-                   <span className={`px-4 py-1.5 rounded-lg text-sm font-bold border shadow-sm ${status==="เยี่ยมแล้ว" ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : status==="นัดหมายแล้ว" ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-rose-50 text-rose-500 border-rose-100'}`}>
+                   <span className={`px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm ${status==="เยี่ยมแล้ว" ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : status==="นัดหมายแล้ว" ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-rose-50 text-rose-500 border border-rose-100'}`}>
                      สถานะ: {status}
                    </span>
                  </div>
@@ -462,12 +412,10 @@
              </div>
           </div>
 
-          {/* Details Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-             {/* ซ้าย */}
              <div className="space-y-8">
-                <div className="soft-card p-8">
-                  <h3 className="text-xl font-black text-blue-600 mb-6 flex items-center"><i className="fa-solid fa-house-chimney mr-3"></i> ที่พักและการเดินทาง</h3>
+                <div className="soft-card p-8 md:p-10">
+                  <h3 className="text-xl font-black text-blue-600 mb-6 flex items-center"><i className="fa-solid fa-house-chimney mr-3"></i> ข้อมูลที่พักและการเดินทาง</h3>
                   <div className="space-y-4">
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ลักษณะที่พัก</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseType"))}</div></div>
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สภาพบ้าน</div><div className="col-span-2 text-sm">{disp(getVal(v,"houseCondition"))}</div></div>
@@ -478,7 +426,7 @@
                   </div>
                 </div>
 
-                <div className="soft-card p-8">
+                <div className="soft-card p-8 md:p-10">
                   <h3 className="text-xl font-black text-rose-500 mb-6 flex items-center"><i className="fa-solid fa-triangle-exclamation mr-3"></i> ข้อมูลด้านความเสี่ยง</h3>
                   <div className="space-y-4">
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ด้านสุขภาพ</div><div className="col-span-2 text-sm">{disp(getVal(v,"riskHealth"))}</div></div>
@@ -491,9 +439,8 @@
                 </div>
              </div>
 
-             {/* ขวา */}
              <div className="space-y-8">
-                <div className="soft-card p-8">
+                <div className="soft-card p-8 md:p-10">
                   <h3 className="text-xl font-black text-emerald-500 mb-6 flex items-center"><i className="fa-solid fa-people-roof mr-3"></i> ข้อมูลครอบครัว</h3>
                   <div className="space-y-4">
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สมาชิกในบ้าน</div><div className="col-span-2 text-sm">{getVal(v,"familyMembers") ? <span className="font-bold text-slate-800">{getVal(v,"familyMembers")} คน</span> : disp("")}</div></div>
@@ -505,7 +452,7 @@
                   </div>
                 </div>
 
-                <div className="soft-card p-8 bg-slate-800 text-white border-none">
+                <div className="soft-card p-8 md:p-10 bg-slate-800 text-white border-none">
                   <h3 className="text-xl font-black text-blue-300 mb-6 flex items-center"><i className="fa-solid fa-clipboard-check mr-3"></i> สรุปผลจากครูประจำชั้น</h3>
                   <div className="space-y-4">
                      <div>
@@ -525,17 +472,16 @@
              </div>
           </div>
 
-          {/* รูปภาพ */}
           <div className="soft-card p-8 md:p-12 mb-8">
             <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center"><i className="fa-regular fa-images text-blue-600 mr-3"></i> ภาพถ่ายประกอบ</h3>
             {images.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-[2rem]">
+              <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50">
                 <i className="fa-solid fa-camera text-5xl text-slate-300 mb-4 block"></i>
                 <p className="text-slate-500 font-bold text-lg">ยังไม่มีรูปภาพ</p>
-                <button onClick={onEdit} className="mt-4 text-blue-600 font-bold hover:underline">กดแก้ไขข้อมูลเพื่อเพิ่มรูป</button>
+                <button onClick={onEdit} className="mt-4 text-blue-600 font-bold hover:underline">กดปุ่มแก้ไขข้อมูลเพื่อแนบรูป</button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {images.map((img, i) => (
                   <div key={i} className="aspect-square rounded-[1.5rem] overflow-hidden border border-slate-200 shadow-sm bg-slate-100 hover:shadow-lg transition-shadow">
                     <img src={img} className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-500" onClick={()=>window.open(img, "_blank")} />
@@ -548,7 +494,6 @@
       );
     }
 
-    // ============= Views =============
     function Dashboard({ visits, students, isLoaded, onSelect, isAdmin }) {
       if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div></div>;
       
@@ -662,7 +607,7 @@
               return (
                 <div key={i} onClick={()=>onSelect(s)} className="soft-card p-6 flex items-center justify-between cursor-pointer hover:border-blue-400 btn-press group">
                   <div className="flex items-center gap-5 overflow-hidden">
-                     <div className={`w-16 h-16 rounded-full flex items-center justify-center font-black text-xl shadow-inner transition-colors flex-shrink-0 ${st==="เยี่ยมแล้ว"?'bg-emerald-50 text-emerald-600':st==="นัดหมายแล้ว"?'bg-amber-50 text-amber-600':'bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white'}`}>{s.studentNo}</div>
+                     <div className={`w-16 h-16 rounded-[1.2rem] flex items-center justify-center font-black text-xl shadow-inner transition-colors flex-shrink-0 ${st==="เยี่ยมแล้ว"?'bg-emerald-50 text-emerald-600':st==="นัดหมายแล้ว"?'bg-amber-50 text-amber-600':'bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white'}`}>{s.studentNo}</div>
                      <div className="truncate">
                         <h4 className="font-black text-slate-800 text-lg leading-tight group-hover:text-blue-600 transition-colors truncate">{s.studentName}</h4>
                         <div className="flex items-center gap-2 mt-1.5">
@@ -742,7 +687,7 @@
       );
     };
 
-    function StudentManage({ user, showToast, refresh, students, isLoaded, isAdmin, currentFilterClass, uniqueClasses }) {
+    function StudentManage({ user, showToast, refresh, students, isLoaded, isAdmin, currentFilterClass, userClass }) {
       const [showAddModal, setShowAddModal] = useState(false);
 
       const handleImport = async (e) => {
@@ -818,6 +763,7 @@
       );
     }
 
+    // 🌟 ระบบ PDF In-Memory Engine ขั้นเทพ 🌟
     function ReportExport({ user, students, visits, showToast, isLoaded }) {
       const [generating, setGenerating] = useState(false);
       const [selectedStudents, setSelectedStudents] = useState(new Set());
@@ -833,79 +779,66 @@
         setSelectedStudents(new Set(allVisisted));
       };
 
+      // 🌟 กลไกบีบอัดและดึงภาพแบบ Base64 (กัน CORS Block) 🌟
       const urlToBase64 = (url) => {
         return new Promise((resolve) => {
           if (!url) return resolve(null);
           if (url.startsWith('data:image')) return resolve(url);
           
           let imgUrl = url;
+          // ถ้าเป็นลิงก์ไดร์ฟดั้งเดิม ให้แปลงเป็นลิงก์ lh3 ก่อน
           const driveMatch = url.match(/[-\w]{25,}/);
-          if (url.includes('drive.google.com') && driveMatch) imgUrl = `https://drive.google.com/thumbnail?id=${driveMatch[0]}&sz=w800`;
+          if (url.includes('drive.google.com') && driveMatch) {
+            imgUrl = `https://lh3.googleusercontent.com/d/${driveMatch[0]}=w800`;
+          }
           
-          const img = new Image(); img.crossOrigin = "anonymous";
+          const img = new Image(); 
+          img.crossOrigin = "anonymous";
+          
           img.onload = () => {
             try {
-              const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-              canvas.getContext('2d').drawImage(img, 0, 0); resolve(canvas.toDataURL('image/jpeg', 0.85));
+              const canvas = document.createElement('canvas'); 
+              const MAX_WIDTH = 600; // บีบอัดกัน Memory เต็ม
+              let width = img.width; let height = img.height;
+              if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
+              canvas.width = width; canvas.height = height;
+              canvas.getContext('2d').drawImage(img, 0, 0, width, height); 
+              resolve(canvas.toDataURL('image/jpeg', 0.8));
             } catch (e) { resolve(null); }
           };
-          img.onerror = () => resolve(null); img.src = imgUrl;
+          img.onerror = () => resolve(imgUrl); // ถ้าติด CORS ให้โยนลิงก์ดิบไปให้ html2pdf ลุ้นเอา
+          img.src = imgUrl;
         });
       };
 
-      // 🌟 อัปเกรดการส่งออก Excel ให้ส่งข้อมูลทุกฟิลด์ + ลิงก์รูปภาพ 🌟
       const exportExcel = () => {
         const data = students.map(s => {
           const v = visits.find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
-          return { 
-            "เลขที่": s.studentNo, 
-            "ชื่อ-นามสกุล": s.studentName, 
-            "ชื่อเล่น": s.nickname || "-",
-            "ชั้นเรียน": getVal(s,"classLevel"), 
-            "สถานะ": getVal(v,"visitStatus") || "ยังไม่เยี่ยม", 
-            "วันที่เยี่ยม": getVal(v,"visitDate") ? new Date(getVal(v,"visitDate")).toLocaleDateString('th-TH') : "-", 
-            "ระยะทาง (กม.)": getVal(v,"distanceKm") || "-",
-            "ลักษณะที่พัก": getVal(v,"houseType") || "-",
-            "วิธีการเดินทาง": getVal(v,"travelMethod") || "-",
-            "สภาพบ้าน": getVal(v,"houseCondition") || "-",
-            "จำนวนสมาชิก": getVal(v,"familyMembers") || "-",
-            "ความสัมพันธ์ครอบครัว": getVal(v,"familyRelationship") || "-",
-            "รายได้เฉลี่ย": getVal(v,"familyIncome") || "-",
-            "ความเสี่ยงสุขภาพ": getVal(v,"riskHealth") || "-",
-            "ความเสี่ยงปลอดภัย": getVal(v,"riskSafety") || "-",
-            "ความเสี่ยงเดินทาง": getVal(v,"riskTravel") || "-",
-            "สรุปผลประเมิน": getVal(v,"visitResult") || "-",
-            "บันทึกเพิ่มเติมจากครู": getVal(v,"teacherNotes") || "-",
-            "ข้อสังเกตเบื้องต้น": getVal(v,"observations") || "-",
-            "ลิงก์รูปภาพ": getVal(v,"images") || "-"
-          };
+          return { "เลขที่":s.studentNo, "ชื่อ":s.studentName, "ชั้นเรียน":getVal(s,"classLevel"), "สถานะ":getVal(v,"visitStatus")||"ยังไม่เยี่ยม", "วันที่เยี่ยม":getVal(v,"visitDate"), "ระยะทาง":getVal(v,"distanceKm"), "สรุปผล":getVal(v,"visitResult") };
         });
         const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Report");
-        XLSX.writeFile(wb, `รายงานสรุปภาพรวม.xlsx`);
+        XLSX.writeFile(wb, `รายงานเยี่ยมบ้าน_${user.classLevel}.xlsx`);
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
+      // 🌟 เอนจินสร้างเอกสาร PDF 🌟
       const exportPDF = async () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
         
         setGenerating(true);
-        showToast("กำลังประมวลผล PDF...", "success");
+        showToast("กำลังดาวน์โหลดภาพและประมวลผล PDF...", "success");
 
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
         const dateStr = new Date().toLocaleDateString("th-TH");
 
-        const container = document.createElement("div");
-        container.style.fontFamily = "'Sarabun', sans-serif";
-        container.style.color = "#334155";
-        container.style.padding = "20px";
-        container.style.backgroundColor = "#ffffff";
-
+        const container = document.getElementById("pdf-engine-root");
+        
         let html = `
-          <div style="text-align: center; margin-bottom: 25px;">
-            <h1 style="color: #1e40af; font-size: 26px; font-weight: bold; margin-bottom: 12px;">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
-            <div style="height: 3px; background-color: #3b82f6; width: 100%; margin: 0 auto 12px auto;"></div>
-            <p style="color: #64748b; font-size: 16px; margin: 0;">โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ข้อมูลโดย: ${user.fullName}</p>
+          <div style="text-align: center; margin-bottom: 20px; padding-top: 5px;">
+            <h1 style="color: #1e40af; font-size: 24px; font-weight: bold; margin-bottom: 8px;">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
+            <div style="height: 3px; background-color: #3b82f6; width: 60%; margin: 0 auto 10px auto;"></div>
+            <p style="color: #64748b; font-size: 13px; margin: 0;">พิมพ์เมื่อ: ${dateStr} | ข้อมูลโดย: ${user.fullName}</p>
           </div>
         `;
 
@@ -916,27 +849,33 @@
           const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
 
           html += `
-            <div style="border: 2px solid #3b82f6; border-radius: 12px; overflow: hidden; margin-bottom: 25px; page-break-inside: avoid; background-color: #ffffff;">
-              <div style="background-color: #eff6ff; padding: 12px 20px; border-bottom: 2px solid #3b82f6;">
-                <h2 style="color: #1e40af; font-size: 18px; margin: 0; font-weight: bold;">${i + 1}. เลขที่ ${s.studentNo} - ${s.studentName} (ชั้น ${getVal(s, "classLevel")})</h2>
+            <div style="border: 1px solid #94a3b8; border-radius: 6px; overflow: hidden; margin-bottom: 20px; page-break-inside: avoid; background-color: #ffffff;">
+              <div style="background-color: #eff6ff; padding: 8px 12px; border-bottom: 1px solid #94a3b8;">
+                <h2 style="color: #1e40af; font-size: 15px; margin: 0; font-weight: bold;">${i + 1}. เลขที่ ${s.studentNo} - ${s.studentName} (ชั้น ${getVal(s, "classLevel")})</h2>
               </div>
               <div style="padding: 0;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                  <thead>
-                    <tr>
-                      <th style="background-color: #e0e7ff; color: #3730a3; padding: 10px 15px; border-bottom: 1px solid #bfdbfe; border-right: 1px solid #bfdbfe; text-align: left; width: 30%;">ข้อมูล</th>
-                      <th style="background-color: #e0e7ff; color: #3730a3; padding: 10px 15px; border-bottom: 1px solid #bfdbfe; text-align: left;">รายละเอียด</th>
-                    </tr>
-                  </thead>
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                   <tbody>
-                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">ชื่อเล่น</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${s.nickname || '-'}</td></tr>
-                    <tr style="background-color: #f8fafc;"><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">วันที่เยี่ยม</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${vDate}</td></tr>
-                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">สถานะ</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "visitStatus") || '-'}</td></tr>
-                    <tr style="background-color: #f8fafc;"><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">ระยะทาง</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${dist}</td></tr>
-                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">ลักษณะที่พัก</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseType") || '-'}</td></tr>
-                    <tr style="background-color: #f8fafc;"><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">สภาพบ้าน</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseCondition") || '-'}</td></tr>
-                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">ความเห็นครู</td><td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "visitResult") || '-'}</td></tr>
-                    <tr style="background-color: #f8fafc;"><td style="padding: 10px 15px; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569;">หมายเหตุ</td><td style="padding: 10px 15px;">${getVal(v, "teacherNotes") || '-'}</td></tr>
+                    <tr>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc; width: 20%;">วันที่เยี่ยม</td>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; width: 30%;">${vDate}</td>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc; width: 20%;">ระยะทาง</td>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; width: 30%;">${dist}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc;">ลักษณะที่พัก</td>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseType") || '-'}</td>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc;">สภาพบ้าน</td>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseCondition") || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc;">สรุปผล</td>
+                      <td colspan="3" style="padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #1e40af;">${getVal(v, "visitResult") || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 10px; border-right: 1px solid #e2e8f0; font-weight: bold; background-color:#f8fafc; vertical-align: top;">บันทึกครู</td>
+                      <td colspan="3" style="padding: 6px 10px; vertical-align: top;">${getVal(v, "teacherNotes") || '-'}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -945,23 +884,37 @@
           const imagesStr = getVal(v, 'images');
           if (imagesStr) {
             const urls = imagesStr.split(',').map(u => u.trim()).filter(u => u);
+            // โหลดรูปให้เสร็จก่อนวาดลง PDF
             const base64Images = await Promise.all(urls.map(u => urlToBase64(u)));
             const validImages = base64Images.filter(img => img !== null);
+            
             if (validImages.length > 0) {
-              html += `<div style="padding: 15px; border-top: 2px solid #e2e8f0; background-color: #ffffff;"><p style="font-weight:bold; margin-top:0; margin-bottom:10px; color:#1e40af;">ภาพประกอบ:</p><div style="display:flex; gap:10px; flex-wrap:wrap;">`;
-              validImages.forEach(img => { html += `<div style="width: 180px; height: 130px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1;"><img src="${img}" style="width:100%; height:100%; object-fit:cover;" /></div>`; });
-              html += `</div></div>`;
+              html += `<div style="padding: 10px; border-top: 1px solid #94a3b8; background-color: #f1f5f9; page-break-inside: avoid;">
+                         <p style="font-weight:bold; margin-top:0; margin-bottom:6px; font-size:12px; color:#475569;">ภาพประกอบ:</p>
+                         <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content: flex-start;">`;
+              
+              validImages.forEach(img => { 
+                html += `<div style="width: 200px; height: 140px; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; background: #fff;">
+                           <img src="${img}" style="width:100%; height:100%; object-fit:contain;" />
+                         </div>`; 
+              });
+              
+              html += `  </div>
+                       </div>`;
             }
           }
           html += `</div>`;
         }
 
         container.innerHTML = html;
-        document.body.appendChild(container); 
+        container.style.visibility = "visible";
 
         try {
+          await new Promise(r => setTimeout(r, 1000)); 
+          await document.fonts.ready;
+
           await html2pdf().set({
-            margin: 10,
+            margin: [10, 10, 10, 10],
             filename: `รายงานเยี่ยมบ้าน_จำนวน${targetStudents.length}คน.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, logging: false },
@@ -971,7 +924,8 @@
         } catch (e) {
           showToast("เกิดข้อผิดพลาดในการสร้างเอกสาร", "error");
         } finally {
-          document.body.removeChild(container); 
+          container.innerHTML = ""; 
+          container.style.visibility = "hidden";
           setGenerating(false);
           setSelectedStudents(new Set()); 
         }
@@ -986,7 +940,7 @@
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
              <div><h2 className="text-3xl font-black text-slate-800 tracking-tight">ส่งออกรายงาน</h2></div>
              <button onClick={exportExcel} className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-full font-bold shadow-lg shadow-emerald-500/30 btn-press flex items-center">
-               <i className="fa-solid fa-file-excel mr-3 text-xl"></i> ส่งออก Excel (ครบทุกคอลัมน์)
+               <i className="fa-solid fa-file-excel mr-3 text-xl"></i> ส่งออก Excel ภาพรวม
              </button>
            </div>
 
@@ -1019,7 +973,7 @@
            {visitedList.length > 0 && (
              <div className="text-center">
                <button onClick={exportPDF} disabled={generating || selectedStudents.size === 0} className="px-10 py-5 rounded-full font-black text-white bg-slate-900 hover:bg-rose-500 disabled:opacity-50 btn-press shadow-xl transition-colors text-lg flex items-center justify-center mx-auto gap-3">
-                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังสร้าง PDF...</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} คน)</>}
+                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังโหลดและสร้าง PDF...</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} คน)</>}
                </button>
              </div>
            )}
@@ -1027,6 +981,7 @@
       );
     }
 
+    // ============= THE FORM =============
     function VisitForm({ user, student, visits, onBack, onSave }) {
       const exist = visits.find(v => compareId(getVal(v,"studentNo"), student.studentNo) && getVal(v,"classLevel") === getVal(student,"classLevel")) || {};
       
