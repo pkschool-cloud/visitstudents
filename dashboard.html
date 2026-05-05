@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - ระบบเยี่ยมบ้านนักเรียนอัจฉริยะ</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน - Production</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -17,579 +17,681 @@
   
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; margin: 0; color: #334155; }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    
-    .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .slide-up { animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .stagger-1 { animation-delay: 0.05s; }
-    .stagger-2 { animation-delay: 0.1s; }
-    .stagger-3 { animation-delay: 0.15s; }
-    
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .fade-in { animation: fadeIn 0.6s forwards; }
+    .slide-up { animation: slideUp 0.6s forwards; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .glass-card { 
-      background: #ffffff; 
-      border: 1px solid rgba(226, 232, 240, 0.8); 
-      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 0 3px rgba(15, 23, 42, 0.02);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .glass-card:hover {
-      box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
-      transform: translateY(-2px);
-      border-color: rgba(148, 163, 184, 0.3);
-    }
-
-    .luxury-input {
-      background-color: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      transition: all 0.25s ease;
-    }
-    .luxury-input:focus {
-      background-color: #ffffff;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-    }
-    
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    .hide-scroll { scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
-    .hide-scroll::-webkit-scrollbar { display: none; }
+    .glass-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1.5rem; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03); }
+    .luxury-input { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 0.875rem; padding: 0.875rem; font-size: 1rem; }
+    .luxury-input:focus { background: #fff; border-color: #3b82f6; outline: none; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
+    .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; }
+    .badge-success { background: #ecfdf5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
-<body class="h-screen overflow-hidden text-slate-700 bg-slate-50">
-  <div id="root" class="h-full w-full"></div>
+<body class="h-screen bg-slate-50">
+  <div id="root" class="h-full"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 🔴 อัปเดต URL ตรงนี้
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAWBrn5_sZTjOj2wpiI5ibNofTh6kPLp1M0qWvKmEwLaYTHF8eoHOsqk_QqyXOz-gB/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNDoujpfKH_LMvPiW78Y1UzCgbV65tbBrva-BN5P8EORD9lMOfxllf8QXhsPf18QfH/exec";
 
     const api = {
       async get(action, params = {}) {
         const q = new URLSearchParams({ action, t: Date.now(), ...params }).toString();
         try { const r = await fetch(`${SCRIPT_URL}?${q}`); return await r.json(); } 
-        catch { return { success: false, message: "เชื่อมต่อขัดข้อง" }; }
+        catch (e) { return { success: false, message: e.message }; }
       },
       async post(body) {
         try { const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "text/plain" } }); return await r.json(); } 
-        catch { return { success: false, message: "เชื่อมต่อขัดข้อง" }; }
+        catch (e) { return { success: false, message: e.message }; }
       }
     };
 
-    const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
     const HOUSE_COND = ["ดีมาก","ดี","ปานกลาง","ทรุดโทรม","ไม่ปลอดภัย"];
     const REL_OPTS = ["อบอุ่นดีมาก","อบอุ่นดี","ปานกลาง","ไม่ค่อยอบอุ่น","มีปัญหา"];
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
     const RESULT_OPTS = ["ปกติ","ต้องเฝ้าระวัง","ต้องช่วยเหลือเร่งด่วน","ส่งต่อ"];
 
-    const getVal = (obj, ...keys) => {
-      if (!obj) return '';
-      const objKeys = Object.keys(obj);
-      for (let key of keys) {
-        const foundKey = objKeys.find(k => String(k).trim().toLowerCase() === String(key).trim().toLowerCase());
-        if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) return String(obj[foundKey]).trim();
-      }
-      return '';
-    };
-
-    const findVisitForStudent = (visits, studentName) => {
-      if (!visits || !studentName) return null;
-      const target = String(studentName).trim().toLowerCase();
-      return visits.find(v => {
-        const name = (getVal(v, 'studentName', 'studentname') || '').trim().toLowerCase();
-        return name === target;
-      });
-    };
-
-    const getVisitStatus = (visits, studentName) => {
-      const v = findVisitForStudent(visits, studentName);
-      if (!v) return "ยังไม่เยี่ยม";
-      return getVal(v, 'visitStatus', 'visitstatus') || "ยังไม่เยี่ยม";
-    };
-
-    const FormInput = ({ label, type="text", value, onChange, placeholder="" }) => (
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
-        <input type={type} value={value || ""} onChange={onChange} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700" placeholder={placeholder}/>
-      </div>
-    );
-    
-    const FormSelect = ({ label, value, onChange, options }) => (
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
-        <select value={value || ""} onChange={onChange} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700 cursor-pointer appearance-none">
-          <option value="">-- กรุณาเลือก --</option>
-          {options.map(o=><option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-    );
-    
-    const FormTextarea = ({ label, value, onChange, rows=3 }) => (
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-600 mb-2 ml-1">{label}</label>
-        <textarea rows={rows} value={value || ""} onChange={onChange} className="w-full luxury-input rounded-2xl px-5 py-3.5 outline-none font-medium text-slate-700 resize-y"/>
-      </div>
-    );
-
     const Toast = ({ msg, type, onClose }) => {
       useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
-      const isSuccess = type === 'success';
       return (
-        <div className={`fixed top-6 right-6 z-[100] px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 slide-up bg-white/95 backdrop-blur-xl border ${isSuccess ? 'border-emerald-100' : 'border-rose-100'}`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSuccess ? 'bg-emerald-100 text-emerald-500' : 'bg-rose-100 text-rose-500'}`}>
-            <i className={`fa-solid ${isSuccess ? 'fa-check' : 'fa-xmark'} text-lg`}></i>
-          </div>
-          <span className="font-semibold text-slate-700">{msg}</span>
-        </div>
-      );
-    };
-
-    // ============= CodeInputModal =============
-    const CodeInputModal = ({ onSubmit, loading }) => {
-      const [code, setCode] = useState("");
-      const [error, setError] = useState("");
-
-      const handleSubmit = () => {
-        if (code.length !== 4 || !/^\d+$/.test(code)) {
-          setError("กรุณากรอกรหัสสี่ตัว (ตัวเลขเท่านั้น)");
-          return;
-        }
-        onSubmit(code);
-      };
-
-      return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl p-8 w-96 shadow-2xl animate-[slideUp_0.4s_ease-out]">
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i className="fa-solid fa-badge text-2xl text-white"></i>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-800">กรอกรหัสครู</h2>
-              <p className="text-sm text-slate-500 mt-2">กรอกรหัส 4 ตัวเพื่อเข้าใช้งาน</p>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-slate-700 mb-3">รหัสครู</label>
-              <input
-                type="password"
-                value={code}
-                onChange={e => { setCode(e.target.value.slice(0, 4)); setError(""); }}
-                maxLength="4"
-                inputMode="numeric"
-                className="w-full text-center text-4xl font-bold tracking-widest luxury-input rounded-2xl px-5 py-4 outline-none"
-                placeholder="• • • •"
-                disabled={loading}
-                onKeyPress={e => e.key === "Enter" && handleSubmit()}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold text-center mb-4 border border-rose-100">
-                <i className="fa-solid fa-circle-exclamation mr-2"></i>{error}
-              </div>
-            )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={loading || code.length !== 4}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 rounded-2xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50"
-            >
-              {loading ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : <i className="fa-solid fa-arrow-right mr-2"></i>}
-              เข้าใช้งาน
-            </button>
-          </div>
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white font-semibold flex items-center gap-2 ${type === 'success' ? 'bg-emerald-500' : type === 'warning' ? 'bg-amber-500' : 'bg-rose-500'}`}>
+          <i className={`fa-solid ${type === 'success' ? 'fa-check' : type === 'warning' ? 'fa-exclamation' : 'fa-xmark'}`}></i>
+          {msg}
         </div>
       );
     };
 
     function DashboardApp() {
       const [user, setUser] = useState(null);
-      const [teacherCode, setTeacherCode] = useState("");
-      const [showCodeInput, setShowCodeInput] = useState(false);
-      const [codeLoading, setCodeLoading] = useState(false);
-      const [view, setView] = useState("list"); 
+      const [code, setCode] = useState("");
+      const [codeInput, setCodeInput] = useState("");
+      const [showCodeModal, setShowCodeModal] = useState(false);
+      const [students, setStudents] = useState([]);
+      const [visits, setVisits] = useState([]);
       const [selectedStudent, setSelectedStudent] = useState(null);
+      const [view, setView] = useState("list");
       const [toast, setToast] = useState(null);
-      const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-      const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-      const [globalStudents, setGlobalStudents] = useState([]);
-      const [globalVisits, setGlobalVisits] = useState([]);
-      const [isDataLoaded, setIsDataLoaded] = useState(false);
+      const [formData, setFormData] = useState({});
+      const [images, setImages] = useState([]);
+      const [draftSaved, setDraftSaved] = useState(false);
+      const draftTimer = useRef(null);
+      const [selectedForReport, setSelectedForReport] = useState(new Set());
+      const [showReportModal, setShowReportModal] = useState(false);
 
-      useEffect(() => {
-        const handleResize = () => {
-          const mobile = window.innerWidth < 768;
-          setIsMobile(mobile);
-          setIsSidebarOpen(!mobile);
-        };
-        window.addEventListener('resize', handleResize);
-        handleResize();
-        return () => window.removeEventListener('resize', handleResize);
-      }, []);
-
-      // ✅ ตรวจสอบว่ามีข้อมูลเก็บไว้แล้ว
+      // ✅ ตรวจสอบ code ที่บันทึก
       useEffect(() => {
         const savedCode = localStorage.getItem("hv_teacher_code");
         const savedUser = localStorage.getItem("hv_user");
-        
         if (savedCode && savedUser) {
-          const u = JSON.parse(savedUser);
-          setUser(u);
-          setTeacherCode(savedCode);
-          setShowCodeInput(false);
-          fetchInitialData(u);
+          setCode(savedCode);
+          setUser(JSON.parse(savedUser));
+          setShowCodeModal(false);
+          loadData(JSON.parse(savedUser));
         } else {
-          setShowCodeInput(true);
+          setShowCodeModal(true);
         }
       }, []);
 
-      // ✅ ฟังก์ชัน Detect รหัสครู
-      const handleCodeSubmit = async (code) => {
-        setCodeLoading(true);
-        try {
-          const res = await api.post({ action: "getTeacherByCode", code });
-          
-          if (res.success && res.data) {
-            const userData = {
-              code: code,
-              fullName: res.data.fullName,
-              classLevel: res.data.classLevel,
-              username: res.data.username
-            };
-            
-            localStorage.setItem("hv_teacher_code", code);
-            localStorage.setItem("hv_user", JSON.stringify(userData));
-            
-            setUser(userData);
-            setTeacherCode(code);
-            setShowCodeInput(false);
-            showToast(`👋 ยินดีต้อนรับ ${res.data.fullName}`, "success");
-            fetchInitialData(userData);
-          } else {
-            showToast("❌ รหัสครูไม่ถูกต้อง", "error");
-          }
-        } catch (err) {
-          showToast("❌ " + err.message, "error");
-        }
-        setCodeLoading(false);
-      };
+      // ✅ Auto-save Draft ทุก 1 วินาที (เมื่อหยุดพิมพ์)
+      useEffect(() => {
+        if (!selectedStudent || !formData.studentNo) return;
 
-      const fetchInitialData = async (u) => {
-        setIsDataLoaded(false);
+        clearTimeout(draftTimer.current);
+        draftTimer.current = setTimeout(() => {
+          const draftKey = `draft_${selectedStudent.studentNo}`;
+          localStorage.setItem(draftKey, JSON.stringify({ ...formData, images }));
+          setDraftSaved(true);
+          setTimeout(() => setDraftSaved(false), 2000);
+        }, 1000);
+
+        return () => clearTimeout(draftTimer.current);
+      }, [formData, selectedStudent, images]);
+
+      const loadData = async (u) => {
         try {
           const [sRes, vRes] = await Promise.all([
             api.get("getStudents", { classLevel: u.classLevel }),
             api.get("getVisitsFull", { classLevel: u.classLevel })
           ]);
-          
-          if (sRes.success && sRes.data && sRes.data.length > 0) {
-            setGlobalStudents(sRes.data);
-          } else {
-            setGlobalStudents([]);
-          }
-          
-          if (vRes.success && vRes.data && vRes.data.length > 0) {
-            setGlobalVisits(vRes.data);
-          } else {
-            setGlobalVisits([]);
-          }
-          
-          setIsDataLoaded(true);
+          setStudents(sRes.data || []);
+          setVisits(vRes.data || []);
         } catch (e) {
-          console.error("API Error:", e);
-          setGlobalStudents([]);
-          setGlobalVisits([]);
-          setIsDataLoaded(true);
-          showToast("⚠️ ไม่สามารถโหลดข้อมูล", "error");
+          showToast("❌ ไม่สามารถโหลดข้อมูล", "error");
         }
       };
 
-      const logout = () => { 
-        localStorage.removeItem("hv_teacher_code"); 
-        localStorage.removeItem("hv_user"); 
-        setUser(null);
-        setTeacherCode("");
-        setShowCodeInput(true);
-      };
+      const handleCodeSubmit = async () => {
+        if (codeInput.length !== 4 || !/^\d+$/.test(codeInput)) {
+          showToast("⚠️ กรอกรหัส 4 ตัวเลข", "warning");
+          return;
+        }
 
-      const showToast = (msg, type="success") => setToast({msg, type});
-      const forceRefreshData = () => { if (user) fetchInitialData(user); };
-
-      // ✅ ถ้ายังไม่มี user → แสดง modal กรอกรหัส
-      if (!user) {
-        return <CodeInputModal onSubmit={handleCodeSubmit} loading={codeLoading} />;
-      }
-
-      return (
-        <div className="flex h-full w-full bg-[#f8fafc] text-slate-700 font-sans fade-in selection:bg-blue-100 selection:text-blue-900">
-          {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-          {isMobile && isSidebarOpen && <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>}
-
-          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full flex-shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
-            <div className="p-6 flex flex-col items-center border-b border-slate-50">
-              <div className={`rounded-full p-1 mb-3 bg-gradient-to-tr from-blue-100 to-indigo-50 transition-all duration-300 ${isSidebarOpen ? 'w-20 h-20' : 'w-12 h-12'}`}>
-                <img src={`https://ui-avatars.com/api/?name=${user.fullName}&background=ffffff&color=2563EB&bold=true`} className="w-full h-full rounded-full object-cover shadow-sm border-2 border-white" />
-              </div>
-              {isSidebarOpen && (
-                <div className="fade-in text-center">
-                  <h2 className="text-base font-bold text-slate-800">{user.fullName}</h2>
-                  <p className="text-xs text-slate-500 font-medium mt-1">รหัส: {teacherCode}</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 flex-1 overflow-y-auto custom-scroll space-y-2">
-              <NavButton icon="fa-house-user" label="บันทึกเยี่ยมบ้าน" isActive={view==='list' || view==='form'} onClick={() => {setView("list"); setSelectedStudent(null); if(isMobile) setIsSidebarOpen(false);}} isOpen={isSidebarOpen} colorClass="text-blue-600 bg-blue-50" />
-              <NavButton icon="fa-users-gear" label="จัดการรายชื่อ" isActive={view==='manage'} onClick={() => {setView("manage"); setSelectedStudent(null); if(isMobile) setIsSidebarOpen(false);}} isOpen={isSidebarOpen} colorClass="text-emerald-600 bg-emerald-50" />
-            </div>
-            
-            <div className="p-4 border-t border-slate-50">
-              <button onClick={logout} className={`w-full flex items-center justify-center gap-3 py-3 rounded-2xl font-medium transition-all text-slate-500 hover:bg-rose-50 hover:text-rose-600 ${isSidebarOpen ? 'px-4' : 'px-0'}`}>
-                <i className="fa-solid fa-arrow-right-from-bracket"></i>
-                {isSidebarOpen && <span>เปลี่ยนรหัส</span>}
-              </button>
-            </div>
-          </aside>
-
-          <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-            <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100/50 px-6 flex items-center justify-between z-20 flex-shrink-0">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
-                  <i className="fa-solid fa-bars text-lg"></i>
-                </button>
-                <div>
-                  <h1 className="text-xl font-bold text-slate-800 tracking-tight">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
-                  <p className="text-xs text-slate-400 font-medium hidden sm:block mt-0.5">โรงเรียนป่าก้าง</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                 <div className="hidden sm:flex items-center gap-2 bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-full text-xs font-semibold text-emerald-600">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> ระบบออนไลน์ ✓
-                 </div>
-              </div>
-            </header>
-
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll relative">
-              <div className="max-w-6xl mx-auto pb-20">
-                {view === "list" && <StudentList students={globalStudents} visits={globalVisits} isDataLoaded={isDataLoaded} onSelect={(s) => {setSelectedStudent(s); setView("form");}} />}
-                {view === "form" && <VisitForm user={user} student={selectedStudent} globalVisits={globalVisits} onDone={() => { setView("list"); setSelectedStudent(null); showToast("✅ บันทึกข้อมูลสำเร็จ", "success"); forceRefreshData(); }} onBack={() => { setView("list"); setSelectedStudent(null); }} showToast={showToast} />}
-                {view === "manage" && <StudentManage students={globalStudents} />}
-              </div>
-            </div>
-          </main>
-        </div>
-      );
-    }
-
-    const NavButton = ({ icon, label, isActive, onClick, isOpen, colorClass }) => (
-      <button onClick={onClick} title={label}
-        className={`w-full flex items-center rounded-2xl transition-all duration-200 font-medium group
-        ${isActive ? colorClass : 'text-slate-500 hover:bg-slate-50'}
-        ${isOpen ? 'justify-start px-4 py-3.5' : 'justify-center py-4'}`}>
-        <i className={`fa-solid ${icon} ${isOpen ? 'mr-3 text-lg' : 'text-xl'} ${isActive ? '' : 'group-hover:text-slate-700'}`}></i>
-        {isOpen && <span>{label}</span>}
-      </button>
-    );
-
-    function StudentList({ students, visits, isDataLoaded, onSelect }) {
-      const [search, setSearch] = useState("");
-      const [statusFilter, setStatusFilter] = useState('all');
-
-      const filtered = students.filter(s => {
-        const matchSearch = !search || s.studentName.includes(search) || s.nickname?.includes(search) || String(s.studentNo).includes(search);
-        const status = getVisitStatus(visits, s.studentName);
-        let matchStatus = true;
-        if(statusFilter === 'visited') matchStatus = status === 'เยี่ยมแล้ว';
-        if(statusFilter === 'not_visited') matchStatus = status === 'ยังไม่เยี่ยม';
-        if(statusFilter === 'appointed') matchStatus = status === 'นัดหมายแล้ว';
-        return matchSearch && matchStatus;
-      });
-
-      const visitedCount = students.filter(s => getVisitStatus(visits, s.studentName) === "เยี่ยมแล้ว").length;
-
-      if (!isDataLoaded) return <div className="text-center py-32 fade-in"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div></div>;
-
-      return (
-        <div className="slide-up">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 stagger-1">
-            <StatCard label="นักเรียนทั้งหมด" count={students.length} icon="fa-users" color="text-blue-600" bg="bg-blue-50" />
-            <StatCard label="เยี่ยมแล้ว" count={visitedCount} icon="fa-check-circle" color="text-emerald-600" bg="bg-emerald-50" />
-            <StatCard label="ยังไม่เยี่ยม" count={students.length - visitedCount} icon="fa-clock" color="text-amber-500" bg="bg-amber-50" />
-          </div>
-
-          <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 mb-8 stagger-2">
-            <div className="flex bg-slate-50 p-1 rounded-2xl w-full md:w-auto overflow-x-auto hide-scroll">
-               {[{id:'all', label:'ทั้งหมด'}, {id:'not_visited', label:'ยังไม่เยี่ยม'}, {id:'appointed', label:'นัดหมาย'}, {id:'visited', label:'เยี่ยมแล้ว'}].map(f => (
-                 <button key={f.id} onClick={()=>setStatusFilter(f.id)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${statusFilter===f.id ? 'bg-white text-slate-800 shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}>{f.label}</button>
-               ))}
-            </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative w-full md:w-64">
-                <i className="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
-                <input type="text" placeholder="ค้นหาชื่อ, เลขที่..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-11 pr-4 font-medium text-sm focus:ring-2 focus:ring-blue-100 outline-none text-slate-700 transition-all" />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-3">
-            {filtered.length === 0 && <div className="col-span-full text-center py-16"><p className="text-slate-400 font-medium">ไม่พบข้อมูลที่ค้นหา</p></div>}
-            
-            {filtered.map((s, i) => {
-              const status = getVisitStatus(visits, s.studentName);
-              const isDone = status === "เยี่ยมแล้ว"; 
-              const isApp = status === "นัดหมายแล้ว";
-              return (
-                <div key={i} onClick={() => onSelect(s)} className="glass-card p-5 rounded-3xl cursor-pointer group fade-in flex flex-col justify-between" style={{animationDelay: `${(i%10)*0.05}s`}}>
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0 transition-colors ${isDone ? 'bg-emerald-50 text-emerald-600' : isApp ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'}`}>{s.studentNo}</div>
-                    <div className="overflow-hidden pt-1">
-                      <h4 className="font-bold text-slate-800 text-base group-hover:text-blue-600 transition-colors truncate">{s.studentName}</h4>
-                      <p className="text-sm text-slate-400 font-medium truncate mt-0.5">{s.nickname ? `ชื่อเล่น: ${s.nickname}` : '\u00A0'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100/80 mt-auto">
-                    <div className="text-xs font-semibold">
-                      {isDone ? <span className="text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-lg"><i className="fa-solid fa-check mr-1"></i> เยี่ยมแล้ว</span> : 
-                       isApp ? <span className="text-amber-500 bg-amber-50 px-3 py-1.5 rounded-lg"><i className="fa-solid fa-calendar-alt mr-1"></i> นัดหมายแล้ว</span> :
-                       <span className="text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg">ยังไม่เยี่ยม</span>}
-                    </div>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors"><i className="fa-solid fa-chevron-right text-sm"></i></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    const StatCard = ({ label, count, icon, color, bg }) => (
-      <div className="glass-card p-6 rounded-[2rem] flex items-center justify-between">
-        <div><p className="text-slate-400 font-medium text-sm mb-1">{label}</p><h3 className={`text-4xl font-bold ${color}`}>{count}</h3></div>
-        <div className={`w-14 h-14 rounded-2xl ${bg} ${color} flex items-center justify-center text-2xl`}><i className={`fa-solid ${icon}`}></i></div>
-      </div>
-    );
-
-    function VisitForm({ user, student, globalVisits, onDone, onBack, showToast }) {
-      const [step, setStep] = useState(0);
-      const [saving, setSaving] = useState(false);
-      const [form, setForm] = useState({
-        semester: "1",
-        visitStatus: "เยี่ยมแล้ว",
-        visitDate: new Date().toISOString().split("T")[0],
-        observations: "",
-        houseType: "",
-        distanceKm: "",
-        travelMethod: "",
-        houseCondition: "",
-        utilities: "",
-        environment: "",
-        familyMembers: "",
-        siblings: "",
-        familyRelationship: "",
-        familyIncome: "",
-        studentDuties: "",
-        familyActivities: "",
-        riskHealth: "",
-        riskSafety: "",
-        riskTravel: "",
-        riskWork: "",
-        riskSocial: "",
-        riskSubstance: "",
-        parentConcerns: "",
-        visitResult: "",
-        teacherNotes: "",
-      });
-
-      const STEPS = ["ข้อมูลเบื้องต้น", "ที่พัก & GPS", "ครอบครัว", "ความเสี่ยง", "สรุป"];
-      const handleChange = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-      const handleSave = async () => { 
-        setSaving(true);
-        const data = { 
-          ...form, 
-          teacherUsername: user.username, 
-          teacherName: user.fullName, 
-          classLevel: user.classLevel, 
-          studentNo: student.studentNo, 
-          studentName: student.studentName, 
-          nickname: student.nickname 
-        };
-        const res = await api.post({ action: "saveVisit", data });
-        setSaving(false);
+        const res = await api.post({ action: "getTeacherByCode", code: codeInput });
         if (res.success) {
-          onDone();
+          localStorage.setItem("hv_teacher_code", codeInput);
+          localStorage.setItem("hv_user", JSON.stringify(res.data));
+          setCode(codeInput);
+          setUser(res.data);
+          setShowCodeModal(false);
+          loadData(res.data);
+          showToast(`👋 ยินดีต้อนรับ ${res.data.fullName}`, "success");
         } else {
           showToast("❌ " + res.message, "error");
         }
       };
 
-      return (
-        <div className="slide-up max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <button onClick={onBack} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors shadow-sm"><i className="fa-solid fa-arrow-left"></i></button>
-            <div><h2 className="text-2xl font-bold text-slate-800 tracking-tight">{student.studentName}</h2><p className="text-sm text-slate-500 mt-1 font-medium">เลขที่ {student.studentNo}</p></div>
-          </div>
+      const openStudent = (student) => {
+        const draftKey = `draft_${student.studentNo}`;
+        const draft = localStorage.getItem(draftKey);
+        
+        if (draft) {
+          const { images: draftImages, ...draftForm } = JSON.parse(draft);
+          setFormData(draftForm);
+          setImages(draftImages || []);
+        } else {
+          setFormData({
+            studentNo: student.studentNo,
+            studentName: student.studentName,
+            nickname: student.nickname,
+            semester: "1",
+            visitStatus: "เยี่ยมแล้ว",
+            visitDate: new Date().toISOString().split("T")[0],
+            observations: "",
+            houseType: "",
+            distanceKm: "",
+            travelMethod: "",
+            houseCondition: "",
+            utilities: "",
+            environment: "",
+            familyMembers: "",
+            siblings: "",
+            familyRelationship: "",
+            familyIncome: "",
+            studentDuties: "",
+            familyActivities: "",
+            riskHealth: "",
+            riskSafety: "",
+            riskTravel: "",
+            riskWork: "",
+            riskSocial: "",
+            riskSubstance: "",
+            parentConcerns: "",
+            visitResult: "",
+            teacherNotes: "",
+          });
+          setImages([]);
+        }
+        
+        setSelectedStudent(student);
+        setView("form");
+      };
 
-          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 mb-6 flex flex-wrap justify-between relative z-10">
-             {STEPS.map((t, i) => (
-                <div key={i} onClick={() => setStep(i)} className={`flex flex-col items-center cursor-pointer transition-all w-1/5 min-w-[70px] ${step === i ? 'text-blue-600' : step > i ? 'text-emerald-500' : 'text-slate-300'}`}>
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-2 border-2 ${step === i ? 'border-blue-600 bg-white text-blue-600' : step > i ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-400'}`}>{step > i ? <i className="fa-solid fa-check"></i> : i+1}</div>
-                   <span className="text-[10px] sm:text-xs font-semibold text-center hidden sm:block">{t}</span>
-                </div>
-             ))}
-          </div>
+      const saveForm = async () => {
+        const data = {
+          ...formData,
+          teacherUsername: user.username,
+          teacherName: user.fullName,
+          classLevel: user.classLevel,
+          imagesBase64: images.filter(i => i && i.startsWith("data:")),
+          existingImageUrls: images.filter(i => i && !i.startsWith("data:"))
+        };
 
-          <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[400px]">
-            {step === 0 && <div><FormSelect label="ภาคเรียน" value={form.semester} onChange={e=>handleChange("semester", e.target.value)} options={["1","2"]}/><FormSelect label="สถานะ" value={form.visitStatus} onChange={e=>handleChange("visitStatus", e.target.value)} options={VISIT_STAT}/><FormInput label="วันที่" type="date" value={form.visitDate} onChange={e=>handleChange("visitDate", e.target.value)}/></div>}
-            {step === 1 && <div><FormInput label="ลักษณะที่พัก" value={form.houseType} onChange={e=>handleChange("houseType", e.target.value)}/><FormInput label="ระยะทาง (กม.)" value={form.distanceKm} onChange={e=>handleChange("distanceKm", e.target.value)}/><FormInput label="วิธีเดินทาง" value={form.travelMethod} onChange={e=>handleChange("travelMethod", e.target.value)}/></div>}
-            {step === 2 && <div><FormInput label="จำนวนสมาชิก" value={form.familyMembers} onChange={e=>handleChange("familyMembers", e.target.value)}/><FormSelect label="ความสัมพันธ์" value={form.familyRelationship} onChange={e=>handleChange("familyRelationship", e.target.value)} options={REL_OPTS}/></div>}
-            {step === 3 && <div><FormInput label="ด้านสุขภาพ" value={form.riskHealth} onChange={e=>handleChange("riskHealth", e.target.value)}/><FormInput label="ด้านความปลอดภัย" value={form.riskSafety} onChange={e=>handleChange("riskSafety", e.target.value)}/></div>}
-            {step === 4 && <div><FormSelect label="ความเห็น" value={form.visitResult} onChange={e=>handleChange("visitResult", e.target.value)} options={RESULT_OPTS}/><FormTextarea label="หมายเหตุ" value={form.teacherNotes} onChange={e=>handleChange("teacherNotes", e.target.value)} rows={3}/></div>}
+        const res = await api.post({ action: "saveVisit", data });
+        if (res.success) {
+          localStorage.removeItem(`draft_${selectedStudent.studentNo}`);
+          showToast("✅ บันทึกสำเร็จ", "success");
+          loadData(user);
+          setView("list");
+          setSelectedStudent(null);
+        } else {
+          showToast("❌ " + res.message, "error");
+        }
+      };
+
+      const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 800;
+            canvas.height = (img.height / img.width) * 800;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            <div className="flex justify-between mt-10 pt-6 border-t border-slate-100">
-              <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="px-6 py-3 rounded-2xl font-semibold text-slate-500 hover:bg-slate-50 disabled:opacity-30">ย้อนกลับ</button>
-              {step < STEPS.length - 1 ? ( <button onClick={() => setStep(step + 1)} className="px-8 py-3 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-700">ถัดไป <i className="fa-solid fa-arrow-right ml-1"></i></button>
-              ) : ( <button onClick={handleSave} disabled={saving} className="px-8 py-3 rounded-2xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center"><i className="fa-solid fa-check mr-2"></i> {saving ? "กำลังบันทึก..." : "บันทึก"}</button> )}
+            const filename = `${selectedStudent.studentNo}_${selectedStudent.studentName}_${Date.now()}.jpg`;
+            setImages([...images, { data: canvas.toDataURL("image/jpeg", 0.8), name: filename }]);
+            showToast("✅ เพิ่มรูปสำเร็จ", "success");
+          };
+        };
+        reader.readAsDataURL(file);
+      };
+
+      const generateReport = async (type) => {
+        let reportData = [];
+
+        if (type === "single" && selectedStudent) {
+          const visit = visits.find(v => v.studentName === selectedStudent.studentName);
+          reportData = [{ ...selectedStudent, ...visit }];
+        } else if (type === "selected") {
+          reportData = students
+            .filter(s => selectedForReport.has(s.studentNo))
+            .map(s => ({ ...s, ...visits.find(v => v.studentName === s.studentName) }));
+        } else {
+          reportData = students.map(s => ({ ...s, ...visits.find(v => v.studentName === s.studentName) }));
+        }
+
+        if (reportData.length === 0) {
+          showToast("⚠️ ไม่มีข้อมูลที่เลือก", "warning");
+          return;
+        }
+
+        // สร้าง PDF
+        const html = generateReportHTML(reportData);
+        const element = document.createElement("div");
+        element.innerHTML = html;
+        
+        const opt = {
+          margin: 10,
+          filename: `report_${type}_${new Date().toISOString().split("T")[0]}.pdf`,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+        };
+
+        html2pdf().set(opt).from(element).save();
+        showToast("✅ ดาวน์โหลดรายงานเสร็จ", "success");
+      };
+
+      const generateReportHTML = (data) => {
+        const date = new Date().toLocaleDateString("th-TH");
+        let html = `
+          <div style="font-family: 'Sarabun', sans-serif; padding: 20px; max-width: 800px;">
+            <h2 style="text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+              รายงานผลการเยี่ยมบ้านนักเรียน
+            </h2>
+            <p style="text-align: center; color: #666; margin: 10px 0;">
+              โรงเรียนป่าก้าง - วันที่ ${date}
+            </p>
+            <p style="text-align: center; color: #666; margin: 10px 0;">
+              ครู: ${user.fullName} | ชั้น: ${user.classLevel}
+            </p>
+        `;
+
+        data.forEach((item, idx) => {
+          const visitDate = item.visitDate ? new Date(item.visitDate).toLocaleDateString("th-TH") : "-";
+          html += `
+            <div style="page-break-inside: avoid; border: 1px solid #e2e8f0; padding: 15px; margin: 15px 0; border-radius: 8px;">
+              <h3 style="color: #1e40af; margin: 0 0 10px 0;">
+                ${idx + 1}. ${item.studentNo} - ${item.studentName} (${item.nickname || "-"})
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <tr style="background: #f0f9ff;">
+                  <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; width: 40%;">ข้อมูล</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">รายละเอียด</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">วันที่เยี่ยม</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${visitDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">สถานะ</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.visitStatus || "-"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">ที่พัก</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.houseType || "-"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">สภาพบ้าน</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.houseCondition || "-"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">ความเห็น</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.visitResult || "-"}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">หมายเหตุ</td>
+                  <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.teacherNotes || "-"}</td>
+                </tr>
+              </table>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        return html;
+      };
+
+      const showToast = (msg, type = "success") => {
+        setToast({ msg, type });
+      };
+
+      const logout = () => {
+        localStorage.removeItem("hv_teacher_code");
+        localStorage.removeItem("hv_user");
+        setUser(null);
+        setCode("");
+        setShowCodeModal(true);
+      };
+
+      // ✅ Code Input Modal
+      if (showCodeModal) {
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-3xl p-8 w-96 shadow-2xl">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <i className="fa-solid fa-badge text-2xl text-white"></i>
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800">กรอกรหัสครู</h2>
+              </div>
+
+              <input
+                type="password"
+                maxLength="4"
+                inputMode="numeric"
+                value={codeInput}
+                onChange={e => setCodeInput(e.target.value.slice(0, 4))}
+                onKeyPress={e => e.key === "Enter" && handleCodeSubmit()}
+                className="w-full text-center text-4xl font-bold tracking-widest luxury-input mb-6 placeholder:text-slate-300"
+                placeholder="• • • •"
+              />
+
+              <button
+                onClick={handleCodeSubmit}
+                disabled={codeInput.length !== 4}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl disabled:opacity-50"
+              >
+                เข้าใช้งาน
+              </button>
             </div>
           </div>
-        </div>
-      );
-    }
+        );
+      }
 
-    function StudentManage({ students }) {
+      if (!user) return <div className="flex items-center justify-center h-screen"><div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>;
+
       return (
-        <div className="slide-up">
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-8">จัดการรายชื่อนักเรียน</h2>
-          <div className="glass-card rounded-3xl overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b">
-                <tr>
-                  <th className="px-6 py-4 font-bold">เลขที่</th>
-                  <th className="px-6 py-4 font-bold">ชื่อ</th>
-                  <th className="px-6 py-4 font-bold">ชื่อเล่น</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s, i) => (
-                  <tr key={i} className="border-b hover:bg-slate-50">
-                    <td className="px-6 py-4 font-semibold">{s.studentNo}</td>
-                    <td className="px-6 py-4">{s.studentName}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{s.nickname || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="flex h-full">
+          {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
+          {/* Sidebar */}
+          <aside className="w-64 bg-white border-r border-slate-100 p-6 flex flex-col">
+            <div className="text-center mb-8">
+              <h1 className="text-xl font-bold text-slate-800">{user.fullName}</h1>
+              <p className="text-sm text-slate-500">รหัส: {code}</p>
+              <p className="text-xs text-slate-400 mt-1">ชั้น: {user.classLevel}</p>
+            </div>
+
+            <nav className="flex-1 space-y-2">
+              <button
+                onClick={() => setView("list")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${view === "list" ? "bg-blue-50 text-blue-600 font-bold" : "text-slate-600 hover:bg-slate-50"}`}
+              >
+                <i className="fa-solid fa-list"></i> รายชื่อนักเรียน
+              </button>
+              <button
+                onClick={() => setView("report")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${view === "report" ? "bg-emerald-50 text-emerald-600 font-bold" : "text-slate-600 hover:bg-slate-50"}`}
+              >
+                <i className="fa-solid fa-file-pdf"></i> รายงาน
+              </button>
+            </nav>
+
+            <button
+              onClick={logout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition font-semibold"
+            >
+              <i className="fa-solid fa-sign-out-alt"></i> เปลี่ยนรหัส
+            </button>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto p-8">
+            {view === "list" && (
+              <div className="max-w-6xl mx-auto">
+                <h2 className="text-3xl font-bold text-slate-800 mb-6">รายชื่อนักเรียน</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  <div className="glass-card p-6">
+                    <p className="text-slate-500 text-sm mb-1">รวมทั้งหมด</p>
+                    <h3 className="text-3xl font-bold text-blue-600">{students.length}</h3>
+                  </div>
+                  <div className="glass-card p-6">
+                    <p className="text-slate-500 text-sm mb-1">เยี่ยมแล้ว</p>
+                    <h3 className="text-3xl font-bold text-emerald-600">{visits.filter(v => v.visitStatus === "เยี่ยมแล้ว").length}</h3>
+                  </div>
+                  <div className="glass-card p-6">
+                    <p className="text-slate-500 text-sm mb-1">ยังไม่เยี่ยม</p>
+                    <h3 className="text-3xl font-bold text-amber-600">{students.length - visits.filter(v => v.visitStatus === "เยี่ยมแล้ว").length}</h3>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {students.map((s, i) => {
+                    const visit = visits.find(v => v.studentName === s.studentName);
+                    const status = visit?.visitStatus || "ยังไม่เยี่ยม";
+                    const statusColor = status === "เยี่ยมแล้ว" ? "badge-success" : status === "นัดหมายแล้ว" ? "badge-warning" : "badge-danger";
+
+                    return (
+                      <div key={i} className="glass-card p-6 hover:shadow-lg transition cursor-pointer" onClick={() => openStudent(s)}>
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-bold text-slate-800">{s.studentNo} - {s.studentName}</h3>
+                            <p className="text-sm text-slate-500">{s.nickname || "-"}</p>
+                          </div>
+                          <span className={`badge ${statusColor}`}>{status}</span>
+                        </div>
+                        <button className="w-full bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100 font-semibold">
+                          <i className="fa-solid fa-edit mr-2"></i> แก้ไข
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {view === "form" && selectedStudent && (
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-3xl font-bold text-slate-800">เลขที่ {selectedStudent.studentNo} - {selectedStudent.studentName}</h2>
+                  <div className="flex items-center gap-2">
+                    {draftSaved && <span className="badge badge-success"><i className="fa-solid fa-cloud-check mr-1"></i> บันทึกแล้ว</span>}
+                    <button
+                      onClick={() => { setView("list"); setSelectedStudent(null); }}
+                      className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                    >
+                      ย้อนกลับ
+                    </button>
+                  </div>
+                </div>
+
+                <div className="glass-card p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                  {/* ข้อมูลเบื้องต้น */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 border-b pb-2">ข้อมูลเบื้องต้น</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-600 mb-2">ภาคเรียน</label>
+                        <select value={formData.semester || "1"} onChange={e => setFormData({...formData, semester: e.target.value})} className="luxury-input w-full">
+                          <option>1</option>
+                          <option>2</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-600 mb-2">วันที่</label>
+                        <input type="date" value={formData.visitDate || ""} onChange={e => setFormData({...formData, visitDate: e.target.value})} className="luxury-input w-full" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-semibold text-slate-600 mb-2">สถานะการเยี่ยม</label>
+                        <select value={formData.visitStatus || ""} onChange={e => setFormData({...formData, visitStatus: e.target.value})} className="luxury-input w-full">
+                          <option value="">-- เลือก --</option>
+                          {VISIT_STAT.map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ที่พัก */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 border-b pb-2">ข้อมูลที่พัก</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input type="text" placeholder="ลักษณะที่พัก" value={formData.houseType || ""} onChange={e => setFormData({...formData, houseType: e.target.value})} className="luxury-input" />
+                      <input type="number" placeholder="ระยะทาง (กม.)" value={formData.distanceKm || ""} onChange={e => setFormData({...formData, distanceKm: e.target.value})} className="luxury-input" />
+                      <input type="text" placeholder="วิธีเดินทาง" value={formData.travelMethod || ""} onChange={e => setFormData({...formData, travelMethod: e.target.value})} className="luxury-input" />
+                      <select value={formData.houseCondition || ""} onChange={e => setFormData({...formData, houseCondition: e.target.value})} className="luxury-input">
+                        <option value="">-- สภาพบ้าน --</option>
+                        {HOUSE_COND.map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ครอบครัว */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 border-b pb-2">ข้อมูลครอบครัว</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input type="number" placeholder="จำนวนสมาชิก" value={formData.familyMembers || ""} onChange={e => setFormData({...formData, familyMembers: e.target.value})} className="luxury-input" />
+                      <input type="number" placeholder="จำนวนพี่น้อง" value={formData.siblings || ""} onChange={e => setFormData({...formData, siblings: e.target.value})} className="luxury-input" />
+                      <select value={formData.familyRelationship || ""} onChange={e => setFormData({...formData, familyRelationship: e.target.value})} className="luxury-input col-span-2">
+                        <option value="">-- ความสัมพันธ์ --</option>
+                        {REL_OPTS.map(r => <option key={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* ความเสี่ยง */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 border-b pb-2">ความเสี่ยง</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input type="text" placeholder="ด้านสุขภาพ" value={formData.riskHealth || ""} onChange={e => setFormData({...formData, riskHealth: e.target.value})} className="luxury-input" />
+                      <input type="text" placeholder="ด้านความปลอดภัย" value={formData.riskSafety || ""} onChange={e => setFormData({...formData, riskSafety: e.target.value})} className="luxury-input" />
+                      <input type="text" placeholder="ด้านการเดินทาง" value={formData.riskTravel || ""} onChange={e => setFormData({...formData, riskTravel: e.target.value})} className="luxury-input" />
+                      <input type="text" placeholder="ด้านสารเสพติด" value={formData.riskSubstance || ""} onChange={e => setFormData({...formData, riskSubstance: e.target.value})} className="luxury-input" />
+                    </div>
+                  </div>
+
+                  {/* บันทึกครู */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 border-b pb-2">บันทึกเพิ่มเติม</h3>
+                    <select value={formData.visitResult || ""} onChange={e => setFormData({...formData, visitResult: e.target.value})} className="luxury-input w-full">
+                      <option value="">-- ความเห็นของครู --</option>
+                      {RESULT_OPTS.map(r => <option key={r}>{r}</option>)}
+                    </select>
+                    <textarea placeholder="หมายเหตุ" value={formData.teacherNotes || ""} onChange={e => setFormData({...formData, teacherNotes: e.target.value})} className="luxury-input w-full h-24" />
+                  </div>
+
+                  {/* อัปโหลดรูป */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 border-b pb-2">รูปภาพ</h3>
+                    <label className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center cursor-pointer hover:bg-blue-50 transition">
+                      <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2 block"></i>
+                      <p className="font-semibold text-blue-600">คลิกเพื่ออัปโหลดรูป</p>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                    {images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {images.map((img, i) => (
+                          <div key={i} className="relative group">
+                            <img src={img.data || img} alt={img.name} className="w-full h-20 object-cover rounded" />
+                            <button
+                              onClick={() => setImages(images.filter((_, idx) => idx !== i))}
+                              className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded transition"
+                            >
+                              <i className="fa-solid fa-trash text-white"></i>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ปุ่มบันทึก */}
+                  <div className="flex gap-4 pt-6 border-t">
+                    <button
+                      onClick={saveForm}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition"
+                    >
+                      <i className="fa-solid fa-save mr-2"></i> บันทึก
+                    </button>
+                    <button
+                      onClick={() => {
+                        const draftKey = `draft_${selectedStudent.studentNo}`;
+                        localStorage.removeItem(draftKey);
+                        setView("list");
+                        setSelectedStudent(null);
+                      }}
+                      className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-lg transition"
+                    >
+                      <i className="fa-solid fa-times mr-2"></i> ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {view === "report" && (
+              <div className="max-w-4xl mx-auto">
+                <h2 className="text-3xl font-bold text-slate-800 mb-8">สร้างรายงาน</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  <button
+                    onClick={() => generateReport("single")}
+                    className="glass-card p-6 hover:shadow-lg transition text-center"
+                  >
+                    <i className="fa-solid fa-file text-3xl text-blue-600 mb-4 block"></i>
+                    <h3 className="font-bold text-slate-800 mb-2">รายงานคนเดียว</h3>
+                    <p className="text-sm text-slate-500">ส่งออกรายงานเฉพาะที่เลือก</p>
+                  </button>
+
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="glass-card p-6 hover:shadow-lg transition text-center"
+                  >
+                    <i className="fa-solid fa-files text-3xl text-amber-600 mb-4 block"></i>
+                    <h3 className="font-bold text-slate-800 mb-2">รายงานแบบเลือก</h3>
+                    <p className="text-sm text-slate-500">เลือกหลายคน ({selectedForReport.size})</p>
+                  </button>
+
+                  <button
+                    onClick={() => generateReport("all")}
+                    className="glass-card p-6 hover:shadow-lg transition text-center"
+                  >
+                    <i className="fa-solid fa-book text-3xl text-emerald-600 mb-4 block"></i>
+                    <h3 className="font-bold text-slate-800 mb-2">รายงานทั้งหมด</h3>
+                    <p className="text-sm text-slate-500">ส่งออกทั้ง {students.length} คน</p>
+                  </button>
+                </div>
+
+                {/* เลือกนักเรียน */}
+                <h3 className="text-lg font-bold text-slate-800 mb-4">เลือกนักเรียน</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {students.map((s) => (
+                    <div
+                      key={s.studentNo}
+                      onClick={() => {
+                        const newSet = new Set(selectedForReport);
+                        if (newSet.has(s.studentNo)) {
+                          newSet.delete(s.studentNo);
+                        } else {
+                          newSet.add(s.studentNo);
+                        }
+                        setSelectedForReport(newSet);
+                      }}
+                      className={`glass-card p-4 cursor-pointer transition ${selectedForReport.has(s.studentNo) ? "bg-blue-50 border-blue-500 border-2" : "hover:shadow-lg"}`}
+                    >
+                      <input type="checkbox" checked={selectedForReport.has(s.studentNo)} readOnly className="mr-2" />
+                      <label className="cursor-pointer">
+                        <p className="font-bold text-slate-800">{s.studentNo} - {s.studentName}</p>
+                        <p className="text-sm text-slate-500">{s.nickname || "-"}</p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                {showReportModal && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md">
+                      <h3 className="text-lg font-bold mb-4">เลือก {selectedForReport.size} คน</h3>
+                      <div className="space-y-2 mb-6">
+                        <button
+                          onClick={() => {
+                            generateReport("selected");
+                            setShowReportModal(false);
+                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded"
+                        >
+                          สร้างรายงาน
+                        </button>
+                        <button
+                          onClick={() => setShowReportModal(false)}
+                          className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded"
+                        >
+                          ยกเลิก
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
         </div>
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
+    const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<DashboardApp />);
   </script>
 </body>
