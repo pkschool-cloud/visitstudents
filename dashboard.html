@@ -175,7 +175,7 @@
             </div>
             <h2 className="text-2xl font-black text-slate-800 mb-2">ยินดีต้อนรับเข้าสู่ระบบ!</h2>
             <p className="text-slate-500 mb-8 font-medium leading-relaxed">
-              หากคุณครูเพิ่งเคยเข้าใช้งานระบบนี้เป็นครั้งแรก<br/>
+              หากบุคลากรเพิ่งเข้าใช้งานระบบนี้เป็นครั้งแรก<br/>
               <span className="text-blue-600 font-bold">"โปรดอ่านคู่มือการใช้งานที่เมนูด้านซ้ายก่อน"</span><br/>
               เพื่อให้เข้าใจวิธีการทำงานและการพิมพ์รายงานอย่างถูกต้องครับ
             </p>
@@ -197,21 +197,21 @@
                   <i className="fa-solid fa-location-crosshairs text-4xl text-blue-500"></i>
                 </div>
                 <h3 className="font-black text-slate-800 text-2xl mb-1">คำนวณพิกัด</h3>
-                <p className="font-medium text-slate-500 text-center">ค้นหาระยะทางจากโรงเรียน...</p>
+                <p className="font-medium text-slate-500 text-center">ค้นหาระยะทางจากสถานศึกษา...</p>
               </>
             )}
             {status === "success" && (
               <>
                 <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-check text-5xl text-emerald-500 bounce-in"></i></div>
                 <h3 className="font-black text-slate-800 text-2xl mb-1">สำเร็จ!</h3>
-                <p className="font-medium text-slate-500 text-center">ห่างจากโรงเรียน <span className="font-black text-emerald-600 text-xl">{distance} กม.</span></p>
+                <p className="font-medium text-slate-500 text-center">ระยะห่างจากสถานศึกษา <span className="font-black text-emerald-600 text-xl">{distance} กม.</span></p>
               </>
             )}
             {status === "error" && (
               <>
                 <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-6"><i className="fa-solid fa-xmark text-5xl text-rose-500 bounce-in"></i></div>
                 <h3 className="font-black text-slate-800 text-2xl mb-1">ข้อผิดพลาด</h3>
-                <p className="font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือปิด GPS ไว้</p>
+                <p className="font-medium text-slate-500 text-center">เบราว์เซอร์ไม่รองรับ หรือไม่ได้เปิดการเข้าถึงตำแหน่ง</p>
               </>
             )}
           </div>
@@ -245,7 +245,7 @@
       };
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_final_v7");
+        const u = localStorage.getItem("hv_user_final_v8");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -264,14 +264,13 @@
         setIsDataLoaded(true);
       };
 
-      // 🔴 รับ callback stopLoading เพื่อมาสั่งหยุดหมุนติ้วๆ
       const handleLogin = async (code, stopLoading) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success && res.data) {
-          localStorage.setItem("hv_user_final_v7", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_final_v8", JSON.stringify(res.data));
           setUser(res.data); 
           loadAllData(res.data);
-          setShowWelcome(true); // โชว์ Welcome Popup ตอนล็อกอินสำเร็จ
+          setShowWelcome(true);
         } else {
           showToast("คุณครูน่าจะกรอกรหัสผิดนะครับ ไม่พบรหัสในฐานข้อมูล รบกวนกรอกรหัสอีกครั้งนะครับ", "error");
           if(stopLoading) stopLoading();
@@ -303,17 +302,17 @@
       };
 
       const deleteVisitRecord = async (studentNo, classLevel) => {
-        if(!confirm(`⚠️ คำเตือน!\n\nคุณกำลังจะลบข้อมูลการเยี่ยมบ้านของเลขที่ ${studentNo}\nเมื่อลบแล้ว สถานะจะกลับเป็น "ยังไม่เยี่ยม" ทันที\n\nยืนยันการลบข้อมูลหรือไม่?`)) return;
+        if(!confirm(`⚠️ คำเตือน!\n\nท่านกำลังดำเนินการลบข้อมูลการเยี่ยมบ้านของนักเรียนเลขที่ ${studentNo}\nเมื่อลบแล้ว สถานะจะกลับเป็น "ยังไม่เยี่ยม" ทันที\n\nยืนยันการดำเนินการลบข้อมูลหรือไม่?`)) return;
         
         setIsSaving(true);
         const res = await api.post({ action: "deleteVisitRecord", studentNo, classLevel });
         if(res.success) {
-          showToast("ล้างข้อมูลการเยี่ยมบ้านเรียบร้อย", "success");
+          showToast("ดำเนินการล้างข้อมูลการเยี่ยมบ้านเรียบร้อย", "success");
           setGlobalVisits(prev => prev.filter(v => !(compareId(getVal(v, "studentNo"), studentNo) && getVal(v, "classLevel") === classLevel)));
           setView("students");
           setSelectedStudent(null);
         } else {
-          showToast(res.message || "ไม่สามารถลบข้อมูลได้", "error");
+          showToast(res.message || "ระบบไม่สามารถดำเนินการลบข้อมูลได้", "error");
         }
         setIsSaving(false);
       };
@@ -351,7 +350,7 @@
                     <div className="absolute inset-0 border-[4px] border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
                     <i className="fa-solid fa-cloud-arrow-up text-3xl text-blue-500"></i>
                   </div>
-                  <p className="font-black text-slate-800 text-lg">กำลังซิงค์ข้อมูลกับฐานระบบ...</p>
+                  <p className="font-black text-slate-800 text-lg">กำลังประมวลผลข้อมูลในระบบ...</p>
                </div>
             </div>
           )}
@@ -375,7 +374,7 @@
                <div className="px-5 mt-5 mb-2 relative fade-in z-50">
                  <div className="input-wrapper flex items-center bg-slate-50 border-slate-200 rounded-[1.2rem] px-4 py-3">
                    <i className="fa-solid fa-search text-slate-400"></i>
-                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัติเด็ก..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
+                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัตินักเรียน..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
                  </div>
                  {sidebarSearch && (
                    <div className="absolute top-full left-5 right-5 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden pop-in">
@@ -407,11 +406,10 @@
                 <NavBtn icon="fa-user-gear" label="จัดการรายชื่อ" active={view==="manage"} open={isSidebarOpen} onClick={()=>{setView("manage"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="emerald" />
                 <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
                 <div className="my-3 border-t border-slate-100"></div>
-                {/* 🔴 ปุ่มคู่มือการใช้งาน 🔴 */}
                 <NavBtn icon="fa-book" label="คู่มือการใช้งาน" active={view==="manual"} open={isSidebarOpen} onClick={()=>{setView("manual"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="slate" />
              </nav>
              <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_final_v7"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+               <button onClick={()=>{localStorage.removeItem("hv_user_final_v8"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
                  <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
                </button>
              </div>
@@ -448,7 +446,6 @@
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
-                {/* 🌟 หน้าคู่มือการใช้งาน 🌟 */}
                 {view === "manual" && <ManualView />}
                 
                 {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
@@ -488,7 +485,7 @@
       const submitLogin = () => {
         if(code) {
           setLoading(true);
-          onLogin(code, () => setLoading(false)); // ส่ง callback ไปให้หยุดหมุน
+          onLogin(code, () => setLoading(false)); 
         }
       };
 
@@ -501,7 +498,7 @@
              <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-[1.5rem] mx-auto flex items-center justify-center mb-8 shadow-xl shadow-blue-500/40 transform rotate-3">
                <i className="fa-solid fa-school text-4xl text-white -rotate-3"></i>
              </div>
-             <h2 className="text-3xl font-black text-slate-800 tracking-tight">ระบบเยี่ยมบ้าน</h2>
+             <h2 className="text-3xl font-black text-slate-800 tracking-tight">ระบบเยี่ยมบ้านนักเรียน</h2>
              <p className="text-sm font-bold text-slate-400 mt-2 mb-10 tracking-widest uppercase">โรงเรียนป่าก้าง</p>
              
              <div className="input-wrapper mb-8">
@@ -509,7 +506,7 @@
              </div>
              
              <button onClick={submitLogin} disabled={!code || loading} className="w-full bg-slate-900 text-white font-bold py-5 rounded-full btn-press shadow-xl hover:bg-blue-600 hover:shadow-blue-500/30 transition-all text-lg flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer">
-               {loading ? <><i className="fa-solid fa-circle-notch fa-spin"></i> กำลังตรวจสอบรหัส...</> : <><i className="fa-solid fa-arrow-right-to-bracket"></i> เริ่มใช้งาน</>}
+               {loading ? <><i className="fa-solid fa-circle-notch fa-spin"></i> กำลังตรวจสอบข้อมูล...</> : <><i className="fa-solid fa-arrow-right-to-bracket"></i> เริ่มใช้งาน</>}
              </button>
           </div>
         </div>
@@ -578,7 +575,7 @@
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">การเดินทาง</div><div className="col-span-2 text-sm">{disp(getVal(v,"riskTravel"))}</div></div>
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">สังคม/เพื่อน</div><div className="col-span-2 text-sm">{disp(getVal(v,"riskSocial"))}</div></div>
                      <div className="grid grid-cols-3 gap-4 border-b border-slate-50 pb-4"><div className="col-span-1 text-sm font-bold text-slate-400">ยาเสพติด</div><div className="col-span-2 text-sm">{disp(getVal(v,"riskSubstance"))}</div></div>
-                     <div className="grid grid-cols-3 gap-4"><div className="col-span-1 text-sm font-bold text-slate-400">ข้อห่วงใยผปค.</div><div className="col-span-2 text-sm">{disp(getVal(v,"parentConcerns"))}</div></div>
+                     <div className="grid grid-cols-3 gap-4"><div className="col-span-1 text-sm font-bold text-slate-400">ข้อห่วงใยผู้ปกครอง</div><div className="col-span-2 text-sm">{disp(getVal(v,"parentConcerns"))}</div></div>
                   </div>
                 </div>
              </div>
@@ -608,7 +605,7 @@
                        <div className="text-sm font-medium leading-relaxed text-slate-200">{disp(getVal(v,"teacherNotes"))}</div>
                      </div>
                      <div className="border-t border-slate-700 pt-4">
-                       <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">ข้อสังเกตเบื้องต้น</div>
+                       <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">การสังเกตเบื้องต้น</div>
                        <div className="text-sm font-medium leading-relaxed text-slate-200">{disp(getVal(v,"observations"))}</div>
                      </div>
                   </div>
@@ -645,7 +642,7 @@
           <div className="soft-card p-10 mb-10 flex flex-col md:flex-row items-center justify-between">
              <div className="mb-8 md:mb-0 text-center md:text-left">
                 <h3 className="text-2xl font-black text-slate-800">ความคืบหน้าการเยี่ยมบ้าน</h3>
-                <p className="text-slate-500 font-medium mt-2">เยี่ยมเสร็จสมบูรณ์ {actVisited} จาก {students.length} คน</p>
+                <p className="text-slate-500 font-medium mt-2">ประเมินเสร็จสมบูรณ์ {actVisited} จาก {students.length} คน</p>
              </div>
              <div className="w-full md:w-1/2">
                 <div className="flex justify-between items-end mb-3"><span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Progress</span><span className="text-5xl font-black text-blue-600">{pct}%</span></div>
@@ -711,7 +708,7 @@
         <div className="slide-up">
           <div className="mb-10">
             <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">รายชื่อนักเรียนทั้งหมด</h2>
-            <p className="text-slate-500 font-medium mt-2 text-lg">พบข้อมูล {filtered.length} คน</p>
+            <p className="text-slate-500 font-medium mt-2 text-lg">พบข้อมูลนักเรียน {filtered.length} รายการ</p>
           </div>
 
           <div className="soft-card p-4 mb-10 flex flex-col lg:flex-row gap-4 items-center">
@@ -722,7 +719,7 @@
              </div>
              <div className="input-wrapper flex-1 flex items-center px-6 rounded-full w-full">
                <i className="fa-solid fa-search text-slate-400 text-lg"></i>
-               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} className="premium-input bg-transparent py-4 text-base" placeholder="ค้นหาชื่อ, เลขที่..." />
+               <input type="text" value={search} onChange={e=>setSearch(e.target.value)} className="premium-input bg-transparent py-4 text-base" placeholder="ค้นหาประวัตินักเรียน..." />
              </div>
           </div>
 
@@ -759,7 +756,7 @@
         <div className="slide-up">
            <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-10 tracking-tight">ตารางนัดหมาย</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {apps.length===0 ? <p className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-medium text-lg">ไม่มีคิวนัดหมาย</p> : apps.map((a,i) => (
+             {apps.length===0 ? <p className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-medium text-lg">ไม่มีข้อมูลนัดหมาย</p> : apps.map((a,i) => (
                <div key={i} onClick={()=>onSelect(a.student)} className="soft-card p-6 cursor-pointer btn-press border-l-[8px] border-l-amber-400 flex flex-col sm:flex-row justify-between sm:items-center group hover:shadow-amber-500/10 gap-4">
                  <div>
                    <h4 className="font-black text-slate-800 text-xl group-hover:text-amber-600 transition-colors">{a.student.studentName}</h4>
@@ -773,189 +770,69 @@
       );
     }
 
-    const AddStudentModal = ({ onClose, onSave, isAdmin, currentFilterClass, userClass }) => {
-      const [form, setForm] = useState({
-        studentNo: "", studentName: "", nickname: "", 
-        classLevel: (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : (!isAdmin ? userClass : "")
-      });
-      const [saving, setSaving] = useState(false);
-
-      const handleSubmit = async () => {
-        setSaving(true);
-        await onSave(form);
-        setSaving(false);
-      };
-
-      return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 fade-in">
-          <div className="bg-white rounded-[2rem] p-8 md:p-10 w-full max-w-lg shadow-2xl bounce-in relative">
-            <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 bg-slate-50 text-slate-400 hover:text-rose-500 rounded-full flex items-center justify-center transition-colors cursor-pointer"><i className="fa-solid fa-xmark text-xl"></i></button>
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl"><i className="fa-solid fa-user-plus"></i></div>
-              <h2 className="text-2xl font-black text-slate-800">เพิ่มนักเรียนใหม่</h2>
-            </div>
-
-            <div className="space-y-2">
-              <PremiumInput label="เลขที่" type="number" value={form.studentNo} onChange={e=>setForm({...form, studentNo: e.target.value})} icon="fa-hashtag" />
-              <PremiumInput label="ชื่อ-นามสกุล" value={form.studentName} onChange={e=>setForm({...form, studentName: e.target.value})} icon="fa-id-card" />
-              <PremiumInput label="ชื่อเล่น (ไม่บังคับ)" value={form.nickname} onChange={e=>setForm({...form, nickname: e.target.value})} icon="fa-face-smile" />
-              <PremiumInput label="ชั้นเรียน" value={form.classLevel} onChange={e=>setForm({...form, classLevel: e.target.value})} icon="fa-chalkboard" disabled={!isAdmin || (isAdmin && currentFilterClass !== "ทั้งหมด")} />
-            </div>
-
-            <div className="mt-8">
-              <button onClick={handleSubmit} disabled={saving || !form.studentNo || !form.studentName || !form.classLevel} className="w-full bg-slate-900 hover:bg-emerald-500 text-white font-bold py-4 rounded-full btn-press shadow-xl transition-colors disabled:opacity-50 text-lg flex items-center justify-center gap-2 cursor-pointer">
-                {saving ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...</> : <><i className="fa-solid fa-save"></i> บันทึกข้อมูล</>}
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    function StudentManage({ user, showToast, refresh, students, isLoaded, isAdmin, currentFilterClass, userClass }) {
-      const [showAddModal, setShowAddModal] = useState(false);
-
-      const handleImport = async (e) => {
-        const file = e.target.files[0]; if(!file) return;
-        const reader = new FileReader();
-        reader.onload = async (evt) => {
-          showToast("กำลังนำเข้าข้อมูล...", "success");
-          const wb = XLSX.read(evt.target.result, {type:'binary'}); 
-          const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
-          const targetClass = (isAdmin && currentFilterClass !== "ทั้งหมด") ? currentFilterClass : user.classLevel;
-          
-          const newSt = data.slice(1).filter(r=>r[0]&&r[1]).map(r=>({studentNo:r[0], studentName:r[1], nickname:r[2]||"", classLevel: isAdmin ? (r[3]||targetClass) : targetClass}));
-          const res = await api.post({action:"importStudents", students:newSt});
-          if(res.success){ showToast(`นำเข้าสำเร็จ ${newSt.length} คน`, "success"); refresh(user); } else showToast("เกิดข้อผิดพลาด", "error");
-        };
-        reader.readAsBinaryString(file); e.target.value="";
-      };
-      
-      const handleDelete = async (no, classLvl) => {
-        if(!confirm(`ลบเลขที่ ${no} ใช่หรือไม่?`)) return;
-        const res = await api.post({action:"deleteStudent", studentNo:no, classLevel:classLvl});
-        if(res.success){ showToast("ลบสำเร็จ", "success"); refresh(user); } else showToast("ลบไม่สำเร็จ", "error");
-      };
-
-      const handleAddStudent = async (formData) => {
-        const res = await api.post({action: "addStudent", data: formData});
-        if (res.success) {
-          showToast("เพิ่มนักเรียนสำเร็จ", "success");
-          setShowAddModal(false);
-          refresh(user);
-        } else {
-          showToast(res.message || "เกิดข้อผิดพลาด", "error");
-        }
-      };
-
-      if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto"></div></div>;
-
-      return (
-        <div className="slide-up">
-           {showAddModal && <AddStudentModal onClose={()=>setShowAddModal(false)} onSave={handleAddStudent} isAdmin={isAdmin} currentFilterClass={currentFilterClass} userClass={user.classLevel} />}
-
-           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-             <div><h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">จัดการรายชื่อ</h2></div>
-             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-               <button onClick={()=>setShowAddModal(true)} className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-full font-bold shadow-lg shadow-slate-900/20 cursor-pointer btn-press transition-colors flex items-center justify-center">
-                 <i className="fa-solid fa-user-plus mr-3 text-xl"></i> เพิ่มนักเรียน
-               </button>
-               <label className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-full font-bold shadow-lg shadow-emerald-500/30 cursor-pointer btn-press transition-colors flex items-center justify-center">
-                 <i className="fa-solid fa-file-excel mr-3 text-xl"></i> นำเข้าจาก Excel
-                 <input type="file" accept=".xlsx, .xls" onChange={handleImport} className="hidden" />
-               </label>
-             </div>
-           </div>
-           
-           <div className="soft-card overflow-hidden border border-slate-100">
-             <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse">
-                 <thead><tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-widest"><th className="py-6 px-8 font-bold w-32 text-center">เลขที่</th><th className="py-6 px-8 font-bold">ชื่อ-นามสกุล</th><th className="py-6 px-8 font-bold text-center">ชั้นเรียน</th><th className="py-6 px-8 font-bold text-center w-32">ลบ</th></tr></thead>
-                 <tbody className="divide-y divide-slate-100">
-                   {students.length===0 ? <tr><td colSpan="4" className="text-center py-16 text-slate-400 font-medium text-lg">ไม่มีข้อมูลนักเรียน</td></tr> : students.map((s,i) => (
-                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                       <td className="py-5 px-8 text-center font-black text-slate-700 text-xl">{s.studentNo}</td>
-                       <td className="py-5 px-8"><span className="font-black text-slate-800 text-lg">{s.studentName}</span> {s.nickname && <span className="text-sm font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-md ml-3">{s.nickname}</span>}</td>
-                       <td className="py-5 px-8 text-center font-bold text-blue-600"><span className="bg-blue-50 px-3 py-1 rounded-lg">{getVal(s,"classLevel")}</span></td>
-                       <td className="py-5 px-8 text-center"><button onClick={()=>handleDelete(s.studentNo, getVal(s,"classLevel"))} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all shadow-sm flex items-center justify-center mx-auto btn-press cursor-pointer"><i className="fa-solid fa-trash-can text-lg"></i></button></td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-             </div>
-           </div>
-        </div>
-      );
-    }
-
-    // 🌟 คู่มือการใช้งาน (เปิดอ่านได้จากเมนูด้านซ้าย) 🌟
     function ManualView() {
       return (
         <div className="slide-up">
           <div className="mb-10">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">คู่มือการใช้งานระบบ</h2>
-            <p className="text-slate-500 font-medium mt-2 text-lg">เทคนิคและวิธีการใช้งานให้เกิดประสิทธิภาพสูงสุด</p>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">คู่มือการใช้งานระบบเยี่ยมบ้านนักเรียน</h2>
+            <p className="text-slate-500 font-medium mt-2 text-lg">แนวทางและขั้นตอนการปฏิบัติงานเพื่อประสิทธิภาพสูงสุดของระบบ</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Card 1 */}
             <div className="soft-card p-8 border-l-[8px] border-l-blue-500">
               <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
                 <i className="fa-solid fa-users-gear text-2xl text-blue-500"></i>
               </div>
-              <h3 className="text-xl font-black text-slate-800 mb-3">1. การเพิ่มและจัดการรายชื่อ</h3>
+              <h3 className="text-xl font-black text-slate-800 mb-3">1. การจัดการฐานข้อมูลนักเรียน</h3>
               <ul className="space-y-3 text-slate-600 font-medium leading-relaxed">
-                <li><i className="fa-solid fa-check text-blue-500 mr-2"></i> เข้าเมนู <b>"จัดการรายชื่อ"</b> เพื่อเพิ่มข้อมูลเด็กใหม่</li>
-                <li><i className="fa-solid fa-check text-blue-500 mr-2"></i> คุณครูสามารถเพิ่มทีละคน หรือ <b>"นำเข้าจาก Excel"</b> เพื่อความรวดเร็วได้</li>
-                <li><i className="fa-solid fa-check text-blue-500 mr-2"></i> หากมีชื่อซ้ำหรือผิด สามารถกดปุ่มลบ (ถังขยะ) ได้ทันที</li>
+                <li><i className="fa-solid fa-check text-blue-500 mr-2"></i> เข้าสู่เมนู <b>"จัดการรายชื่อ"</b> เพื่อดำเนินการเพิ่มข้อมูลนักเรียนใหม่เข้าสู่ระบบ</li>
+                <li><i className="fa-solid fa-check text-blue-500 mr-2"></i> บุคลากรสามารถเลือกเพิ่มข้อมูลเป็นรายบุคคล หรือใช้ฟังก์ชัน <b>"นำเข้าจาก Excel"</b> เพื่อประมวลผลข้อมูลจำนวนมาก</li>
+                <li><i className="fa-solid fa-check text-blue-500 mr-2"></i> กรณีพบข้อมูลซ้ำซ้อนหรือคลาดเคลื่อน สามารถปรับปรุงฐานข้อมูลโดยคลิกไอคอนลบ (ถังขยะ) เพื่อนำข้อมูลออก</li>
               </ul>
             </div>
 
-            {/* Card 2 */}
             <div className="soft-card p-8 border-l-[8px] border-l-emerald-500">
               <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
                 <i className="fa-solid fa-location-dot text-2xl text-emerald-500"></i>
               </div>
-              <h3 className="text-xl font-black text-slate-800 mb-3">2. การกรอกข้อมูล & ดึงพิกัด (GPS)</h3>
+              <h3 className="text-xl font-black text-slate-800 mb-3">2. การบันทึกข้อมูลและพิกัดภูมิศาสตร์</h3>
               <ul className="space-y-3 text-slate-600 font-medium leading-relaxed">
-                <li><i className="fa-solid fa-check text-emerald-500 mr-2"></i> ไปที่เมนู <b>"รายชื่อทั้งหมด"</b> แล้วคลิกที่ชื่อนักเรียนที่ต้องการ</li>
-                <li><i className="fa-solid fa-check text-emerald-500 mr-2"></i> กดปุ่ม <b>"บันทึกข้อมูล"</b> เพื่อเริ่มทำแบบประเมิน</li>
-                <li><i className="fa-solid fa-check text-emerald-500 mr-2"></i> ระบบสามารถคำนวณระยะทางจากบ้านถึงโรงเรียนได้อัตโนมัติ <b>(อย่าลืมกดยอมรับให้เบราว์เซอร์เข้าถึงตำแหน่ง GPS ด้วยนะครับ)</b></li>
+                <li><i className="fa-solid fa-check text-emerald-500 mr-2"></i> เลือกเมนู <b>"รายชื่อทั้งหมด"</b> จากนั้นคลิกเลือกรหัสนักเรียนที่ต้องการบันทึกข้อมูล</li>
+                <li><i className="fa-solid fa-check text-emerald-500 mr-2"></i> คลิกปุ่ม <b>"บันทึกข้อมูล"</b> เพื่อดำเนินการกรอกแบบบันทึกการเยี่ยมบ้าน</li>
+                <li><i className="fa-solid fa-check text-emerald-500 mr-2"></i> ระบบรองรับการคำนวณระยะทางจากที่พักอาศัยถึงสถานศึกษาโดยอัตโนมัติ <b>(กรุณาอนุญาตให้เบราว์เซอร์เข้าถึงข้อมูลตำแหน่งที่ตั้งก่อนการใช้งาน)</b></li>
               </ul>
             </div>
 
-            {/* Card 3 */}
             <div className="soft-card p-8 border-l-[8px] border-l-rose-500 md:col-span-2">
               <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center mb-6">
                 <i className="fa-solid fa-print text-2xl text-rose-500"></i>
               </div>
-              <h3 className="text-xl font-black text-slate-800 mb-3">3. การพิมพ์และส่งออก PDF (สำคัญมาก)</h3>
+              <h3 className="text-xl font-black text-slate-800 mb-3">3. การส่งออกและพิมพ์รายงานรูปแบบ PDF</h3>
               <div className="bg-rose-50/50 p-6 rounded-2xl border border-rose-100 mb-4">
                 <p className="text-slate-600 font-medium leading-relaxed">
-                  ระบบออกแบบการสร้าง PDF เป็นแบบ <b>"เปิดแท็บใหม่ (New Tab)"</b> เพื่อรักษาความสวยงามของตารางวิชาการให้เป๊ะที่สุด และป้องกันปัญหาหน้าจอขาวครับ
+                  ระบบประมวลผลเอกสาร PDF ผ่านการ <b>"เปิดหน้าต่างใหม่ (New Tab)"</b> เพื่อรักษาโครงสร้างของเอกสารทางวิชาการให้มีความถูกต้องและหลีกเลี่ยงข้อผิดพลาดในการแสดงผล
                 </p>
               </div>
               <ul className="space-y-3 text-slate-600 font-medium leading-relaxed grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <li><i className="fa-solid fa-1 text-rose-500 mr-2"></i> เข้าเมนู "ส่งออกรายงาน" และเลือกชื่อเด็กที่ต้องการพิมพ์</li>
-                <li><i className="fa-solid fa-2 text-rose-500 mr-2"></i> กดปุ่ม <b>พิมพ์ / เซฟ PDF</b> สีดำด้านล่างสุด</li>
-                <li><i className="fa-solid fa-3 text-rose-500 mr-2"></i> ระบบจะเปิดแท็บใหม่ และเรียกหน้าต่าง <b>Print</b> ขึ้นมาให้ทันที</li>
-                <li><i className="fa-solid fa-4 text-rose-500 mr-2"></i> ในหน้าต่าง Print ให้ครูเลือกเครื่องพิมพ์เป็น <b>"บันทึกเป็น PDF (Save as PDF)"</b> หรือเลือกพรินเตอร์เพื่อพิมพ์ลงกระดาษได้เลยครับ</li>
+                <li><i className="fa-solid fa-1 text-rose-500 mr-2"></i> เข้าสู่เมนู "ส่งออกรายงาน" และเลือกรายชื่อนักเรียนที่ต้องการพิมพ์รายงาน</li>
+                <li><i className="fa-solid fa-2 text-rose-500 mr-2"></i> คลิกปุ่ม <b>"พิมพ์ / เซฟ PDF"</b> สีดำด้านล่างสุด เพื่อสั่งการระบบ</li>
+                <li><i className="fa-solid fa-3 text-rose-500 mr-2"></i> ระบบจะแสดงผลหน้าต่างการพิมพ์ (Print Dialog) โดยอัตโนมัติ</li>
+                <li><i className="fa-solid fa-4 text-rose-500 mr-2"></i> กรุณาเลือกรูปแบบปลายทางเป็น <b>"บันทึกเป็น PDF (Save as PDF)"</b> เพื่อจัดเก็บไฟล์ หรือเลือกเครื่องพิมพ์ที่เชื่อมต่อเพื่อสั่งพิมพ์ลงกระดาษ</li>
               </ul>
               <div className="mt-5 text-sm font-bold text-rose-600 flex items-center">
-                <i className="fa-solid fa-circle-exclamation mr-2"></i> หมายเหตุ: หากหน้าต่างไม่เด้งขึ้นมา ให้สังเกตมุมขวาบนของ URL bar และกด "อนุญาต Pop-up" ก่อนครับ
+                <i className="fa-solid fa-circle-exclamation mr-2"></i> ข้อควรระวัง: หากระบบไม่แสดงหน้าต่างการพิมพ์ กรุณาตรวจสอบและอนุญาตการแสดงผล Pop-up ที่มุมขวาบนของแถบที่อยู่เว็บ (URL Bar)
               </div>
             </div>
 
-            {/* Card 4 */}
             <div className="soft-card p-8 border-l-[8px] border-l-amber-500 md:col-span-2">
               <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mb-6">
                 <i className="fa-solid fa-eraser text-2xl text-amber-500"></i>
               </div>
-              <h3 className="text-xl font-black text-slate-800 mb-3">4. การแก้ไขและการล้างข้อมูล</h3>
+              <h3 className="text-xl font-black text-slate-800 mb-3">4. การปรับปรุงและการล้างข้อมูล</h3>
               <ul className="space-y-3 text-slate-600 font-medium leading-relaxed">
-                <li><i className="fa-solid fa-check text-amber-500 mr-2"></i> <b>กรอกผิดคนทำยังไง?</b> ไม่ต้องตกใจครับ เข้าไปที่หน้าประวัติของนักเรียนคนนั้น จะมีปุ่ม <span className="text-rose-500 font-bold">"ล้างข้อมูล"</span> (สีแดง) ปรากฏอยู่ พอกดปุ๊บ ข้อมูลทั้งหมดจะหายไป และสถานะจะกลับมาเป็น "ยังไม่เยี่ยม" ทันทีครับ</li>
-                <li><i className="fa-solid fa-check text-amber-500 mr-2"></i> หากแค่ต้องการแก้บางจุด ให้กด <b>"แก้ไขข้อมูล"</b> (สีน้ำเงิน) แล้วพิมพ์แก้ทับลงไปได้เลยครับ</li>
+                <li><i className="fa-solid fa-check text-amber-500 mr-2"></i> <b>กรณีที่มีการบันทึกข้อมูลผิดพลาด:</b> สามารถดำเนินการแก้ไขได้โดยเข้าสู่หน้าประวัตินักเรียนรายนั้น จากนั้นคลิกปุ่ม <span className="text-rose-500 font-bold">"ล้างข้อมูล"</span> ระบบจะทำการลบข้อมูลการเยี่ยมบ้านและปรับสถานะกลับเป็น "ยังไม่เยี่ยม"</li>
+                <li><i className="fa-solid fa-check text-amber-500 mr-2"></i> <b>กรณีต้องการปรับปรุงข้อมูลบางส่วน:</b> สามารถคลิกปุ่ม <b>"แก้ไขข้อมูล"</b> เพื่อดำเนินการปรับแก้รายละเอียดที่ต้องการได้ทันที</li>
               </ul>
             </div>
 
@@ -964,7 +841,6 @@
       );
     }
 
-    // 🌟 ระบบ PDF ใหม่: สั่งเปิดแท็บใหม่แทนการดาวน์โหลด + ตัดหน้ากึ่งกลางสมบูรณ์แบบ 🌟
     function ReportExport({ user, students, visits, showToast, isLoaded }) {
       const [selectedStudents, setSelectedStudents] = useState(new Set());
 
@@ -990,14 +866,12 @@
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
-      // 🔴 ฟังก์ชันเปิดแท็บใหม่เพื่อ Print 🔴
       const exportPDF = () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
         
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
         const dateStr = new Date().toLocaleDateString("th-TH", {year:'numeric', month:'short', day:'numeric'});
 
-        // สร้าง HTML ตั้งต้นสำหรับหน้าต่างใหม่ พร้อมปรับ Padding 
         let htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -1007,7 +881,6 @@
           <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
           <style>
             body { font-family: 'Sarabun', sans-serif; color: #1e293b; margin: 0; padding: 20px; background: #fff; }
-            /* 🔴 ปรับขอบกระดาษด้านบนเพิ่มขึ้น เพื่อไม่ให้ชนขอบเวลาครูย่อ 99% */
             @page { size: A4; margin: 25mm 15mm 20mm 15mm; } 
             @media print {
               body { padding: 0; }
@@ -1044,7 +917,6 @@
             const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
             const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
 
-            // 🌟 สร้าง Layout แบบแบ่ง 2 หน้ากระดาษต่อ 1 คน 🌟
             htmlContent += `
             <div class="page-container ${index < targetStudents.length - 1 ? 'page-break-after' : ''}">
               <div class="header-title">รายงานผลการเยี่ยมบ้านนักเรียน</div>
@@ -1076,7 +948,7 @@
                     <tr><td>จำนวนพี่น้อง</td><td>${getVal(v, "siblings") ? getVal(v, "siblings") + " คน" : '-'}</td></tr>
                     <tr><td>รายได้ครอบครัวเฉลี่ย</td><td>${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
                     <tr><td>ความสัมพันธ์</td><td>${getVal(v, "familyRelationship") || '-'}</td></tr>
-                    <tr><td>ภาระงานอยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
+                    <tr><td>ภาระงานเมื่ออยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
                     <tr><td>กิจกรรมที่มักทำร่วมกัน</td><td>${getVal(v, "familyActivities") || '-'}</td></tr>
                   </tbody>
                 </table>
@@ -1126,7 +998,6 @@
             `;
         });
 
-        // ปิดแท็ก HTML และสั่งพิมพ์อัตโนมัติ
         htmlContent += `
           <script>
             window.onload = function() {
@@ -1139,7 +1010,6 @@
         </html>
         `;
 
-        // เปิดหน้าต่างใหม่แล้วยัด HTML ลงไป
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
@@ -1168,7 +1038,7 @@
            <div className="border-t border-slate-200 pt-8 mb-6 flex justify-between items-end">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">พิมพ์รายงานรายบุคคล (PDF)</h3>
-                <p className="text-slate-500 font-medium">เปิดแท็บใหม่เพื่อดูตัวอย่างและสั่งพิมพ์ (เลือกนักเรียนที่ต้องการพิมพ์)</p>
+                <p className="text-slate-500 font-medium">เปิดแท็บใหม่เพื่อดูตัวอย่างและสั่งพิมพ์ (เลือกรายชื่อนักเรียนที่ต้องการพิมพ์)</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={selectAll} className="text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer">เลือกทั้งหมด</button>
@@ -1176,7 +1046,7 @@
               </div>
            </div>
 
-           {visitedList.length === 0 ? <div className="text-center py-16 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-medium text-lg">ยังไม่มีนักเรียนที่เยี่ยมเสร็จแล้ว</div> : (
+           {visitedList.length === 0 ? <div className="text-center py-16 bg-white rounded-[2rem] border border-dashed border-slate-200 text-slate-400 font-medium text-lg">ยังไม่มีข้อมูลนักเรียนที่ดำเนินการเยี่ยมเสร็จสิ้น</div> : (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
                {visitedList.map((s, i) => (
                  <div key={i} onClick={() => toggleStudent(s.studentNo)} className={`soft-card p-5 flex items-center justify-between cursor-pointer btn-press transition-colors ${selectedStudents.has(s.studentNo) ? 'bg-blue-50 border-blue-400' : 'hover:border-blue-200'}`}>
@@ -1275,7 +1145,7 @@
             {step === 1 && <div className="space-y-2 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-6">
               <div className="col-span-full md:col-span-1"><PremiumInput label="ลักษณะที่พักอาศัย" icon="fa-house-chimney" value={form.houseType} onChange={e=>update("houseType", e.target.value)} placeholder="เช่น บ้านเดี่ยว, หอพัก" /></div>
               <div className="col-span-full md:col-span-1 relative mb-5 pop-in">
-                <label className="block text-sm font-bold text-slate-500 mb-2 pl-4">ระยะทางถึงโรงเรียน (กม.)</label>
+                <label className="block text-sm font-bold text-slate-500 mb-2 pl-4">ระยะทางถึงสถานศึกษา (กม.)</label>
                 <div className="flex gap-3">
                     <div className="input-wrapper flex-1 flex items-center overflow-hidden"><div className="pl-5 text-slate-400"><i className="fa-solid fa-route text-lg"></i></div><input type="number" value={form.distanceKm} onChange={e=>update("distanceKm", e.target.value)} className="premium-input pl-4" placeholder="0.00" /></div>
                     <button onClick={getGPS} className="bg-slate-900 text-white hover:bg-blue-600 px-6 rounded-[1.25rem] flex items-center justify-center btn-press shadow-md font-bold transition-colors whitespace-nowrap cursor-pointer"><i className="fa-solid fa-location-dot mr-2"></i>ดึง GPS</button>
