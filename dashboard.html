@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียนอัจฉริยะ v3</title>
+  <title>ระบบเยี่ยมบ้านนักเรียนอัจฉริยะ v4 (Stable)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -18,37 +18,38 @@
   
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; margin: 0; color: #334155; }
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    .fade-in { animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .slide-up { animation: slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .pulse-bg { animation: pulseBg 2s ease-in-out infinite; }
-    .bounce-in { animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; }
+    /* Smooth Animations */
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .bounce-in { animation: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
     
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulseBg { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-    @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
     
+    /* Modern Glass UI */
     .glass-card { 
       background: #ffffff; 
-      border: 1px solid rgba(226, 232, 240, 0.8); 
-      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 0 3px rgba(15, 23, 42, 0.02);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(226, 232, 240, 0.6); 
+      box-shadow: 0 4px 15px -3px rgba(15, 23, 42, 0.03);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .glass-card:hover {
-      box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.02);
+      box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.06);
       transform: translateY(-2px);
-      border-color: rgba(148, 163, 184, 0.3);
+      border-color: rgba(148, 163, 184, 0.2);
     }
     
+    /* Inputs */
     .luxury-input {
       background-color: #f8fafc;
       border: 1.5px solid #e2e8f0;
-      transition: all 0.25s ease;
+      transition: all 0.2s ease;
     }
     .luxury-input:focus {
       background-color: #ffffff;
@@ -56,28 +57,14 @@
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
     }
     
-    .progress-bar {
-      background: linear-gradient(90deg, #10b981, #3b82f6);
-      transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1);
-    }
-    
-    .gradient-bg {
-      background: linear-gradient(-45deg, #3b82f6, #6366f1, #8b5cf6, #ec4899);
-      background-size: 400% 400%;
-      animation: pulseBg 8s ease-in-out infinite;
-    }
-    
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    .hide-scroll { scroll-behavior: smooth; scrollbar-width: none; }
+    .gradient-bg { background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); }
+    .code-input { letter-spacing: 0.8rem; text-align: center; font-size: 1.8rem; font-weight: 700; }
+    .hide-scroll { scrollbar-width: none; }
     .hide-scroll::-webkit-scrollbar { display: none; }
-    
-    .code-input { 
-      letter-spacing: 1rem; 
-      text-align: center; 
-      font-size: 2rem;
-      font-weight: bold;
-    }
+
+    /* Button Click Effect (หนึบมือ) */
+    .btn-press { transition: transform 0.1s; }
+    .btn-press:active { transform: scale(0.96); }
   </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50">
@@ -86,11 +73,11 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // ✅ Google Apps Script URL
+    // ✅ Google Apps Script URL (อัปเดตล่าสุด)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw2qKrWCnBEPAW9InnV9OkOstoRAqA2OG6TdGkWWKftZJU0GdFcKq6ObP2ThicdX8_f/exec";
+    
     const SCHOOL_LAT = 18.862105;
     const SCHOOL_LON = 99.0872654;
-
     const HOUSE_COND = ["ดีมาก","ดี","ปานกลาง","ทรุดโทรม","ไม่ปลอดภัย"];
     const REL_OPTS = ["อบอุ่นดีมาก","อบอุ่นดี","ปานกลาง","ไม่ค่อยอบอุ่น","มีปัญหา"];
     const VISIT_STAT = ["ยังไม่เยี่ยม","เยี่ยมแล้ว","นัดหมายแล้ว"];
@@ -100,28 +87,16 @@
     const api = {
       async get(action, params = {}) {
         const q = new URLSearchParams({ action, t: Date.now(), ...params }).toString();
-        try { 
-          const r = await fetch(`${SCRIPT_URL}?${q}`); 
-          return await r.json(); 
-        } catch (e) { 
-          return { success: false, message: "เชื่อมต่อขัดข้อง: " + e.message }; 
-        }
+        try { const r = await fetch(`${SCRIPT_URL}?${q}`); return await r.json(); } 
+        catch (e) { return { success: false, message: "เชื่อมต่อขัดข้อง: " + e.message }; }
       },
       async post(body) {
-        try { 
-          const r = await fetch(SCRIPT_URL, { 
-            method: "POST", 
-            body: JSON.stringify(body), 
-            headers: { "Content-Type": "text/plain" } 
-          }); 
-          return await r.json(); 
-        } catch (e) { 
-          return { success: false, message: "เชื่อมต่อขัดข้อง: " + e.message }; 
-        }
+        try { const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), headers: { "Content-Type": "text/plain" } }); return await r.json(); } 
+        catch (e) { return { success: false, message: "เชื่อมต่อขัดข้อง: " + e.message }; }
       }
     };
 
-    // ============= Helper =============
+    // ============= Helpers =============
     const getVal = (obj, ...keys) => {
       if (!obj) return '';
       const objKeys = Object.keys(obj);
@@ -134,157 +109,105 @@
 
     const findVisitForStudent = (visits, studentNo) => {
       if (!visits || !studentNo) return null;
-      const target = String(studentNo).trim();
-      return visits.find(v => String(getVal(v, 'studentNo')).trim() === target);
+      return visits.find(v => String(getVal(v, 'studentNo')).trim() === String(studentNo).trim());
     };
 
     const getVisitStatus = (visits, studentNo) => {
       const v = findVisitForStudent(visits, studentNo);
-      if (!v) return "ยังไม่เยี่ยม";
-      return getVal(v, 'visitStatus') || "ยังไม่เยี่ยม";
+      return v ? (getVal(v, 'visitStatus') || "ยังไม่เยี่ยม") : "ยังไม่เยี่ยม";
     };
 
-    // ============= Toast =============
+    // ============= Toast Notification =============
     const Toast = ({ msg, type, onClose }) => {
-      useEffect(() => { 
-        const t = setTimeout(onClose, 3500); 
-        return () => clearTimeout(t); 
-      }, [onClose]);
-      
-      const colors = {
+      useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+      const styles = {
         success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
         error: 'border-rose-200 bg-rose-50 text-rose-700',
-        info: 'border-blue-200 bg-blue-50 text-blue-700',
         warning: 'border-amber-200 bg-amber-50 text-amber-700'
       };
-      
-      const icons = {
-        success: 'fa-check',
-        error: 'fa-xmark',
-        info: 'fa-info',
-        warning: 'fa-warning'
-      };
+      const icons = { success: 'fa-check-circle', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
       
       return (
-        <div className={`fixed top-6 right-6 z-[100] px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 slide-up bg-white/95 backdrop-blur-xl border-2 ${colors[type]}`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm`}>
-            <i className={`fa-solid ${icons[type]} text-lg`}></i>
-          </div>
-          <span className="font-semibold">{msg}</span>
+        <div className={`fixed top-6 right-6 z-[9999] px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3 slide-up border ${styles[type]}`}>
+          <i className={`fa-solid ${icons[type]} text-xl`}></i>
+          <span className="font-bold">{msg}</span>
         </div>
       );
     };
 
-    // ============= Code Input Modal (พร้อม Live Search) =============
-    const CodeInputModal = ({ onSubmit, loading, initialCode = "" }) => {
-      const [code, setCode] = useState(initialCode);
-      const [error, setError] = useState("");
-      const [previewName, setPreviewName] = useState(null); // ชื่อครูที่จะ confirm
+    // ============= Full Screen Loading Overlay =============
+    const LoadingOverlay = ({ text }) => (
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center fade-in">
+        <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center bounce-in">
+          <div className="w-12 h-12 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-800 font-bold">{text}</p>
+          <p className="text-xs text-slate-500 mt-1">กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้</p>
+        </div>
+      </div>
+    );
+
+    // ============= Login Modal =============
+    const CodeInputModal = ({ onSubmit, loading }) => {
+      const [code, setCode] = useState("");
+      const [previewName, setPreviewName] = useState(null);
       const [searchLoading, setSearchLoading] = useState(false);
       const searchTimer = useRef(null);
 
-      // ✅ Live Search ขณะพิมพ์ (ก่อนตัวสุดท้าย)
       useEffect(() => {
-        if (code.length === 0) {
-          setPreviewName(null);
-          return;
-        }
-        
+        if (!code) { setPreviewName(null); return; }
         clearTimeout(searchTimer.current);
         searchTimer.current = setTimeout(async () => {
           setSearchLoading(true);
           const res = await api.post({ action: "searchTeacherByPartialCode", partialCode: code });
           setSearchLoading(false);
-          
-          if (res.success && !res.multiple && res.data) {
-            // ครูเดียว → แสดง preview
-            setPreviewName(res.data.fullName);
-          } else {
-            setPreviewName(null);
-          }
+          if (res.success && !res.multiple && res.data) setPreviewName(res.data.fullName);
+          else setPreviewName(null);
         }, 300);
-        
         return () => clearTimeout(searchTimer.current);
       }, [code]);
 
-      const handleSubmit = () => {
-        if (!code || code.length < 1) {
-          setError("กรุณากรอกรหัส");
-          return;
-        }
-        onSubmit(code);
-      };
-
       return (
         <div className="fixed inset-0 gradient-bg flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl bounce-in">
+          <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl border border-white bounce-in">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
-                <i className="fa-solid fa-house-chimney-user text-3xl text-white"></i>
+              <div className="w-20 h-20 bg-blue-600 rounded-[1.5rem] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-500/30">
+                <i className="fa-solid fa-house-user text-3xl text-white"></i>
               </div>
-              <h2 className="text-2xl font-bold text-slate-800">ระบบเยี่ยมบ้านนักเรียน</h2>
-              <p className="text-sm text-slate-500 mt-2">โรงเรียนป่าก้าง</p>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">ระบบเยี่ยมบ้าน</h2>
+              <p className="text-sm font-bold text-slate-500 mt-1">โรงเรียนป่าก้าง</p>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-slate-700 mb-2">กรอกรหัสครู</label>
+            <div className="mb-6 relative">
               <input
-                type="password"
-                value={code}
-                onChange={e => { 
-                  setCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""));
-                  setError("");
-                }}
-                inputMode="numeric"
-                autoFocus
-                className="w-full luxury-input rounded-2xl px-5 py-4 outline-none code-input"
-                placeholder="• • • •"
+                type="password" value={code}
+                onChange={e => setCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
+                inputMode="numeric" autoFocus
+                className="w-full bg-slate-100 border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none code-input focus:border-blue-500 focus:bg-white transition-colors"
+                placeholder="รหัสประจำตัว"
                 disabled={loading}
-                onKeyPress={e => e.key === "Enter" && handleSubmit()}
+                onKeyPress={e => e.key === "Enter" && code && onSubmit(code)}
               />
-              <p className="text-xs text-slate-400 text-center mt-2">รหัสกี่ตัวก็ได้ตามที่ตั้งไว้ใน Google Sheet</p>
+              {searchLoading && <i className="fa-solid fa-spinner fa-spin absolute right-5 top-6 text-slate-400"></i>}
             </div>
 
-            {/* ✅ Pop-up "สวัสดีคุณครู" */}
             {previewName && !loading && (
-              <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border-2 border-emerald-200 px-5 py-4 rounded-2xl mb-4 bounce-in">
-                <p className="text-emerald-700 font-bold text-center text-lg">
-                  👋 สวัสดีคุณครู <span className="text-blue-700">{previewName}</span>!
-                </p>
-                <p className="text-xs text-center text-slate-500 mt-1">กดปุ่มด้านล่างเพื่อเข้าใช้งาน</p>
-              </div>
-            )}
-
-            {searchLoading && code.length > 0 && (
-              <div className="text-center text-slate-400 mb-4">
-                <i className="fa-solid fa-spinner fa-spin mr-2"></i>
-                <span className="text-sm">กำลังค้นหา...</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl text-sm font-bold text-center mb-4 border border-rose-100">
-                <i className="fa-solid fa-circle-exclamation mr-2"></i>{error}
+              <div className="bg-emerald-50 border border-emerald-100 px-4 py-3 rounded-xl mb-6 slide-up text-center">
+                <p className="text-emerald-700 font-bold">👋 สวัสดีคุณครู {previewName}</p>
               </div>
             )}
 
             <button
-              onClick={handleSubmit}
-              disabled={loading || !code}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 mt-2"
+              onClick={() => onSubmit(code)} disabled={loading || !code}
+              className="w-full bg-slate-800 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-all disabled:opacity-30 btn-press flex justify-center items-center gap-2"
             >
-              {loading ? (
-                <><i className="fa-solid fa-spinner fa-spin mr-2"></i> กำลังโหลด...</>
-              ) : (
-                <><i className="fa-solid fa-arrow-right mr-2"></i> เข้าใช้งาน</>
-              )}
+              {loading ? <><i className="fa-solid fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...</> : <><i className="fa-solid fa-arrow-right-to-bracket"></i> เข้าใช้งาน</>}
             </button>
           </div>
         </div>
       );
     };
 
-    // ============= Main App =============
+    // ============= Main Dashboard =============
     function DashboardApp() {
       const [user, setUser] = useState(null);
       const [showCodeInput, setShowCodeInput] = useState(true);
@@ -293,33 +216,25 @@
       const [selectedStudent, setSelectedStudent] = useState(null);
       const [toast, setToast] = useState(null);
       const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+      
       const [students, setStudents] = useState([]);
       const [visits, setVisits] = useState([]);
-      const [stats, setStats] = useState({ total: 0, visited: 0, appointed: 0, notVisited: 0, percent: 0, riskCount: {} });
+      const [stats, setStats] = useState({ total: 0, visited: 0, appointed: 0, notVisited: 0, percent: 0 });
       const [isDataLoaded, setIsDataLoaded] = useState(false);
-      const [showChangeCode, setShowChangeCode] = useState(false);
+      const [isSavingSystem, setIsSavingSystem] = useState(false); // Global saving state
 
-      // ============= Toast =============
-      const showToast = useCallback((msg, type = "success") => {
-        setToast({ msg, type });
-      }, []);
+      const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
-      // ============= Load User from Storage =============
       useEffect(() => {
         const savedUser = localStorage.getItem("hv_user_v3");
         if (savedUser) {
           try {
             const u = JSON.parse(savedUser);
-            setUser(u);
-            setShowCodeInput(false);
-            loadAllData(u);
-          } catch (e) {
-            localStorage.removeItem("hv_user_v3");
-          }
+            setUser(u); setShowCodeInput(false); loadAllData(u);
+          } catch (e) { localStorage.removeItem("hv_user_v3"); }
         }
       }, []);
 
-      // ============= Load All Data =============
       const loadAllData = async (u) => {
         if (!u) return;
         setIsDataLoaded(false);
@@ -329,179 +244,106 @@
             api.get("getVisitsFull", { classLevel: u.classLevel }),
             api.get("getStats", { classLevel: u.classLevel })
           ]);
-          
-          setStudents(sRes.success && sRes.data ? sRes.data : []);
-          setVisits(vRes.success && vRes.data ? vRes.data : []);
-          if (statsRes.success && statsRes.data) {
-            setStats(statsRes.data);
-          }
-        } catch (e) {
-          showToast("⚠️ ไม่สามารถโหลดข้อมูล", "error");
-        }
+          setStudents(sRes.success ? sRes.data : []);
+          setVisits(vRes.success ? vRes.data : []);
+          if (statsRes.success) setStats(statsRes.data);
+        } catch (e) { showToast("โหลดข้อมูลล้มเหลว", "error"); }
         setIsDataLoaded(true);
       };
 
-      // ============= Handle Code Submit =============
       const handleCodeSubmit = async (code) => {
         setCodeLoading(true);
         const res = await api.post({ action: "getTeacherByCode", code });
         setCodeLoading(false);
-
         if (res.success && res.data) {
-          const userData = {
-            code: res.data.code,
-            fullName: res.data.fullName,
-            classLevel: res.data.classLevel,
-            phone: res.data.phone || ""
-          };
-          
+          const userData = { code: res.data.code, fullName: res.data.fullName, classLevel: res.data.classLevel };
           localStorage.setItem("hv_user_v3", JSON.stringify(userData));
-          setUser(userData);
-          setShowCodeInput(false);
-          showToast(`👋 ยินดีต้อนรับ ${res.data.fullName}`, "success");
+          setUser(userData); setShowCodeInput(false); showToast(`ยินดีต้อนรับ ครู${res.data.fullName}`, "success");
           loadAllData(userData);
-        } else {
-          showToast("❌ " + (res.message || "รหัสไม่ถูกต้อง"), "error");
-        }
+        } else { showToast("รหัสไม่ถูกต้อง", "error"); }
       };
 
-      // ============= Logout =============
-      const logout = () => {
-        if (confirm("ต้องการออกจากระบบใช่หรือไม่?")) {
-          localStorage.removeItem("hv_user_v3");
-          setUser(null);
-          setShowCodeInput(true);
-          setView("dashboard");
-        }
-      };
-
-      // ============= Save Visit (พร้อมรีโหลดข้อมูล) =============
       const saveVisit = async (formData, images) => {
+        setIsSavingSystem(true); // บล็อกหน้าจอ
         const data = {
           ...formData,
-          teacherCode: user.code,
-          teacherName: user.fullName,
-          classLevel: user.classLevel,
-          imagesBase64: images.filter(i => i && typeof i === 'string' && i.startsWith("data:")),
-          existingImageUrls: images.filter(i => i && typeof i === 'string' && !i.startsWith("data:"))
+          teacherCode: user.code, teacherName: user.fullName, classLevel: user.classLevel,
+          imagesBase64: images.filter(i => i && i.startsWith("data:")),
+          existingImageUrls: images.filter(i => i && !i.startsWith("data:"))
         };
 
         const res = await api.post({ action: "saveVisit", data });
         
         if (res.success) {
-          showToast("✅ บันทึกสำเร็จ" + (res.uploaded > 0 ? ` (อัปโหลด ${res.uploaded} รูป)` : ""), "success");
-          
-          // ลบ draft
-          localStorage.removeItem(`draft_${user.code}_${formData.studentNo}`);
-          
-          // ✅ รีโหลดข้อมูล (refresh status)
-          await loadAllData(user);
-          
-          // กลับไปหน้ารายชื่อ
+          showToast("บันทึกข้อมูลเรียบร้อยแล้ว", "success");
+          await loadAllData(user); // ดึงข้อมูลใหม่
           setView("students");
           setSelectedStudent(null);
-          return true;
         } else {
-          showToast("❌ " + res.message, "error");
-          return false;
+          showToast(res.message || "เกิดข้อผิดพลาดในการบันทึก", "error");
         }
+        setIsSavingSystem(false); // ปลดบล็อก
       };
 
-      // ============= Render =============
-      if (showCodeInput) {
-        return <CodeInputModal onSubmit={handleCodeSubmit} loading={codeLoading} />;
-      }
-
+      if (showCodeInput) return <CodeInputModal onSubmit={handleCodeSubmit} loading={codeLoading} />;
       if (!user) return null;
-
-      const isMobile = window.innerWidth < 768;
 
       return (
         <div className="flex h-full w-full bg-slate-50 fade-in">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-          {showChangeCode && <ChangeCodeModal user={user} onClose={() => setShowChangeCode(false)} onSuccess={(newCode) => {
-            const updated = { ...user, code: newCode };
-            localStorage.setItem("hv_user_v3", JSON.stringify(updated));
-            setUser(updated);
-            setShowChangeCode(false);
-            showToast("✅ เปลี่ยนรหัสสำเร็จ", "success");
-          }} showToast={showToast} />}
+          {isSavingSystem && <LoadingOverlay text="กำลังบันทึกและอัปโหลดรูปภาพ..." />}
           
-          {isMobile && isSidebarOpen && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setIsSidebarOpen(false)}></div>
+          {window.innerWidth < 768 && isSidebarOpen && (
+            <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 fade-in" onClick={() => setIsSidebarOpen(false)}></div>
           )}
 
-          {/* SIDEBAR */}
-          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full transition-all duration-300 ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'} shadow-xl md:shadow-none`}>
-            <div className="p-6 border-b border-slate-100">
-              <div className="flex flex-col items-center">
-                <div className={`rounded-full bg-gradient-to-tr from-blue-100 to-indigo-50 p-1 mb-3 transition-all ${isSidebarOpen ? 'w-20 h-20' : 'w-12 h-12'}`}>
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=ffffff&color=2563EB&bold=true&size=128`} className="w-full h-full rounded-full object-cover border-2 border-white" />
-                </div>
-                {isSidebarOpen && (
-                  <div className="text-center fade-in">
-                    <h2 className="text-base font-bold text-slate-800">{user.fullName}</h2>
-                    <p className="text-xs text-slate-500 font-medium mt-1">ชั้น: {user.classLevel}</p>
-                    <button onClick={() => setShowChangeCode(true)} className="text-xs text-blue-600 hover:text-blue-700 font-bold mt-2">
-                      <i className="fa-solid fa-key mr-1"></i> เปลี่ยนรหัส
-                    </button>
-                  </div>
-                )}
+          {/* Sidebar */}
+          <aside className={`fixed md:relative z-50 bg-white border-r border-slate-100 flex flex-col h-full transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0 md:w-[88px]'}`}>
+            <div className="p-6 border-b border-slate-50 flex flex-col items-center">
+              <div className={`rounded-[1.5rem] bg-blue-50 p-3 mb-3 text-blue-600 ${isSidebarOpen ? 'w-16 h-16' : 'w-12 h-12'} flex items-center justify-center text-2xl`}>
+                <i className="fa-solid fa-user-tie"></i>
               </div>
+              {isSidebarOpen && (
+                <div className="text-center fade-in">
+                  <h2 className="font-bold text-slate-800">{user.fullName}</h2>
+                  <p className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full mt-2">ชั้น {user.classLevel}</p>
+                </div>
+              )}
             </div>
             
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scroll">
-              <NavBtn icon="fa-chart-line" label="ภาพรวม" active={view === "dashboard"} open={isSidebarOpen} onClick={() => { setView("dashboard"); if (isMobile) setIsSidebarOpen(false); }} color="blue" />
-              <NavBtn icon="fa-users" label="รายชื่อนักเรียน" active={view === "students"} open={isSidebarOpen} onClick={() => { setView("students"); if (isMobile) setIsSidebarOpen(false); }} color="emerald" />
-              <NavBtn icon="fa-calendar" label="ตารางนัดหมาย" active={view === "appointments"} open={isSidebarOpen} onClick={() => { setView("appointments"); if (isMobile) setIsSidebarOpen(false); }} color="amber" />
-              <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view === "report"} open={isSidebarOpen} onClick={() => { setView("report"); if (isMobile) setIsSidebarOpen(false); }} color="purple" />
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto hide-scroll">
+              <NavBtn icon="fa-chart-pie" label="ภาพรวม" active={view === "dashboard"} open={isSidebarOpen} onClick={() => { setView("dashboard"); setIsSidebarOpen(window.innerWidth >= 768); }} />
+              <NavBtn icon="fa-users" label="นักเรียน" active={view === "students"} open={isSidebarOpen} onClick={() => { setView("students"); setIsSidebarOpen(window.innerWidth >= 768); }} />
+              <NavBtn icon="fa-calendar-check" label="นัดหมาย" active={view === "appointments"} open={isSidebarOpen} onClick={() => { setView("appointments"); setIsSidebarOpen(window.innerWidth >= 768); }} />
             </nav>
             
-            <div className="p-4 border-t border-slate-100">
-              <button onClick={logout} className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-medium text-rose-600 hover:bg-rose-50 transition-all ${isSidebarOpen ? 'px-4' : 'px-0'}`}>
-                <i className="fa-solid fa-arrow-right-from-bracket"></i>
-                {isSidebarOpen && <span>ออกจากระบบ</span>}
+            <div className="p-4 border-t border-slate-50">
+              <button onClick={() => { localStorage.removeItem("hv_user_v3"); window.location.reload(); }} className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-rose-500 hover:bg-rose-50 btn-press ${isSidebarOpen ? '' : 'px-0'}`}>
+                <i className="fa-solid fa-power-off"></i> {isSidebarOpen && "ออกจากระบบ"}
               </button>
             </div>
           </aside>
 
-          {/* MAIN */}
+          {/* Main Area */}
           <main className="flex-1 flex flex-col h-full overflow-hidden">
-            <header className="h-20 bg-white/90 backdrop-blur-xl border-b border-slate-100 px-6 flex items-center justify-between z-20">
+            <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 md:px-8 flex items-center justify-between z-20">
               <div className="flex items-center gap-4">
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-600 transition">
-                  <i className="fa-solid fa-bars text-lg"></i>
+                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-500 btn-press">
+                  <i className="fa-solid fa-bars"></i>
                 </button>
-                <div>
-                  <h1 className="text-xl font-bold text-slate-800">ระบบเยี่ยมบ้านอัจฉริยะ</h1>
-                  <p className="text-xs text-slate-400 hidden sm:block">โรงเรียนป่าก้าง</p>
-                </div>
+                <h1 className="font-bold text-slate-800 hidden sm:block">ระบบเยี่ยมบ้าน <span className="text-slate-400 font-normal">| โรงเรียนป่าก้าง</span></h1>
               </div>
-              <div className="hidden sm:flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-full text-xs font-bold text-emerald-700">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ออนไลน์
-              </div>
+              <button onClick={() => loadAllData(user)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 hover:text-blue-600 flex items-center justify-center btn-press" title="รีเฟรชข้อมูล">
+                <i className={`fa-solid fa-rotate-right ${!isDataLoaded ? 'fa-spin text-blue-500' : ''}`}></i>
+              </button>
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
-              <div className="max-w-7xl mx-auto pb-12">
-                {view === "dashboard" && <DashboardOverview stats={stats} students={students} visits={visits} user={user} isDataLoaded={isDataLoaded} onSelectStudent={(s) => { setSelectedStudent(s); setView("form"); }} />}
-                
-                {view === "students" && <StudentsList students={students} visits={visits} isDataLoaded={isDataLoaded} onSelect={(s) => { setSelectedStudent(s); setView("form"); }} />}
-                
-                {view === "form" && selectedStudent && (
-                  <VisitForm 
-                    user={user} 
-                    student={selectedStudent} 
-                    visits={visits}
-                    onSave={saveVisit}
-                    onBack={() => { setSelectedStudent(null); setView("students"); }} 
-                    showToast={showToast} 
-                  />
-                )}
-                
+              <div className="max-w-5xl mx-auto pb-12">
+                {view === "dashboard" && <Dashboard stats={stats} students={students} visits={visits} isLoaded={isDataLoaded} onSelect={(s) => { setSelectedStudent(s); setView("form"); }} />}
+                {view === "students" && <StudentsList students={students} visits={visits} isLoaded={isDataLoaded} onSelect={(s) => { setSelectedStudent(s); setView("form"); }} />}
                 {view === "appointments" && <Appointments students={students} visits={visits} onSelect={(s) => { setSelectedStudent(s); setView("form"); }} />}
-                
-                {view === "report" && <ReportPage students={students} visits={visits} user={user} showToast={showToast} />}
+                {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={visits} onSave={saveVisit} onBack={() => { setSelectedStudent(null); setView("students"); }} showToast={showToast} />}
               </div>
             </div>
           </main>
@@ -509,312 +351,100 @@
       );
     }
 
-    // ============= Nav Button =============
-    const NavBtn = ({ icon, label, active, open, onClick, color }) => {
-      const colors = {
-        blue: "bg-blue-50 text-blue-600",
-        emerald: "bg-emerald-50 text-emerald-600",
-        amber: "bg-amber-50 text-amber-600",
-        purple: "bg-purple-50 text-purple-600"
-      };
-      
-      return (
-        <button onClick={onClick} title={label}
-          className={`w-full flex items-center rounded-2xl transition-all ${active ? colors[color] : 'text-slate-500 hover:bg-slate-50'} ${open ? 'justify-start px-4 py-3.5' : 'justify-center py-4'}`}>
-          <i className={`fa-solid ${icon} ${open ? 'mr-3 text-lg' : 'text-xl'}`}></i>
-          {open && <span className="font-medium">{label}</span>}
-        </button>
-      );
-    };
+    const NavBtn = ({ icon, label, active, open, onClick }) => (
+      <button onClick={onClick} className={`w-full flex items-center rounded-xl transition-all btn-press font-bold ${active ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-500 hover:bg-slate-100'} ${open ? 'justify-start px-4 py-3' : 'justify-center py-3'}`}>
+        <i className={`fa-solid ${icon} ${open ? 'mr-3' : 'text-lg'}`}></i> {open && label}
+      </button>
+    );
 
-    // ============= Change Code Modal =============
-    const ChangeCodeModal = ({ user, onClose, onSuccess, showToast }) => {
-      const [newCode, setNewCode] = useState("");
-      const [confirmCode, setConfirmCode] = useState("");
-      const [loading, setLoading] = useState(false);
-
-      const handleSubmit = async () => {
-        if (!newCode) return showToast("กรุณากรอกรหัสใหม่", "error");
-        if (newCode !== confirmCode) return showToast("รหัสไม่ตรงกัน", "error");
-        if (newCode === user.code) return showToast("รหัสซ้ำกับเดิม", "error");
-        
-        setLoading(true);
-        const res = await api.post({ action: "changeTeacherCode", oldCode: user.code, newCode });
-        setLoading(false);
-        
-        if (res.success) {
-          onSuccess(newCode);
-        } else {
-          showToast("❌ " + res.message, "error");
-        }
-      };
-
-      return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl bounce-in">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
-              <i className="fa-solid fa-key text-blue-600 mr-2"></i>เปลี่ยนรหัส
-            </h2>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-slate-700 mb-2">รหัสปัจจุบัน</label>
-              <input type="text" value={user.code} disabled className="w-full luxury-input rounded-xl px-4 py-3 bg-slate-100 text-slate-500" />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-bold text-slate-700 mb-2">รหัสใหม่</label>
-              <input 
-                type="password" 
-                value={newCode} 
-                onChange={e => setNewCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
-                className="w-full luxury-input rounded-xl px-4 py-3"
-                placeholder="กรอกรหัสใหม่"
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-slate-700 mb-2">ยืนยันรหัสใหม่</label>
-              <input 
-                type="password" 
-                value={confirmCode} 
-                onChange={e => setConfirmCode(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
-                className="w-full luxury-input rounded-xl px-4 py-3"
-                placeholder="ยืนยันรหัสใหม่"
-              />
-            </div>
-            
-            <div className="flex gap-3">
-              <button onClick={handleSubmit} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl disabled:opacity-50">
-                {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : "ยืนยัน"}
-              </button>
-              <button onClick={onClose} className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl">
-                ยกเลิก
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    // ============= Dashboard Overview =============
-    function DashboardOverview({ stats, students, visits, user, isDataLoaded, onSelectStudent }) {
-      const chartRef = useRef(null);
-      const chartInstance = useRef(null);
-
-      useEffect(() => {
-        if (!chartRef.current || !isDataLoaded) return;
-        
-        if (chartInstance.current) chartInstance.current.destroy();
-        
-        chartInstance.current = new Chart(chartRef.current, {
-          type: "doughnut",
-          data: {
-            labels: ["เยี่ยมแล้ว", "นัดหมายแล้ว", "ยังไม่เยี่ยม"],
-            datasets: [{
-              data: [stats.visited, stats.appointed, stats.notVisited],
-              backgroundColor: ["#10b981", "#f59e0b", "#cbd5e1"],
-              borderWidth: 0,
-              hoverOffset: 8
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: "bottom", labels: { font: { family: "Prompt", size: 12 }, padding: 15 } }
-            },
-            cutout: "70%"
-          }
-        });
-        
-        return () => chartInstance.current?.destroy();
-      }, [stats, isDataLoaded]);
-
-      // หานักเรียนล่าสุด
-      const recentVisits = visits
-        .filter(v => v.timestamp)
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .slice(0, 5);
+    // ============= Views =============
+    function Dashboard({ stats, visits, students, isLoaded, onSelect }) {
+      if (!isLoaded) return <div className="text-center py-20"><i className="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i></div>;
+      const recent = visits.filter(v => v.timestamp).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
 
       return (
         <div className="slide-up">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-800">ภาพรวมระบบ</h2>
-            <p className="text-slate-500 mt-1">ติดตามความคืบหน้าการเยี่ยมบ้านนักเรียน</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-6">ภาพรวมความคืบหน้า</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatBox icon="fa-users" label="ทั้งหมด" count={stats.total} color="text-blue-600" bg="bg-blue-50" />
+            <StatBox icon="fa-check-circle" label="เยี่ยมแล้ว" count={stats.visited} color="text-emerald-600" bg="bg-emerald-50" />
+            <StatBox icon="fa-calendar" label="นัดหมาย" count={stats.appointed} color="text-amber-600" bg="bg-amber-50" />
+            <StatBox icon="fa-clock" label="ยังไม่เยี่ยม" count={stats.notVisited} color="text-rose-600" bg="bg-rose-50" />
           </div>
-
-          {/* Progress Card */}
-          <div className="glass-card p-6 md:p-8 rounded-3xl mb-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex-1">
-                <p className="text-blue-100 font-medium mb-2">ความคืบหน้าการเยี่ยมบ้าน</p>
-                <div className="flex items-baseline gap-3">
-                  <h1 className="text-6xl md:text-7xl font-bold">{stats.percent}%</h1>
-                  <p className="text-blue-100">เสร็จสิ้น</p>
-                </div>
-                <p className="text-blue-100 mt-3 text-sm">เยี่ยมแล้ว <span className="font-bold text-white">{stats.visited}</span> จาก <span className="font-bold text-white">{stats.total}</span> คน</p>
-              </div>
-              <div className="w-full md:w-80">
-                <div className="bg-blue-500/30 rounded-full h-4 overflow-hidden mb-3">
-                  <div className="progress-bar h-full rounded-full" style={{ width: `${stats.percent}%` }}></div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-white/10 rounded-xl p-2"><p className="text-2xl font-bold">{stats.visited}</p><p className="text-xs text-blue-100">เยี่ยม</p></div>
-                  <div className="bg-white/10 rounded-xl p-2"><p className="text-2xl font-bold">{stats.appointed}</p><p className="text-xs text-blue-100">นัด</p></div>
-                  <div className="bg-white/10 rounded-xl p-2"><p className="text-2xl font-bold">{stats.notVisited}</p><p className="text-xs text-blue-100">ค้าง</p></div>
-                </div>
-              </div>
+          
+          <div className="glass-card p-6 rounded-3xl mb-8 border border-slate-100">
+            <div className="flex justify-between items-end mb-2">
+              <span className="font-bold text-slate-600">ความคืบหน้าภาพรวม</span>
+              <span className="text-2xl font-black text-blue-600">{stats.percent}%</span>
+            </div>
+            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${stats.percent}%` }}></div>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard icon="fa-users" label="นักเรียนทั้งหมด" value={stats.total} color="blue" />
-            <StatCard icon="fa-check-circle" label="เยี่ยมแล้ว" value={stats.visited} color="emerald" />
-            <StatCard icon="fa-calendar-check" label="นัดหมาย" value={stats.appointed} color="amber" />
-            <StatCard icon="fa-clock" label="ค้างเยี่ยม" value={stats.notVisited} color="rose" />
-          </div>
-
-          {/* Chart + Recent */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="glass-card p-6 rounded-3xl">
-              <h3 className="font-bold text-slate-800 mb-4">สรุปสถานะ</h3>
-              <div style={{ height: "280px", position: "relative" }}>
-                <canvas ref={chartRef}></canvas>
-              </div>
-            </div>
-            
-            <div className="lg:col-span-2 glass-card p-6 rounded-3xl">
-              <h3 className="font-bold text-slate-800 mb-4">บันทึกล่าสุด</h3>
-              {recentVisits.length === 0 ? (
-                <p className="text-slate-400 text-center py-12">ยังไม่มีบันทึกการเยี่ยม</p>
-              ) : (
-                <div className="space-y-3">
-                  {recentVisits.map((v, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 transition cursor-pointer" onClick={() => {
-                      const s = students.find(s => s.studentNo === v.studentNo);
-                      if (s) onSelectStudent(s);
-                    }}>
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                        {v.studentNo}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <h4 className="font-bold text-slate-800 truncate">{v.studentName}</h4>
-                        <p className="text-xs text-slate-500">{new Date(v.timestamp).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</p>
-                      </div>
-                      <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${v.visitStatus === "เยี่ยมแล้ว" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
-                        {v.visitStatus}
-                      </span>
-                    </div>
-                  ))}
+          <h3 className="font-bold text-slate-800 mb-4">บันทึกล่าสุด</h3>
+          <div className="space-y-3">
+            {recent.length === 0 ? <p className="text-slate-400 text-sm">ยังไม่มีข้อมูล</p> : recent.map((v, i) => (
+              <div key={i} onClick={() => onSelect(students.find(s => s.studentNo === v.studentNo))} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-blue-300 btn-press">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-bold">{v.studentNo}</div>
+                  <div><p className="font-bold text-slate-800">{v.studentName}</p><p className="text-xs text-slate-400">{new Date(v.timestamp).toLocaleDateString('th-TH')}</p></div>
                 </div>
-              )}
-            </div>
+                <span className={`text-xs font-bold px-3 py-1 rounded-lg ${v.visitStatus === "เยี่ยมแล้ว" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>{v.visitStatus}</span>
+              </div>
+            ))}
           </div>
         </div>
       );
     }
+    const StatBox = ({ icon, label, count, color, bg }) => (
+      <div className="glass-card p-5 rounded-2xl">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg} ${color} mb-3`}><i className={`fa-solid ${icon} text-lg`}></i></div>
+        <p className="text-3xl font-bold text-slate-800">{count}</p>
+        <p className="text-sm font-medium text-slate-500 mt-1">{label}</p>
+      </div>
+    );
 
-    const StatCard = ({ icon, label, value, color }) => {
-      const colors = {
-        blue: "bg-blue-50 text-blue-600",
-        emerald: "bg-emerald-50 text-emerald-600",
-        amber: "bg-amber-50 text-amber-600",
-        rose: "bg-rose-50 text-rose-600"
-      };
-      return (
-        <div className="glass-card p-5 rounded-2xl">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[color]} mb-3`}>
-            <i className={`fa-solid ${icon} text-lg`}></i>
-          </div>
-          <p className="text-3xl font-bold text-slate-800">{value}</p>
-          <p className="text-sm text-slate-500 mt-1">{label}</p>
-        </div>
-      );
-    };
-
-    // ============= Students List =============
-    function StudentsList({ students, visits, isDataLoaded, onSelect }) {
-      const [search, setSearch] = useState("");
+    function StudentsList({ students, visits, isLoaded, onSelect }) {
       const [filter, setFilter] = useState("all");
+      const [search, setSearch] = useState("");
 
       const filtered = students.filter(s => {
-        const matchSearch = !search || 
-          (s.studentName || "").toString().includes(search) || 
-          (s.nickname || "").toString().includes(search) || 
-          String(s.studentNo).includes(search);
-        const status = getVisitStatus(visits, s.studentNo);
-        let matchFilter = true;
-        if (filter === "visited") matchFilter = status === "เยี่ยมแล้ว";
-        if (filter === "not_visited") matchFilter = status === "ยังไม่เยี่ยม";
-        if (filter === "appointed") matchFilter = status === "นัดหมายแล้ว";
-        return matchSearch && matchFilter;
+        const matchStr = !search || s.studentName.includes(search) || s.studentNo.toString().includes(search);
+        const st = getVisitStatus(visits, s.studentNo);
+        if (filter === "visited") return matchStr && st === "เยี่ยมแล้ว";
+        if (filter === "appointed") return matchStr && st === "นัดหมายแล้ว";
+        if (filter === "not_visited") return matchStr && st === "ยังไม่เยี่ยม";
+        return matchStr;
       });
 
-      if (!isDataLoaded) return (
-        <div className="text-center py-32">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-        </div>
-      );
+      if (!isLoaded) return <div className="text-center py-20"><i className="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i></div>;
 
       return (
         <div className="slide-up">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">รายชื่อนักเรียน</h2>
-          <p className="text-slate-500 mb-8">ทั้งหมด {students.length} คน · พบ {filtered.length} คน</p>
-
-          {/* Search & Filter */}
-          <div className="glass-card p-4 rounded-2xl mb-6 flex flex-col md:flex-row gap-3">
-            <div className="flex bg-slate-50 rounded-xl p-1 overflow-x-auto hide-scroll">
-              {[
-                { id: "all", label: "ทั้งหมด" },
-                { id: "not_visited", label: "ยังไม่เยี่ยม" },
-                { id: "appointed", label: "นัดหมาย" },
-                { id: "visited", label: "เยี่ยมแล้ว" }
-              ].map(f => (
-                <button key={f.id} onClick={() => setFilter(f.id)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition ${filter === f.id ? "bg-white shadow-sm text-slate-800" : "text-slate-500"}`}>
-                  {f.label}
-                </button>
+          <h2 className="text-2xl font-bold text-slate-800 mb-6">รายชื่อนักเรียน</h2>
+          <div className="glass-card p-3 rounded-2xl mb-6 flex flex-col sm:flex-row gap-3">
+            <div className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto hide-scroll flex-1">
+              {[{id:"all", l:"ทั้งหมด"}, {id:"not_visited", l:"ยังไม่เยี่ยม"}, {id:"appointed", l:"นัดหมาย"}, {id:"visited", l:"เยี่ยมแล้ว"}].map(f => (
+                <button key={f.id} onClick={() => setFilter(f.id)} className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${filter === f.id ? "bg-white shadow-sm text-slate-800" : "text-slate-500 hover:text-slate-700"}`}>{f.l}</button>
               ))}
             </div>
-            <div className="flex-1 relative">
-              <i className="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
-              <input 
-                type="text" 
-                value={search} 
-                onChange={e => setSearch(e.target.value)} 
-                className="w-full luxury-input rounded-xl pl-11 pr-4 py-3" 
-                placeholder="ค้นหาชื่อ, ชื่อเล่น, เลขที่..." 
-              />
+            <div className="relative flex-1">
+              <i className="fa-solid fa-search absolute left-4 top-3 text-slate-400"></i>
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 font-medium outline-none focus:border-blue-400" placeholder="ค้นหาชื่อ, เลขที่..." />
             </div>
           </div>
 
-          {/* List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.length === 0 ? (
-              <div className="col-span-full text-center py-16 text-slate-400">ไม่พบข้อมูล</div>
-            ) : filtered.map((s, i) => {
-              const status = getVisitStatus(visits, s.studentNo);
-              const isDone = status === "เยี่ยมแล้ว";
-              const isApp = status === "นัดหมายแล้ว";
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.length === 0 ? <p className="col-span-full text-center text-slate-400 py-10">ไม่พบข้อมูล</p> : filtered.map((s, i) => {
+              const st = getVisitStatus(visits, s.studentNo);
               return (
-                <div key={i} onClick={() => onSelect(s)} className="glass-card p-5 rounded-2xl cursor-pointer group fade-in">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0 ${isDone ? "bg-emerald-50 text-emerald-600" : isApp ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"}`}>
-                      {s.studentNo}
-                    </div>
-                    <div className="overflow-hidden flex-1 pt-1">
-                      <h4 className="font-bold text-slate-800 truncate group-hover:text-blue-600">{s.studentName}</h4>
-                      <p className="text-sm text-slate-400 truncate mt-0.5">{s.nickname || "\u00A0"}</p>
-                    </div>
+                <div key={i} onClick={() => onSelect(s)} className="glass-card p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-blue-400 btn-press group">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-[1rem] flex items-center justify-center font-bold text-lg ${st==="เยี่ยมแล้ว" ? 'bg-emerald-50 text-emerald-600' : st==="นัดหมายแล้ว" ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>{s.studentNo}</div>
+                    <div><h4 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{s.studentName}</h4><p className="text-xs text-slate-400 mt-0.5">{st}</p></div>
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${isDone ? "bg-emerald-50 text-emerald-600" : isApp ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-400"}`}>
-                      {isDone && <i className="fa-solid fa-check mr-1"></i>}
-                      {isApp && <i className="fa-solid fa-calendar mr-1"></i>}
-                      {status}
-                    </span>
-                    <i className="fa-solid fa-chevron-right text-slate-300 group-hover:text-blue-500"></i>
-                  </div>
+                  <i className="fa-solid fa-chevron-right text-slate-300"></i>
                 </div>
               );
             })}
@@ -823,587 +453,160 @@
       );
     }
 
-    // ============= Visit Form (Stable + Auto Draft Save) =============
-    function VisitForm({ user, student, visits, onSave, onBack, showToast }) {
-      // ✅ Initial form state - load from existing visit OR draft OR empty
-      const initForm = () => {
-        const draftKey = `draft_${user.code}_${student.studentNo}`;
-        const draft = localStorage.getItem(draftKey);
-        
-        // 1. ถ้ามี draft → ใช้ draft
-        if (draft) {
-          try {
-            return JSON.parse(draft);
-          } catch (e) {}
-        }
-        
-        // 2. ถ้ามีข้อมูลเดิมใน Sheet → ใช้ของเดิม
-        const existingVisit = findVisitForStudent(visits, student.studentNo);
-        if (existingVisit) {
-          return {
-            ...existingVisit,
-            studentNo: student.studentNo,
-            studentName: student.studentName,
-            nickname: student.nickname || "",
-            images: existingVisit.images ? existingVisit.images.split(",").filter(Boolean) : []
-          };
-        }
-        
-        // 3. Default
-        return {
-          studentNo: student.studentNo,
-          studentName: student.studentName,
-          nickname: student.nickname || "",
-          semester: "1",
-          visitStatus: "เยี่ยมแล้ว",
-          visitDate: new Date().toISOString().split("T")[0],
-          observations: "", houseType: "", distanceKm: "", travelMethod: "",
-          houseCondition: "", utilities: "", environment: "",
-          familyMembers: "", siblings: "", familyRelationship: "",
-          familyIncome: "", studentDuties: "", familyActivities: "",
-          riskHealth: "", riskSafety: "", riskTravel: "",
-          riskWork: "", riskSocial: "", riskSubstance: "",
-          parentConcerns: "", visitResult: "", teacherNotes: "",
-          appointmentDate: "",
-          images: []
-        };
-      };
+    function Appointments({ students, visits, onSelect }) {
+      const apps = visits.filter(v => v.visitStatus === "นัดหมายแล้ว" && v.appointmentDate).map(v => ({ ...v, student: students.find(s => s.studentNo === v.studentNo) })).filter(v => v.student).sort((a,b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
+      
+      return (
+        <div className="slide-up">
+          <h2 className="text-2xl font-bold text-slate-800 mb-6">ตารางนัดหมาย</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {apps.length === 0 ? <p className="col-span-full text-center text-slate-400 py-10">ไม่มีคิวนัดหมาย</p> : apps.map((a, i) => (
+              <div key={i} onClick={() => onSelect(a.student)} className="glass-card p-5 rounded-2xl cursor-pointer btn-press border-l-4 border-l-amber-400">
+                <div className="flex justify-between items-start">
+                  <div><h4 className="font-bold text-slate-800">{a.student.studentName}</h4><p className="text-sm text-slate-500">เลขที่ {a.student.studentNo}</p></div>
+                  <div className="bg-amber-50 text-amber-600 px-3 py-1 rounded-lg text-xs font-bold"><i className="fa-solid fa-calendar mr-1"></i>{new Date(a.appointmentDate).toLocaleDateString("th-TH")}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
 
-      const [form, setForm] = useState(initForm);
-      const [saving, setSaving] = useState(false);
-      const [draftStatus, setDraftStatus] = useState(null); // null | 'saving' | 'saved'
-      const [gpsLoading, setGpsLoading] = useState(false);
+    // ============= THE FORM (No Draft, Strictly Backend/DB driven) =============
+    function VisitForm({ student, visits, onSave, onBack, showToast }) {
+      const existing = findVisitForStudent(visits, student.studentNo) || {};
+      const [form, setForm] = useState({
+        studentNo: student.studentNo, studentName: student.studentName, nickname: student.nickname || "",
+        semester: existing.semester || "1", visitStatus: existing.visitStatus || "เยี่ยมแล้ว", visitDate: existing.visitDate ? new Date(existing.visitDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0], appointmentDate: existing.appointmentDate ? new Date(existing.appointmentDate).toISOString().split("T")[0] : "",
+        observations: existing.observations || "", houseType: existing.houseType || "", distanceKm: existing.distanceKm || "", travelMethod: existing.travelMethod || "", houseCondition: existing.houseCondition || "", utilities: existing.utilities || "", environment: existing.environment || "",
+        familyMembers: existing.familyMembers || "", siblings: existing.siblings || "", familyRelationship: existing.familyRelationship || "", familyIncome: existing.familyIncome || "", studentDuties: existing.studentDuties || "", familyActivities: existing.familyActivities || "",
+        riskHealth: existing.riskHealth || "", riskSafety: existing.riskSafety || "", riskTravel: existing.riskTravel || "", riskWork: existing.riskWork || "", riskSocial: existing.riskSocial || "", riskSubstance: existing.riskSubstance || "", parentConcerns: existing.parentConcerns || "",
+        visitResult: existing.visitResult || "", teacherNotes: existing.teacherNotes || "",
+        images: existing.images ? existing.images.split(",").filter(Boolean) : []
+      });
+      
       const [step, setStep] = useState(0);
-      const draftTimer = useRef(null);
-      const isFirstRender = useRef(true);
-
-      const STEPS = [
-        { label: "ข้อมูลเบื้องต้น", icon: "fa-circle-info" },
-        { label: "ที่พัก & GPS", icon: "fa-house" },
-        { label: "ครอบครัว", icon: "fa-people-line" },
-        { label: "ความเสี่ยง", icon: "fa-warning" },
-        { label: "สรุป & รูป", icon: "fa-camera" }
-      ];
-
-      // ✅ Auto-Save Draft (1 second debounce, ทุกครั้งที่ form เปลี่ยน)
-      useEffect(() => {
-        // Skip first render
-        if (isFirstRender.current) {
-          isFirstRender.current = false;
-          return;
-        }
-        
-        clearTimeout(draftTimer.current);
-        setDraftStatus("saving");
-        
-        draftTimer.current = setTimeout(() => {
-          const draftKey = `draft_${user.code}_${student.studentNo}`;
-          localStorage.setItem(draftKey, JSON.stringify(form));
-          setDraftStatus("saved");
-          setTimeout(() => setDraftStatus(null), 2000);
-        }, 1000);
-        
-        return () => clearTimeout(draftTimer.current);
-      }, [form, user.code, student.studentNo]);
+      const [gpsLoading, setGpsLoading] = useState(false);
+      const STEPS = ["ข้อมูล", "ที่พัก", "ครอบครัว", "ความเสี่ยง", "รูปภาพ"];
 
       const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
-      const getGPS = () => {
-        setGpsLoading(true);
-        if ("geolocation" in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const R = 6371;
-              const dLat = (SCHOOL_LAT - pos.coords.latitude) * Math.PI / 180;
-              const dLon = (SCHOOL_LON - pos.coords.longitude) * Math.PI / 180;
-              const a = Math.sin(dLat/2) ** 2 + Math.cos(pos.coords.latitude * Math.PI / 180) * Math.cos(SCHOOL_LAT * Math.PI / 180) * Math.sin(dLon/2) ** 2;
-              const dist = (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
-              update("distanceKm", dist);
-              setGpsLoading(false);
-              showToast(`✅ ดึง GPS สำเร็จ (${dist} กม.)`, "success");
-            },
-            (err) => { setGpsLoading(false); showToast("❌ ไม่สามารถดึง GPS", "error"); },
-            { enableHighAccuracy: true, timeout: 10000 }
-          );
-        } else { setGpsLoading(false); showToast("❌ เบราว์เซอร์ไม่รองรับ", "error"); }
-      };
-
-      const handleImageUpload = (e) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-        
-        Array.from(files).forEach(file => {
-          if (file.size > 10 * 1024 * 1024) {
-            showToast("❌ รูปใหญ่เกิน 10 MB", "error");
-            return;
-          }
-          
+      const handleImage = (e) => {
+        Array.from(e.target.files).forEach(file => {
           const reader = new FileReader();
           reader.onload = (ev) => {
-            const img = new Image();
-            img.src = ev.target.result;
+            const img = new Image(); img.src = ev.target.result;
             img.onload = () => {
               const canvas = document.createElement("canvas");
-              const maxW = 1200;
-              const ratio = Math.min(1, maxW / img.width);
-              canvas.width = img.width * ratio;
-              canvas.height = img.height * ratio;
+              const ratio = Math.min(1, 800 / img.width); // ย่อขนาดเพื่อความเร็ว
+              canvas.width = img.width * ratio; canvas.height = img.height * ratio;
               canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-              const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-              setForm(prev => ({ ...prev, images: [...(prev.images || []), dataUrl] }));
-              showToast("✅ เพิ่มรูปสำเร็จ", "success");
+              update("images", [...(form.images||[]), canvas.toDataURL("image/jpeg", 0.7)]);
             };
           };
           reader.readAsDataURL(file);
         });
-        
         e.target.value = "";
       };
 
-      const removeImage = (idx) => {
-        setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
-      };
-
-      const handleSave = async () => {
-        if (!form.visitStatus) {
-          showToast("⚠️ กรุณาเลือกสถานะการเยี่ยม", "warning");
-          return;
+      const getGPS = () => {
+        setGpsLoading(true);
+        if("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(pos => {
+            const R=6371; const dLat=(SCHOOL_LAT-pos.coords.latitude)*Math.PI/180; const dLon=(SCHOOL_LON-pos.coords.longitude)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(SCHOOL_LAT*Math.PI/180)*Math.sin(dLon/2)**2;
+            update("distanceKm", (R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2));
+            setGpsLoading(false);
+          }, () => { setGpsLoading(false); showToast("ไม่สามารถดึง GPS ได้", "error"); }, {enableHighAccuracy:true, timeout:10000});
         }
-        
-        setSaving(true);
-        const success = await onSave(form, form.images || []);
-        setSaving(false);
       };
 
       return (
-        <div className="slide-up max-w-4xl mx-auto">
+        <div className="slide-up max-w-3xl mx-auto">
+          {/* Header */}
           <div className="flex items-center gap-4 mb-6">
-            <button onClick={onBack} className="w-10 h-10 bg-white border rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-50">
-              <i className="fa-solid fa-arrow-left"></i>
-            </button>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-slate-800">{student.studentName}</h2>
-              <p className="text-sm text-slate-500">เลขที่ {student.studentNo} {student.nickname && `· ${student.nickname}`}</p>
-            </div>
-            {draftStatus && (
-              <div className={`text-xs font-bold px-3 py-2 rounded-lg ${draftStatus === "saving" ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"}`}>
-                {draftStatus === "saving" ? <><i className="fa-solid fa-spinner fa-spin mr-1"></i>กำลังบันทึก</> : <><i className="fa-solid fa-cloud-check mr-1"></i>บันทึกแล้ว</>}
-              </div>
-            )}
+            <button onClick={onBack} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 btn-press shadow-sm hover:bg-slate-50"><i className="fa-solid fa-arrow-left"></i></button>
+            <div><h2 className="text-xl font-bold text-slate-800">{student.studentName}</h2><p className="text-sm font-medium text-slate-500">เลขที่ {student.studentNo}</p></div>
           </div>
 
-          {/* Step Progress */}
-          <div className="glass-card p-4 rounded-2xl mb-6">
-            <div className="flex justify-between gap-2">
-              {STEPS.map((s, i) => (
-                <button key={i} onClick={() => setStep(i)} className={`flex-1 flex flex-col items-center p-2 rounded-xl transition ${step === i ? "bg-blue-50" : step > i ? "" : ""}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold mb-1 ${step === i ? "bg-blue-600 text-white" : step > i ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
-                    {step > i ? <i className="fa-solid fa-check"></i> : i + 1}
-                  </div>
-                  <span className={`text-[10px] sm:text-xs font-bold ${step === i ? "text-blue-600" : "text-slate-500"}`}>{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Content */}
-          <div className="glass-card p-6 md:p-8 rounded-3xl">
-            {step === 0 && <Step0 form={form} update={update} />}
-            {step === 1 && <Step1 form={form} update={update} getGPS={getGPS} gpsLoading={gpsLoading} />}
-            {step === 2 && <Step2 form={form} update={update} />}
-            {step === 3 && <Step3 form={form} update={update} />}
-            {step === 4 && <Step4 form={form} update={update} onImageUpload={handleImageUpload} onRemoveImage={removeImage} />}
-
-            <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
-              <button 
-                onClick={() => setStep(Math.max(0, step - 1))} 
-                disabled={step === 0} 
-                className="px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30">
-                <i className="fa-solid fa-arrow-left mr-2"></i>ย้อนกลับ
-              </button>
-              {step < STEPS.length - 1 ? (
-                <button onClick={() => setStep(step + 1)} className="px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700">
-                  ถัดไป<i className="fa-solid fa-arrow-right ml-2"></i>
-                </button>
-              ) : (
-                <button onClick={handleSave} disabled={saving} className="px-8 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
-                  {saving ? <><i className="fa-solid fa-spinner fa-spin mr-2"></i>กำลังบันทึก...</> : <><i className="fa-solid fa-save mr-2"></i>บันทึก</>}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ============= Form Steps =============
-    const Step0 = ({ form, update }) => (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-800 mb-4"><i className="fa-solid fa-circle-info text-blue-600 mr-2"></i>ข้อมูลเบื้องต้น</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">ภาคเรียน</label>
-            <select value={form.semester || "1"} onChange={e => update("semester", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3">
-              <option value="1">1</option>
-              <option value="2">2</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">วันที่เยี่ยม</label>
-            <input type="date" value={form.visitDate || ""} onChange={e => update("visitDate", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-slate-600 mb-2">สถานะการเยี่ยม *</label>
-          <select value={form.visitStatus || ""} onChange={e => update("visitStatus", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3">
-            <option value="">-- เลือกสถานะ --</option>
-            {VISIT_STAT.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        {form.visitStatus === "นัดหมายแล้ว" && (
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">วันที่นัดหมาย</label>
-            <input type="date" value={form.appointmentDate || ""} onChange={e => update("appointmentDate", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-        )}
-        <div>
-          <label className="block text-sm font-bold text-slate-600 mb-2">หมายเหตุเบื้องต้น</label>
-          <textarea rows="3" value={form.observations || ""} onChange={e => update("observations", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-        </div>
-      </div>
-    );
-
-    const Step1 = ({ form, update, getGPS, gpsLoading }) => (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-800 mb-4"><i className="fa-solid fa-house text-blue-600 mr-2"></i>ที่พัก & GPS</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">ลักษณะที่พัก</label>
-            <input type="text" value={form.houseType || ""} onChange={e => update("houseType", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" placeholder="เช่น บ้านไม้, บ้านอิฐ" />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-bold text-slate-600">ระยะทาง (กม.)</label>
-              <button onClick={getGPS} disabled={gpsLoading} className="text-xs font-bold text-blue-600 hover:text-blue-700">
-                <i className={`fa-solid fa-location-dot mr-1 ${gpsLoading ? "fa-spin" : ""}`}></i>
-                {gpsLoading ? "กำลังค้นหา..." : "ดึง GPS"}
-              </button>
-            </div>
-            <input type="number" step="0.01" value={form.distanceKm || ""} onChange={e => update("distanceKm", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">วิธีเดินทาง</label>
-            <input type="text" value={form.travelMethod || ""} onChange={e => update("travelMethod", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">สภาพบ้าน</label>
-            <select value={form.houseCondition || ""} onChange={e => update("houseCondition", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3">
-              <option value="">-- เลือก --</option>
-              {HOUSE_COND.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">สิ่งอำนวยความสะดวก</label>
-            <input type="text" value={form.utilities || ""} onChange={e => update("utilities", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">สภาพแวดล้อม</label>
-            <input type="text" value={form.environment || ""} onChange={e => update("environment", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-        </div>
-      </div>
-    );
-
-    const Step2 = ({ form, update }) => (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-800 mb-4"><i className="fa-solid fa-people-line text-blue-600 mr-2"></i>ครอบครัว</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">จำนวนสมาชิก</label>
-            <input type="number" value={form.familyMembers || ""} onChange={e => update("familyMembers", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">จำนวนพี่น้อง</label>
-            <input type="number" value={form.siblings || ""} onChange={e => update("siblings", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-bold text-slate-600 mb-2">ความสัมพันธ์</label>
-            <select value={form.familyRelationship || ""} onChange={e => update("familyRelationship", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3">
-              <option value="">-- เลือก --</option>
-              {REL_OPTS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">รายได้ครอบครัว</label>
-            <input type="text" value={form.familyIncome || ""} onChange={e => update("familyIncome", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">ความเป็นห่วง</label>
-            <input type="text" value={form.parentConcerns || ""} onChange={e => update("parentConcerns", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">หน้าที่ของนักเรียน</label>
-            <textarea rows="2" value={form.studentDuties || ""} onChange={e => update("studentDuties", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">กิจกรรมครอบครัว</label>
-            <textarea rows="2" value={form.familyActivities || ""} onChange={e => update("familyActivities", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-          </div>
-        </div>
-      </div>
-    );
-
-    const Step3 = ({ form, update }) => (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-800 mb-4"><i className="fa-solid fa-warning text-blue-600 mr-2"></i>ความเสี่ยง</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            { k: "riskHealth", l: "ด้านสุขภาพ" },
-            { k: "riskSafety", l: "ด้านความปลอดภัย" },
-            { k: "riskTravel", l: "ด้านการเดินทาง" },
-            { k: "riskWork", l: "ด้านการทำงาน" },
-            { k: "riskSocial", l: "ด้านสังคม" },
-            { k: "riskSubstance", l: "ด้านสารเสพติด" }
-          ].map(item => (
-            <div key={item.k}>
-              <label className="block text-sm font-bold text-slate-600 mb-2">{item.l}</label>
-              <input type="text" value={form[item.k] || ""} onChange={e => update(item.k, e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-
-    const Step4 = ({ form, update, onImageUpload, onRemoveImage }) => (
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-slate-800 mb-4"><i className="fa-solid fa-camera text-blue-600 mr-2"></i>สรุป & รูป</h3>
-        <div>
-          <label className="block text-sm font-bold text-slate-600 mb-2">ความเห็นของครู</label>
-          <select value={form.visitResult || ""} onChange={e => update("visitResult", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3">
-            <option value="">-- เลือก --</option>
-            {RESULT_OPTS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-slate-600 mb-2">หมายเหตุโดยละเอียด</label>
-          <textarea rows="4" value={form.teacherNotes || ""} onChange={e => update("teacherNotes", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3" />
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-slate-600 mb-2">รูปภาพ ({(form.images || []).length} รูป)</label>
-          <label className="border-2 border-dashed border-blue-300 rounded-2xl p-8 text-center cursor-pointer hover:bg-blue-50 transition block">
-            <i className="fa-solid fa-cloud-arrow-up text-4xl text-blue-500 mb-3 block"></i>
-            <p className="font-bold text-blue-600">คลิกเพื่อเพิ่มรูป</p>
-            <p className="text-xs text-slate-500 mt-1">รองรับ JPG, PNG (เลือกหลายรูปได้)</p>
-            <input type="file" accept="image/*" multiple onChange={onImageUpload} className="hidden" />
-          </label>
-          {(form.images || []).length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-              {form.images.map((img, i) => (
-                <div key={i} className="relative group aspect-square">
-                  <img src={img} className="w-full h-full object-cover rounded-xl shadow-sm" />
-                  <button onClick={() => onRemoveImage(i)} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition">
-                    <i className="fa-solid fa-trash text-white text-2xl"></i>
-                  </button>
+          {/* Stepper */}
+          <div className="bg-white p-3 rounded-2xl mb-6 shadow-sm border border-slate-100 flex justify-between relative">
+            <div className="absolute top-1/2 left-[10%] right-[10%] h-1 bg-slate-100 -translate-y-1/2 -z-10"><div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(step/(STEPS.length-1))*100}%` }}></div></div>
+            {STEPS.map((s, i) => (
+              <div key={i} onClick={() => setStep(i)} className="flex flex-col items-center cursor-pointer group">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-1 transition-all border-2 ${step === i ? "bg-white border-blue-600 text-blue-600 scale-110" : step > i ? "bg-blue-500 border-blue-500 text-white" : "bg-slate-50 border-slate-200 text-slate-400 group-hover:bg-slate-100"}`}>
+                  {step > i ? <i className="fa-solid fa-check"></i> : i+1}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-
-    // ============= Appointments =============
-    function Appointments({ students, visits, onSelect }) {
-      const appointments = visits
-        .filter(v => v.visitStatus === "นัดหมายแล้ว" && v.appointmentDate)
-        .map(v => ({ ...v, student: students.find(s => s.studentNo === v.studentNo) }))
-        .filter(v => v.student)
-        .sort((a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate));
-
-      return (
-        <div className="slide-up">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">ตารางนัดหมาย</h2>
-          <p className="text-slate-500 mb-8">นัดหมาย {appointments.length} รายการ</p>
-
-          {appointments.length === 0 ? (
-            <div className="glass-card p-16 rounded-3xl text-center text-slate-400">
-              <i className="fa-solid fa-calendar text-6xl mb-4"></i>
-              <p className="text-lg">ยังไม่มีการนัดหมาย</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {appointments.map((a, i) => (
-                <div key={i} onClick={() => onSelect(a.student)} className="glass-card p-5 rounded-2xl cursor-pointer">
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
-                      <i className="fa-solid fa-calendar-day"></i>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-800">{a.student.studentName}</h4>
-                      <p className="text-xs text-slate-500">เลขที่ {a.student.studentNo}</p>
-                    </div>
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    <p><i className="fa-solid fa-calendar text-amber-500 mr-2"></i>{new Date(a.appointmentDate).toLocaleDateString("th-TH", { dateStyle: "full" })}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ============= Report Page =============
-    function ReportPage({ students, visits, user, showToast }) {
-      const [selected, setSelected] = useState(new Set());
-      const [exporting, setExporting] = useState(false);
-
-      const toggle = (no) => {
-        const newSet = new Set(selected);
-        newSet.has(no) ? newSet.delete(no) : newSet.add(no);
-        setSelected(newSet);
-      };
-
-      const exportPDF = async (type) => {
-        setExporting(true);
-        let data = [];
-
-        if (type === "all") data = students;
-        else if (type === "selected") data = students.filter(s => selected.has(s.studentNo));
-        
-        if (data.length === 0) {
-          showToast("⚠️ ไม่มีข้อมูลที่เลือก", "warning");
-          setExporting(false);
-          return;
-        }
-
-        const date = new Date().toLocaleDateString("th-TH");
-        let html = `<div style="font-family:Sarabun;padding:20px;">
-          <h1 style="text-align:center;color:#1e40af;border-bottom:3px solid #3b82f6;padding-bottom:10px;">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
-          <p style="text-align:center;color:#64748b;">โรงเรียนป่าก้าง · วันที่ ${date}</p>
-          <p style="text-align:center;color:#64748b;font-weight:bold;">ครู: ${user.fullName} · ชั้น: ${user.classLevel}</p>`;
-
-        data.forEach((s, idx) => {
-          const v = visits.find(x => x.studentNo === s.studentNo) || {};
-          html += `<div style="page-break-inside:avoid;border:2px solid #3b82f6;padding:15px;margin:15px 0;border-radius:8px;background:#f0f9ff;">
-            <h3 style="color:#1e40af;margin:0 0 10px 0;">${idx+1}. เลขที่ ${s.studentNo} — ${s.studentName} ${s.nickname ? `(${s.nickname})` : ""}</h3>
-            <table style="width:100%;border-collapse:collapse;font-size:13px;">
-              ${[
-                ["วันที่เยี่ยม", v.visitDate ? new Date(v.visitDate).toLocaleDateString("th-TH") : "-"],
-                ["สถานะ", v.visitStatus || "-"],
-                ["ภาคเรียน", v.semester || "-"],
-                ["ระยะทาง", v.distanceKm ? `${v.distanceKm} กม.` : "-"],
-                ["วิธีเดินทาง", v.travelMethod || "-"],
-                ["ลักษณะที่พัก", v.houseType || "-"],
-                ["สภาพบ้าน", v.houseCondition || "-"],
-                ["จำนวนสมาชิก", v.familyMembers || "-"],
-                ["ความสัมพันธ์", v.familyRelationship || "-"],
-                ["รายได้ครอบครัว", v.familyIncome || "-"],
-                ["ความเสี่ยงสุขภาพ", v.riskHealth || "-"],
-                ["ความเสี่ยงปลอดภัย", v.riskSafety || "-"],
-                ["ความเห็นครู", v.visitResult || "-"],
-                ["หมายเหตุ", v.teacherNotes || "-"]
-              ].map(([k, val]) => `<tr><td style="padding:8px;border:1px solid #cbd5e1;font-weight:bold;width:35%;background:#e0e7ff;">${k}</td><td style="padding:8px;border:1px solid #cbd5e1;">${val}</td></tr>`).join("")}
-            </table>
-          </div>`;
-        });
-        html += "</div>";
-
-        const div = document.createElement("div");
-        div.innerHTML = html;
-        
-        try {
-          await html2pdf().set({
-            margin: 10,
-            filename: `รายงานเยี่ยมบ้าน_${user.classLevel}_${date}.pdf`,
-            image: { type: "jpeg", quality: 0.95 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-          }).from(div).save();
-          showToast("✅ ดาวน์โหลด PDF สำเร็จ", "success");
-        } catch (e) {
-          showToast("❌ Export ผิดพลาด", "error");
-        }
-        setExporting(false);
-      };
-
-      const exportExcel = () => {
-        const data = students.map(s => {
-          const v = visits.find(x => x.studentNo === s.studentNo) || {};
-          return {
-            "เลขที่": s.studentNo,
-            "ชื่อ": s.studentName,
-            "ชื่อเล่น": s.nickname || "",
-            "ชั้น": s.classLevel,
-            "สถานะ": v.visitStatus || "ยังไม่เยี่ยม",
-            "วันที่เยี่ยม": v.visitDate || "",
-            "ระยะทาง (กม.)": v.distanceKm || "",
-            "ลักษณะที่พัก": v.houseType || "",
-            "สภาพบ้าน": v.houseCondition || "",
-            "ความเห็นครู": v.visitResult || "",
-            "หมายเหตุ": v.teacherNotes || ""
-          };
-        });
-        
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "รายงานเยี่ยมบ้าน");
-        XLSX.writeFile(wb, `รายงานเยี่ยมบ้าน_${user.classLevel}_${new Date().toLocaleDateString("th-TH")}.xlsx`);
-        showToast("✅ ดาวน์โหลด Excel สำเร็จ", "success");
-      };
-
-      return (
-        <div className="slide-up">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">ส่งออกรายงาน</h2>
-          <p className="text-slate-500 mb-8">เลือกรูปแบบและจำนวนนักเรียน</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <button onClick={() => exportPDF("all")} disabled={exporting} className="glass-card p-6 rounded-2xl hover:shadow-lg transition text-left">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mb-3">
-                <i className="fa-solid fa-book"></i>
-              </div>
-              <h3 className="font-bold text-slate-800 mb-1">PDF ทั้งหมด</h3>
-              <p className="text-sm text-slate-500">{students.length} คน</p>
-            </button>
-
-            <button onClick={() => exportPDF("selected")} disabled={exporting || selected.size === 0} className="glass-card p-6 rounded-2xl hover:shadow-lg transition text-left disabled:opacity-50">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-3">
-                <i className="fa-solid fa-list-check"></i>
-              </div>
-              <h3 className="font-bold text-slate-800 mb-1">PDF ที่เลือก</h3>
-              <p className="text-sm text-slate-500">{selected.size} คน</p>
-            </button>
-
-            <button onClick={exportExcel} className="glass-card p-6 rounded-2xl hover:shadow-lg transition text-left">
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-3">
-                <i className="fa-solid fa-file-excel"></i>
-              </div>
-              <h3 className="font-bold text-slate-800 mb-1">Excel ทั้งหมด</h3>
-              <p className="text-sm text-slate-500">{students.length} คน</p>
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-800">เลือกนักเรียน ({selected.size}/{students.length})</h3>
-            <div className="flex gap-2">
-              <button onClick={() => setSelected(new Set(students.map(s => s.studentNo)))} className="text-sm font-bold text-blue-600 hover:text-blue-700">เลือกทั้งหมด</button>
-              <button onClick={() => setSelected(new Set())} className="text-sm font-bold text-slate-500 hover:text-slate-600">ยกเลิก</button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {students.map(s => (
-              <div key={s.studentNo} onClick={() => toggle(s.studentNo)} className={`glass-card p-4 rounded-2xl cursor-pointer transition ${selected.has(s.studentNo) ? "bg-blue-50 border-2 border-blue-500" : ""}`}>
-                <div className="flex items-center gap-3">
-                  <input type="checkbox" checked={selected.has(s.studentNo)} readOnly className="w-5 h-5 rounded" />
-                  <div className="flex-1 overflow-hidden">
-                    <p className="font-bold text-slate-800 truncate">{s.studentNo} - {s.studentName}</p>
-                    <p className="text-xs text-slate-500 truncate">{s.nickname || "-"}</p>
-                  </div>
-                </div>
+                <span className={`text-[10px] font-bold ${step===i ? "text-blue-600" : "text-slate-400"}`}>{s}</span>
               </div>
             ))}
+          </div>
+
+          {/* Form Fields */}
+          <div className="glass-card p-6 md:p-8 rounded-3xl mb-6 bg-white min-h-[400px]">
+            {step === 0 && <div className="space-y-4 fade-in">
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-bold text-slate-700 mb-2">ภาคเรียน</label><select value={form.semester} onChange={e=>update("semester", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"><option value="1">1</option><option value="2">2</option></select></div>
+                <div><label className="block text-sm font-bold text-slate-700 mb-2">สถานะ *</label><select value={form.visitStatus} onChange={e=>update("visitStatus", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"><option value="ยังไม่เยี่ยม">ยังไม่เยี่ยม</option><option value="เยี่ยมแล้ว">เยี่ยมแล้ว</option><option value="นัดหมายแล้ว">นัดหมายแล้ว</option></select></div>
+              </div>
+              {form.visitStatus === "นัดหมายแล้ว" ? (
+                <div><label className="block text-sm font-bold text-slate-700 mb-2">วันที่นัดหมาย</label><input type="date" value={form.appointmentDate} onChange={e=>update("appointmentDate", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              ) : (
+                <div><label className="block text-sm font-bold text-slate-700 mb-2">วันที่เยี่ยม</label><input type="date" value={form.visitDate} onChange={e=>update("visitDate", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              )}
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">การสังเกตเบื้องต้น</label><textarea rows="3" value={form.observations} onChange={e=>update("observations", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"></textarea></div>
+            </div>}
+            
+            {step === 1 && <div className="space-y-4 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-4">
+              <div className="col-span-full md:col-span-1"><label className="block text-sm font-bold text-slate-700 mb-2">ลักษณะที่พัก</label><input type="text" value={form.houseType} onChange={e=>update("houseType", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              <div className="col-span-full md:col-span-1"><div className="flex justify-between"><label className="block text-sm font-bold text-slate-700 mb-2">ระยะทาง (กม.)</label><button onClick={getGPS} disabled={gpsLoading} className="text-xs font-bold text-blue-600 mb-2"><i className={`fa-solid fa-location-crosshairs mr-1 ${gpsLoading?'fa-spin':''}`}></i> ดึง GPS</button></div><input type="number" value={form.distanceKm} onChange={e=>update("distanceKm", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">การเดินทาง</label><input type="text" value={form.travelMethod} onChange={e=>update("travelMethod", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">สภาพบ้าน</label><select value={form.houseCondition} onChange={e=>update("houseCondition", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"><option value="">-เลือก-</option>{HOUSE_COND.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+              <div className="col-span-full"><label className="block text-sm font-bold text-slate-700 mb-2">สภาพแวดล้อม</label><textarea rows="2" value={form.environment} onChange={e=>update("environment", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"></textarea></div>
+            </div>}
+
+            {step === 2 && <div className="space-y-4 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-4">
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">จำนวนสมาชิกในบ้าน</label><input type="number" value={form.familyMembers} onChange={e=>update("familyMembers", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">ความสัมพันธ์</label><select value={form.familyRelationship} onChange={e=>update("familyRelationship", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"><option value="">-เลือก-</option>{REL_OPTS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+              <div className="col-span-full"><label className="block text-sm font-bold text-slate-700 mb-2">ภาระงานนักเรียนเมื่ออยู่บ้าน</label><input type="text" value={form.studentDuties} onChange={e=>update("studentDuties", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+            </div>}
+
+            {step === 3 && <div className="space-y-4 fade-in grid grid-cols-1 md:grid-cols-2 gap-x-4">
+              {[{k:"riskHealth",l:"สุขภาพ"},{k:"riskSafety",l:"ความปลอดภัย"},{k:"riskSubstance",l:"ยาเสพติด"},{k:"parentConcerns",l:"ข้อห่วงใยผู้ปกครอง"}].map(r => (
+                <div key={r.k} className="col-span-full md:col-span-1"><label className="block text-sm font-bold text-slate-700 mb-2">{r.l}</label><input type="text" value={form[r.k]} onChange={e=>update(r.k, e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"/></div>
+              ))}
+            </div>}
+
+            {step === 4 && <div className="space-y-4 fade-in">
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">สรุปผล</label><select value={form.visitResult} onChange={e=>update("visitResult", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"><option value="">-เลือก-</option>{RESULT_OPTS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+              <div><label className="block text-sm font-bold text-slate-700 mb-2">บันทึกเพิ่มเติม</label><textarea rows="3" value={form.teacherNotes} onChange={e=>update("teacherNotes", e.target.value)} className="w-full luxury-input rounded-xl px-4 py-3"></textarea></div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">รูปภาพ ({form.images.length} รูป)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {form.images.map((img, i) => (
+                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden group border">
+                      <img src={img} className="w-full h-full object-cover" />
+                      <button onClick={()=>update("images", form.images.filter((_,idx)=>idx!==i))} className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><i className="fa-solid fa-trash text-white text-xl"></i></button>
+                    </div>
+                  ))}
+                  <label className="border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center aspect-square cursor-pointer hover:bg-slate-50 transition btn-press">
+                    <i className="fa-solid fa-plus text-2xl text-slate-400 mb-1"></i><span className="text-xs font-bold text-slate-500">เพิ่มรูป</span>
+                    <input type="file" accept="image/*" multiple onChange={handleImage} className="hidden"/>
+                  </label>
+                </div>
+              </div>
+            </div>}
+
+            {/* Navigation Nav */}
+            <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
+              <button onClick={() => setStep(step-1)} disabled={step===0} className="px-5 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 disabled:opacity-30 btn-press"><i className="fa-solid fa-arrow-left mr-2"></i>ย้อนกลับ</button>
+              {step < STEPS.length-1 ? (
+                <button onClick={() => setStep(step+1)} className="px-8 py-3 rounded-xl font-bold text-white bg-slate-800 hover:bg-slate-700 shadow-md btn-press">ถัดไป <i className="fa-solid fa-arrow-right ml-2"></i></button>
+              ) : (
+                <button onClick={() => onSave(form, form.images)} className="px-8 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 btn-press"><i className="fa-solid fa-cloud-arrow-up mr-2"></i> บันทึกข้อมูลจริง</button>
+              )}
+            </div>
           </div>
         </div>
       );
