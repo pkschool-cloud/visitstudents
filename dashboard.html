@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบเยี่ยมบ้านนักเรียน (Academic PDF Edition)</title>
+  <title>ระบบเยี่ยมบ้านนักเรียน โรงเรียนป่าก้าง</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -51,7 +51,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // 🔴 ใส่ URL จาก Google Apps Script ของคุณครูครับ
+    // 🔴 ใส่ URL ของคุณครูตรงนี้ครับ
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwu0Dw9TUcLFhNyQ0wSI_8efgKyeaJrJBXdDV2_WuCUkWY10SZkTI4XtwYdTgR0YHjE/exec";
     
     const SCHOOL_LAT = 18.862105; const SCHOOL_LON = 99.0872654;
@@ -219,6 +219,7 @@
       const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
 
       const [adminClassFilter, setAdminClassFilter] = useState("ทั้งหมด");
+      const [sidebarSearch, setSidebarSearch] = useState("");
       
       const showToast = useCallback((msg, type = "success") => setToast({ msg, type }), []);
 
@@ -228,7 +229,7 @@
       };
 
       useEffect(() => {
-        const u = localStorage.getItem("hv_user_final_v2");
+        const u = localStorage.getItem("hv_user_final_v3");
         if (u) { 
           const parsed = JSON.parse(u);
           setUser(parsed); 
@@ -250,7 +251,7 @@
       const handleLogin = async (code) => {
         const res = await api.post({ action: "getTeacherByCode", code });
         if (res.success) {
-          localStorage.setItem("hv_user_final_v2", JSON.stringify(res.data));
+          localStorage.setItem("hv_user_final_v3", JSON.stringify(res.data));
           setUser(res.data); loadAllData(res.data);
         } else showToast("รหัสไม่ถูกต้อง", "error");
       };
@@ -308,6 +309,14 @@
           ? globalVisits.filter(v => getVal(v, 'classLevel', 'classlevel') === adminClassFilter)
           : globalVisits;
 
+      const sidebarSearchResults = sidebarSearch 
+        ? displayedStudents.filter(s => 
+            String(s.studentName).includes(sidebarSearch) || 
+            String(s.studentNo).includes(sidebarSearch) || 
+            (s.nickname && String(s.nickname).includes(sidebarSearch))
+          ).slice(0, 5) 
+        : [];
+
       return (
         <div className="flex h-screen bg-[#f4f7fb] fade-in">
           {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -339,6 +348,34 @@
                 )}
              </div>
              
+             {isSidebarOpen && (
+               <div className="px-5 mt-5 mb-2 relative fade-in z-50">
+                 <div className="input-wrapper flex items-center bg-slate-50 border-slate-200 rounded-[1.2rem] px-4 py-3">
+                   <i className="fa-solid fa-search text-slate-400"></i>
+                   <input type="text" value={sidebarSearch} onChange={e=>setSidebarSearch(e.target.value)} placeholder="ค้นหาประวัติเด็ก..." className="w-full bg-transparent border-none outline-none pl-3 text-sm font-bold text-slate-700"/>
+                 </div>
+                 {sidebarSearch && (
+                   <div className="absolute top-full left-5 right-5 mt-2 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden pop-in">
+                     {sidebarSearchResults.length === 0 ? (
+                        <div className="p-4 text-center text-slate-400 text-sm font-bold">ไม่พบรายชื่อ</div>
+                     ) : sidebarSearchResults.map((s, i) => (
+                        <button key={i} onClick={() => { 
+                          setSelectedStudent(s); 
+                          setView("profile"); 
+                          setSidebarSearch(""); 
+                          if(window.innerWidth < 768) setIsSidebarOpen(false); 
+                        }} className="w-full text-left px-5 py-3 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center gap-3 transition-colors group cursor-pointer">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">{s.studentNo}</div>
+                          <div className="flex-1 overflow-hidden">
+                            <span className="font-black text-slate-800 text-sm group-hover:text-blue-600 truncate block">{s.studentName}</span>
+                          </div>
+                        </button>
+                     ))}
+                   </div>
+                 )}
+               </div>
+             )}
+
              <nav className="flex-1 p-5 space-y-2 overflow-y-auto hide-scroll z-40">
                 <NavBtn icon="fa-chart-pie" label="สรุปภาพรวม" active={view==="dashboard"} open={isSidebarOpen} onClick={()=>{setView("dashboard"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
                 <NavBtn icon="fa-users" label="รายชื่อทั้งหมด" active={view==="students" || view==="form" || view==="profile"} open={isSidebarOpen} onClick={()=>{setView("students"); setSelectedStudent(null); if(window.innerWidth<768) setIsSidebarOpen(false);}} color={isAdmin ? "purple" : "blue"} />
@@ -348,7 +385,7 @@
                 <NavBtn icon="fa-file-pdf" label="ส่งออกรายงาน" active={view==="report"} open={isSidebarOpen} onClick={()=>{setView("report"); if(window.innerWidth<768) setIsSidebarOpen(false);}} color="rose" />
              </nav>
              <div className="p-6 border-t border-slate-50">
-               <button onClick={()=>{localStorage.removeItem("hv_user_final_v2"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
+               <button onClick={()=>{localStorage.removeItem("hv_user_final_v3"); window.location.reload();}} className={`w-full py-4 rounded-[1.25rem] font-bold text-rose-500 bg-rose-50 hover:bg-rose-500 hover:text-white btn-press transition-colors flex items-center justify-center gap-3 ${isSidebarOpen ? '' : 'px-0'}`}>
                  <i className="fa-solid fa-power-off text-lg"></i> {isSidebarOpen && "ออกจากระบบ"}
                </button>
              </div>
@@ -377,20 +414,20 @@
                </button>
             </header>
             
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scroll" onClick={() => setSidebarSearch("")}>
               <div className="max-w-5xl mx-auto pb-20">
                 {view === "dashboard" && <Dashboard visits={displayedVisits} students={displayedStudents} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} isAdmin={isAdmin} />}
                 {view === "students" && <Students students={displayedStudents} visits={displayedVisits} isLoaded={isDataLoaded} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "appointments" && <Appointments students={displayedStudents} visits={displayedVisits} onSelect={s=>{setSelectedStudent(s); setView("profile");}} />}
                 {view === "manage" && <StudentManage user={user} showToast={showToast} refresh={loadAllData} students={displayedStudents} isLoaded={isDataLoaded} isAdmin={isAdmin} currentFilterClass={adminClassFilter} userClass={user.classLevel} />}
                 
-                {/* 🌟 หน้าส่งออก PDF วิชาการ (แยกไฟล์ 100%) 🌟 */}
+                {/* 🌟 หน้าส่งออก PDF ที่อัปเกรดแบบสุดยอด 🌟 */}
                 {view === "report" && <ReportExport user={user} students={displayedStudents} visits={displayedVisits} showToast={showToast} isLoaded={isDataLoaded} />}
                 
                 {view === "profile" && selectedStudent && <StudentProfileView student={selectedStudent} visits={displayedVisits} onBack={()=>{setSelectedStudent(null); setView("students");}} onEdit={() => setView("form")} onDeleteVisit={deleteVisitRecord} />}
                 {view === "form" && selectedStudent && <VisitForm student={selectedStudent} visits={displayedVisits} onBack={()=>{setView("profile");}} onSave={saveVisit} />}
 
-                {/* 🔴 Copyright สวยๆ ด้านล่างสุด 🔴 */}
+                {/* 🔴 Copyright ของคุณครู 🔴 */}
                 <div className="mt-16 pt-6 border-t border-slate-200/60 text-center fade-in">
                   <p className="text-sm font-bold text-slate-400 tracking-wide">
                     © 2026 Developed by Thianrawich. All Rights Reserved.
@@ -817,7 +854,7 @@
       );
     }
 
-    // 🌟 ระบบ PDF ใหม่ล่าสุด แยกไฟล์ 100% และจัดหน้าแบบวิชาการ 🌟
+    // 🌟 ระบบส่งออก PDF สไตล์วิชาการแบบ 100% ไร้รอยต่อ 🌟
     function ReportExport({ user, students, visits, showToast, isLoaded }) {
       const [generating, setGenerating] = useState(false);
       const [pdfProgress, setPdfProgress] = useState("");
@@ -845,7 +882,7 @@
         showToast("ส่งออก Excel สำเร็จ", "success");
       };
 
-      // 🔴 ฟังก์ชันส่งออก PDF — ใช้ visible iframe + html2pdf (สวยงาม + auto-download)
+      // 🔴 สร้าง PDF ทีละไฟล์แบบสมบูรณ์ 🔴
       const exportPDF = async () => {
         if (selectedStudents.size === 0) { showToast("กรุณาเลือกนักเรียนก่อนพิมพ์", "warning"); return; }
         
@@ -853,206 +890,130 @@
         const targetStudents = students.filter(s => selectedStudents.has(s.studentNo));
         const dateStr = new Date().toLocaleDateString("th-TH");
 
-        // ✅ Overlay loading
-        const overlay = document.createElement("div");
-        overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);";
-        overlay.innerHTML = `
-          <div style="background:white;padding:30px 40px;border-radius:16px;text-align:center;font-family:Prompt,sans-serif;min-width:320px;">
-            <div style="width:60px;height:60px;border:5px solid #e2e8f0;border-top:5px solid #3b82f6;border-radius:50%;animation:pdfspin 1s linear infinite;margin:0 auto 15px;"></div>
-            <p style="font-size:16px;color:#1e293b;font-weight:600;margin:0;">กำลังสร้าง PDF...</p>
-            <p id="pdf-progress-text" style="font-size:13px;color:#64748b;margin:8px 0 0;">เตรียมข้อมูล...</p>
-          </div>
-          <style>@keyframes pdfspin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
-        `;
-        document.body.appendChild(overlay);
-
-        try {
-          for (let i = 0; i < targetStudents.length; i++) {
-            const s = targetStudents[i];
-            const progressText = document.getElementById("pdf-progress-text");
-            if (progressText) progressText.textContent = `${s.studentName} (${i + 1}/${targetStudents.length})`;
-
-            // หา visit
-            let v = visits.slice().reverse().find(x => 
-              compareId(getVal(x,"studentNo"), s.studentNo) && 
-              getVal(x,"classLevel") === getVal(s,"classLevel")
-            );
-            if (!v) v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo));
-            if (!v) v = visits.slice().reverse().find(x => 
-              String(getVal(x,"studentName")||"").trim() === String(s.studentName||"").trim()
-            );
-            if (!v) v = {};
-
-            const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
-            const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
-            const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
-
-            // ✅ HTML สมบูรณ์ใส่ใน iframe
-            const reportHTML = `<!DOCTYPE html>
-<html lang="th">
-<head>
-<meta charset="UTF-8">
-<title>รายงานเยี่ยมบ้าน</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { font-family: 'Sarabun', sans-serif; color: #1e293b; background: #fff; width: 794px; }
-  body { padding: 25px 30px; }
-  .header { text-align: center; margin-bottom: 18px; }
-  .header h1 { color: #1e3a8a; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
-  .header .line { height: 2px; background: #3b82f6; margin: 8px 0; }
-  .header p { color: #475569; font-size: 13px; }
-  .student-box { border: 2px solid #60a5fa; border-radius: 6px; overflow: hidden; }
-  .student-header { background: #eff6ff; padding: 10px 14px; border-bottom: 2px solid #60a5fa; }
-  .student-header h2 { color: #1e3a8a; font-size: 15px; font-weight: 700; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #e0e7ff; color: #1e3a8a; padding: 7px 12px; border-bottom: 1px solid #bfdbfe; text-align: left; font-weight: 700; }
-  th.label-col { width: 35%; border-right: 1px solid #bfdbfe; }
-  td { padding: 5px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-  td.label { font-weight: 600; color: #475569; border-right: 1px solid #e2e8f0; background: #fafbfc; width: 35%; }
-  tr.section td { background: #f1f5f9; padding: 6px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1; }
-  td.result-cell { font-weight: 700; color: #1e40af; }
-  .signature { margin-top: 35px; display: flex; justify-content: space-around; page-break-inside: avoid; }
-  .sig-box { text-align: center; width: 45%; font-size: 12px; }
-  .sig-box .line-sig { border-bottom: 1px dotted #475569; height: 40px; margin-bottom: 6px; }
-  .sig-box p { margin: 3px 0; color: #475569; }
-  .sig-box strong { color: #1e293b; }
-</style>
-</head>
-<body>
-  <div id="pdf-content">
-    <div class="header">
-      <h1>รายงานผลการเยี่ยมบ้านนักเรียน</h1>
-      <div class="line"></div>
-      <p>โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</p>
-    </div>
-    
-    <div class="student-box">
-      <div class="student-header">
-        <h2>${i + 1}. เลขที่ ${s.studentNo} — ${s.studentName}</h2>
-      </div>
-      <table>
-        <thead>
-          <tr><th class="label-col">ข้อมูล</th><th>รายละเอียด</th></tr>
-        </thead>
-        <tbody>
-          <tr class="section"><td colspan="2">1. ข้อมูลทั่วไป</td></tr>
-          <tr><td class="label">ชื่อเล่น</td><td>${s.nickname || '-'}</td></tr>
-          <tr><td class="label">วันที่เยี่ยม</td><td>${vDate}</td></tr>
-          <tr><td class="label">สถานะ</td><td><strong>${visitStatus}</strong></td></tr>
+        for (let i = 0; i < targetStudents.length; i++) {
+          const s = targetStudents[i];
+          setPdfProgress(`กำลังสร้าง PDF (${i + 1}/${targetStudents.length}): ${s.studentName}...`);
           
-          <tr class="section"><td colspan="2">2. ที่พักอาศัยและการเดินทาง</td></tr>
-          <tr><td class="label">ระยะทาง</td><td>${dist}</td></tr>
-          <tr><td class="label">ลักษณะที่พัก</td><td>${getVal(v, "houseType") || '-'}</td></tr>
-          <tr><td class="label">สภาพบ้าน</td><td>${getVal(v, "houseCondition") || '-'}</td></tr>
-          <tr><td class="label">วิธีการเดินทาง</td><td>${getVal(v, "travelMethod") || '-'}</td></tr>
-          <tr><td class="label">สาธารณูปโภค</td><td>${getVal(v, "utilities") || '-'}</td></tr>
-          <tr><td class="label">สภาพแวดล้อม</td><td>${getVal(v, "environment") || '-'}</td></tr>
-          
-          <tr class="section"><td colspan="2">3. ข้อมูลครอบครัว</td></tr>
-          <tr><td class="label">จำนวนสมาชิกในบ้าน</td><td>${getVal(v, "familyMembers") ? getVal(v, "familyMembers") + " คน" : '-'}</td></tr>
-          <tr><td class="label">จำนวนพี่น้อง</td><td>${getVal(v, "siblings") ? getVal(v, "siblings") + " คน" : '-'}</td></tr>
-          <tr><td class="label">รายได้ครอบครัวเฉลี่ย</td><td>${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
-          <tr><td class="label">ความสัมพันธ์</td><td>${getVal(v, "familyRelationship") || '-'}</td></tr>
-          <tr><td class="label">ภาระงานอยู่บ้าน</td><td>${getVal(v, "studentDuties") || '-'}</td></tr>
-          <tr><td class="label">กิจกรรมที่มักทำร่วมกัน</td><td>${getVal(v, "familyActivities") || '-'}</td></tr>
-          
-          <tr class="section"><td colspan="2">4. ข้อมูลด้านความเสี่ยง</td></tr>
-          <tr><td class="label">ด้านสุขภาพ</td><td>${getVal(v, "riskHealth") || '-'}</td></tr>
-          <tr><td class="label">ด้านความปลอดภัย</td><td>${getVal(v, "riskSafety") || '-'}</td></tr>
-          <tr><td class="label">ด้านการเดินทาง</td><td>${getVal(v, "riskTravel") || '-'}</td></tr>
-          <tr><td class="label">ด้านเศรษฐกิจ/การงาน</td><td>${getVal(v, "riskWork") || '-'}</td></tr>
-          <tr><td class="label">ด้านการคบเพื่อน/สังคม</td><td>${getVal(v, "riskSocial") || '-'}</td></tr>
-          <tr><td class="label">ด้านสารเสพติด</td><td>${getVal(v, "riskSubstance") || '-'}</td></tr>
-          <tr><td class="label">ข้อห่วงใยของผู้ปกครอง</td><td>${getVal(v, "parentConcerns") || '-'}</td></tr>
-          
-          <tr class="section"><td colspan="2">5. สรุปผล</td></tr>
-          <tr><td class="label">สรุปความเห็นของครู</td><td class="result-cell">${getVal(v, "visitResult") || '-'}</td></tr>
-          <tr><td class="label">บันทึกเพิ่มเติม</td><td>${getVal(v, "teacherNotes") || '-'}</td></tr>
-          <tr><td class="label">การสังเกตเบื้องต้น</td><td>${getVal(v, "observations") || '-'}</td></tr>
-        </tbody>
-      </table>
-    </div>
+          const v = visits.slice().reverse().find(x => compareId(getVal(x,"studentNo"), s.studentNo) && getVal(x,"classLevel") === getVal(s,"classLevel")) || {};
+          const vDate = getVal(v, "visitDate") ? safeDateForDisplay(getVal(v, "visitDate")) : "-";
+          const dist = getVal(v, "distanceKm") ? getVal(v, "distanceKm") + " กม." : "-";
+          const visitStatus = getVal(v, "visitStatus") || "ยังไม่เยี่ยม";
 
-    <div class="signature">
-      <div class="sig-box">
-        <div class="line-sig"></div>
-        <p>ลงชื่อ ............................................</p>
-        <p><strong>(${user.fullName})</strong></p>
-        <p>ครูประจำชั้น</p>
-      </div>
-      <div class="sig-box">
-        <div class="line-sig"></div>
-        <p>ลงชื่อ ............................................</p>
-        <p><strong>(........................................)</strong></p>
-        <p>ผู้อำนวยการสถานศึกษา</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+          // สร้าง Container ฝังลง DOM ให้ html2pdf มองเห็น
+          const container = document.createElement("div");
+          container.style.position = "absolute";
+          container.style.top = "-9999px"; 
+          container.style.left = "0";
+          container.style.width = "794px"; // A4 Width
+          container.style.background = "#ffffff";
+          document.body.appendChild(container);
 
-            // ✅ สร้าง iframe ใน DOM ของหน้าหลัก (มองเห็นได้ครึ่งวินาที — render สำเร็จ)
-            const iframe = document.createElement("iframe");
-            iframe.style.cssText = "position:fixed;top:0;left:0;width:794px;height:1200px;border:0;background:#fff;z-index:99998;visibility:hidden;";
-            document.body.appendChild(iframe);
+          // เทมเพลตวิชาการ - บังคับใช้ Inline Style 100% ป้องกัน html2pdf ตาบอด CSS
+          const reportHTML = `
+            <div style="font-family: 'Sarabun', sans-serif; padding: 30px; color: #1e293b; background: #ffffff; width: 794px; box-sizing: border-box;">
+              <div style="text-align: center; margin-bottom: 25px;">
+                <h1 style="color: #1e3a8a; font-size: 22px; font-weight: bold; margin-bottom: 8px;">รายงานผลการเยี่ยมบ้านนักเรียน</h1>
+                <div style="height: 2px; background-color: #3b82f6; width: 100%; margin: 8px auto;"></div>
+                <p style="color: #475569; font-size: 14px; margin: 0;">โรงเรียนป่าก้าง | วันที่พิมพ์: ${dateStr} | ครู: ${user.fullName} | ชั้น: ${getVal(s, "classLevel")}</p>
+              </div>
+              
+              <div style="border: 2px solid #60a5fa; border-radius: 8px; margin-bottom: 25px; overflow: hidden;">
+                <div style="background-color: #eff6ff; padding: 12px 16px; border-bottom: 2px solid #60a5fa;">
+                  <h2 style="color: #1e3a8a; font-size: 16px; margin: 0; font-weight: bold;">1. ${s.studentNo} - ${s.studentName}</h2>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <thead>
+                    <tr>
+                      <th style="background-color: #e0e7ff; color: #1e3a8a; padding: 8px 12px; border-bottom: 1px solid #bfdbfe; border-right: 1px solid #bfdbfe; text-align: left; width: 35%; font-weight: bold;">ข้อมูล</th>
+                      <th style="background-color: #e0e7ff; color: #1e3a8a; padding: 8px 12px; border-bottom: 1px solid #bfdbfe; text-align: left; font-weight: bold;">รายละเอียด</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">1. ข้อมูลทั่วไป</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ชื่อเล่น</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${s.nickname || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">วันที่เยี่ยม</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${vDate}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">สถานะ</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${visitStatus}</td></tr>
+                    
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">2. ที่พักอาศัยและการเดินทาง</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ระยะทาง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${dist}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ลักษณะที่พัก</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseType") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">สภาพบ้าน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "houseCondition") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">วิธีการเดินทาง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "travelMethod") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">สาธารณูปโภค</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "utilities") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">สภาพแวดล้อม</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "environment") || '-'}</td></tr>
 
-            // เขียน HTML
-            iframe.contentDocument.open();
-            iframe.contentDocument.write(reportHTML);
-            iframe.contentDocument.close();
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">3. ข้อมูลครอบครัว</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">จำนวนสมาชิกในบ้าน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyMembers") ? getVal(v, "familyMembers") + " คน" : '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">จำนวนพี่น้อง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "siblings") ? getVal(v, "siblings") + " คน" : '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">รายได้ครอบครัวเฉลี่ย</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyIncome") ? getVal(v, "familyIncome") + " บาท/เดือน" : '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ความสัมพันธ์</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyRelationship") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ภาระงานอยู่บ้าน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "studentDuties") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">กิจกรรมที่ทำร่วมกัน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "familyActivities") || '-'}</td></tr>
 
-            // ✅ รอให้ iframe load font + render เสร็จ (สำคัญที่สุด!)
-            await new Promise(r => setTimeout(r, 2000));
-            
-            // รอ font ใน iframe
-            try {
-              if (iframe.contentDocument.fonts && iframe.contentDocument.fonts.ready) {
-                await iframe.contentDocument.fonts.ready;
-              }
-            } catch (e) {}
-            
-            await new Promise(r => setTimeout(r, 800));
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">4. ข้อมูลด้านความเสี่ยง</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ด้านสุขภาพ</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskHealth") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ด้านความปลอดภัย</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskSafety") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ด้านการเดินทาง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskTravel") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ด้านเศรษฐกิจ/การงาน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskWork") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ด้านสังคม/เพื่อน</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskSocial") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ด้านยาเสพติด</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "riskSubstance") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">ข้อห่วงใยของผู้ปกครอง</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${getVal(v, "parentConcerns") || '-'}</td></tr>
 
-            // ✅ ใช้ html2pdf จาก parent window แต่ render element ใน iframe
-            const pdfContent = iframe.contentDocument.getElementById("pdf-content");
-            
+                    <tr><td colspan="2" style="background-color: #f1f5f9; padding: 6px 12px; font-weight: bold; color: #0f172a; border-bottom: 1px solid #cbd5e1; border-top: 1px solid #cbd5e1;">5. สรุปผล</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc;">สรุปความเห็นของครู</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #1e40af;">${getVal(v, "visitResult") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc; vertical-align: top;">บันทึกเพิ่มเติม</td><td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top;">${getVal(v, "teacherNotes") || '-'}</td></tr>
+                    <tr><td style="padding: 8px 12px; border-right: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #fafbfc; vertical-align: top;">การสังเกตเบื้องต้น</td><td style="padding: 8px 12px; vertical-align: top;">${getVal(v, "observations") || '-'}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div style="margin-top: 40px; display: flex; justify-content: space-around; page-break-inside: avoid; margin-bottom: 20px;">
+                <div style="text-align: center; width: 40%; font-size: 13px;">
+                  <div style="border-bottom: 1px dotted #475569; height: 30px; margin-bottom: 8px;"></div>
+                  <p style="margin: 4px 0; color: #475569;">ลงชื่อ ............................................</p>
+                  <p style="margin: 4px 0;"><strong>(${user.fullName})</strong></p>
+                  <p style="margin: 4px 0; color: #475569;">ครูประจำชั้น</p>
+                </div>
+                <div style="text-align: center; width: 40%; font-size: 13px;">
+                  <div style="border-bottom: 1px dotted #475569; height: 30px; margin-bottom: 8px;"></div>
+                  <p style="margin: 4px 0; color: #475569;">ลงชื่อ ............................................</p>
+                  <p style="margin: 4px 0;"><strong>(........................................)</strong></p>
+                  <p style="margin: 4px 0; color: #475569;">ผู้อำนวยการสถานศึกษา</p>
+                </div>
+              </div>
+
+            </div>
+          `;
+
+          container.innerHTML = html;
+
+          try {
+            await new Promise(r => setTimeout(r, 200)); 
             const safeName = s.studentName.replace(/\s+/g, '_');
-            const filename = `รายงานเยี่ยมบ้าน_เลขที่${s.studentNo}_${safeName}.pdf`;
             
             await html2pdf().set({
               margin: [10, 10, 10, 10],
-              filename: filename,
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: "#ffffff",
-                letterRendering: true,
-                logging: false,
-                width: 794,
-                windowWidth: 794
-              },
-              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-              pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            }).from(pdfContent).save();
+              filename: `รายงานเยี่ยมบ้าน_เลขที่${s.studentNo}_${safeName}.pdf`,
+              image: { type: 'jpeg', quality: 1.0 },
+              html2canvas: { scale: 2, logging: false },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(container).save();
             
-            // ปิด iframe
-            await new Promise(r => setTimeout(r, 500));
-            if (iframe.parentNode) document.body.removeChild(iframe);
+          } catch (e) {
+            console.error("PDF generation failed for", s.studentName, e);
           }
+          
+          container.innerHTML = "";
+        } // จบลูป for
 
-          showToast(`✅ ดาวน์โหลดสำเร็จ ${targetStudents.length} ไฟล์`, "success");
-        } catch (e) {
-          console.error("PDF Error:", e);
-          showToast("❌ ผิดพลาด: " + e.message, "error");
-        } finally {
-          if (overlay.parentNode) document.body.removeChild(overlay);
-          setGenerating(false);
-          setPdfProgress("");
-          setSelectedStudents(new Set());
-        }
+        // ทำเสร็จ เคลียร์ Container ทิ้ง
+        const cleanup = document.getElementById("pdf-engine-root");
+        if(cleanup && cleanup.parentNode) cleanup.parentNode.removeChild(cleanup);
+
+        setGenerating(false);
+        setPdfProgress("");
+        showToast(`ดาวน์โหลดเอกสารสำเร็จ จำนวน ${targetStudents.length} ไฟล์`, "success");
+        setSelectedStudents(new Set()); // ล้างการเลือก
       };
 
       if(!isLoaded) return <div className="text-center mt-32"><div className="w-16 h-16 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mx-auto"></div></div>;
@@ -1071,7 +1032,7 @@
            <div className="border-t border-slate-200 pt-8 mb-6 flex justify-between items-end">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 mb-2">พิมพ์รายงานรายบุคคล (PDF)</h3>
-                <p className="text-slate-500 font-medium">แยกไฟล์ละ 1 คน (เลือกนักเรียนที่ต้องการพิมพ์)</p>
+                <p className="text-slate-500 font-medium">มีข้อมูลพร้อมพิมพ์ {visitedList.length} รายการ (ระบบจะดาวน์โหลดไฟล์แยกตามรายบุคคล)</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={selectAll} className="text-sm font-bold text-blue-600 hover:text-blue-800 cursor-pointer">เลือกทั้งหมด</button>
@@ -1097,7 +1058,7 @@
            {visitedList.length > 0 && (
              <div className="text-center">
                <button onClick={exportPDF} disabled={generating || selectedStudents.size === 0} className="px-10 py-5 rounded-full font-black text-white bg-slate-900 hover:bg-rose-500 disabled:opacity-50 btn-press shadow-xl transition-colors text-lg flex items-center justify-center mx-auto gap-3 cursor-pointer">
-                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> {pdfProgress}</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} คน)</>}
+                 {generating ? <><i className="fa-solid fa-spinner fa-spin"></i> {pdfProgress}</> : <><i className="fa-solid fa-file-pdf"></i> สร้างรายงาน PDF ({selectedStudents.size} ไฟล์)</>}
                </button>
              </div>
            )}
